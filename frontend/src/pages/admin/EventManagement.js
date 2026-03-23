@@ -74,7 +74,7 @@ function EventDetail({ eventId, onBack }) {
             setEvent(ev.data); setRegs(rg.data); setAssignments(as.data); setCaptains(cp.data); setUsers(us.data);
         } catch {}
     };
-    useEffect(() => { load(); }, [eventId]);
+    useEffect(() => { load(); }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const uploadCSV = async (e) => {
         const file = e.target.files[0]; if (!file) return;

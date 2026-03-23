@@ -79,17 +79,18 @@ export default function LiveScreen() {
                     <Lock size={40} className="mx-auto mb-4 text-primary" />
                     <h1 className="text-2xl font-bold mb-2" style={{fontFamily:'Outfit'}}>SSNC Live Screen</h1>
                     <p className="text-sm text-muted-foreground mb-6">Enter password to access</p>
-                    <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
-                        className="bg-black/30 border-white/10 h-12 mb-4 text-center text-lg" data-testid="live-password-input"
-                        onKeyDown={e => e.key === 'Enter' && authenticate()} />
-                    {!paramEventId && events.length > 0 && (
-                        <select value={eventId} onChange={e => setEventId(e.target.value)}
-                            className="w-full bg-black/30 border border-white/10 rounded-lg h-12 mb-4 text-white px-3" data-testid="live-event-select">
-                            <option value="">Select Event</option>
-                            {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
-                        </select>
-                    )}
-                    <Button onClick={authenticate} className="w-full h-12 bg-primary text-lg font-semibold" data-testid="live-auth-btn">Enter</Button>
+                    <form onSubmit={(e) => { e.preventDefault(); authenticate(); }}>
+                        <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
+                            className="bg-black/30 border-white/10 h-12 mb-4 text-center text-lg" data-testid="live-password-input" />
+                        {!paramEventId && events.length > 0 && (
+                            <select value={eventId} onChange={e => setEventId(e.target.value)}
+                                className="w-full bg-black/30 border border-white/10 rounded-lg h-12 mb-4 text-white px-3" data-testid="live-event-select">
+                                <option value="">Select Event</option>
+                                {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                            </select>
+                        )}
+                        <Button type="submit" className="w-full h-12 bg-primary text-lg font-semibold" data-testid="live-auth-btn">Enter</Button>
+                    </form>
                 </div>
             </div>
         );
