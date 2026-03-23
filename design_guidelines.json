@@ -1,0 +1,158 @@
+{
+  "identity": {
+    "persona": "E1",
+    "mission": "Create a high-performance, electric, and distinct Speed Networking experience. No AI slop. Function over trend, but make it visceral.",
+    "principles": [
+      "Fusion over Imitation: Mix 'Stock Market Ticker' urgency with 'VIP Event' exclusivity.",
+      "Emotion First: Speed = Adrenaline. Design must feel fast.",
+      "Content is King: The 'Match' is the hero. The 'Leaderboard' is the stage.",
+      "Contrast: Deep blacks vs. Neon accents. No muddy greys."
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Outfit, sans-serif",
+      "body": "Manrope, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "light": 300,
+      "regular": 400,
+      "medium": 500,
+      "bold": 700,
+      "black": 900
+    },
+    "scale": {
+      "display": "text-6xl md:text-8xl tracking-tighter leading-none",
+      "h1": "text-4xl md:text-6xl tracking-tight font-bold",
+      "h2": "text-3xl md:text-4xl tracking-tight font-semibold",
+      "h3": "text-2xl md:text-3xl font-medium",
+      "body_lg": "text-lg md:text-xl leading-relaxed",
+      "body": "text-base leading-relaxed",
+      "caption": "text-xs uppercase tracking-widest font-bold"
+    },
+    "installation": "import '@fontsource/outfit'; import '@fontsource/manrope';"
+  },
+  "colors": {
+    "theme": "dark-preferred",
+    "palette": {
+      "primary": {
+        "DEFAULT": "#6366f1",
+        "foreground": "#ffffff",
+        "hover": "#4f46e5",
+        "active": "#4338ca"
+      },
+      "secondary": {
+        "DEFAULT": "#1e293b",
+        "foreground": "#f8fafc"
+      },
+      "background": {
+        "DEFAULT": "#0A0A0A",
+        "paper": "#121212",
+        "subtle": "#171717"
+      },
+      "surface": {
+        "DEFAULT": "#121212",
+        "elevated": "#1A1A1A",
+        "border": "#27272a"
+      },
+      "accent": {
+        "gold": "#F59E0B",
+        "emerald": "#10B981",
+        "rose": "#F43F5E",
+        "cyan": "#06b6d4"
+      },
+      "text": {
+        "primary": "#ededed",
+        "secondary": "#a1a1aa",
+        "muted": "#52525b"
+      }
+    },
+    "gradients": {
+      "hero": "bg-gradient-to-br from-indigo-500/20 via-purple-500/10 to-transparent",
+      "glass": "bg-white/5 backdrop-blur-xl border border-white/10",
+      "card_hover": "hover:bg-white/5 transition-colors duration-300",
+      "glow": "shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+    }
+  },
+  "spacing": {
+    "container_padding": "p-6 md:p-12 lg:p-24",
+    "section_gap": "gap-12 md:gap-24",
+    "element_gap": "gap-4 md:gap-8",
+    "border_radius": {
+      "card": "rounded-xl",
+      "button": "rounded-lg",
+      "input": "rounded-md"
+    }
+  },
+  "grid_system": {
+    "modes": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6",
+      "bento_hero": "grid grid-cols-1 md:grid-cols-8 gap-4",
+      "list_dense": "flex flex-col gap-2"
+    },
+    "layout_rules": [
+      "Use 'col-span-full' for section headers on mobile.",
+      "Admin Dashboard: Use 'The Swiss Grid' - asymmetrical blocks.",
+      "Live Screen: 100% width fluid containers, auto-scroll focus."
+    ]
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200 font-medium tracking-wide px-8 py-3",
+      "secondary": "bg-secondary text-secondary-foreground border border-white/10 hover:bg-secondary/80",
+      "ghost": "hover:bg-white/5 text-muted-foreground hover:text-foreground",
+      "destructive": "bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20"
+    },
+    "cards": {
+      "glass": "bg-[#121212]/80 backdrop-blur-md border border-white/5 shadow-xl",
+      "solid": "bg-[#171717] border border-white/5",
+      "interactive": "group cursor-pointer hover:border-primary/50 transition-colors"
+    },
+    "inputs": {
+      "style": "bg-black/20 border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-white placeholder:text-white/20 h-12"
+    },
+    "navigation": {
+      "mobile": "fixed bottom-0 left-0 right-0 bg-[#0A0A0A]/90 backdrop-blur-lg border-t border-white/10 z-50 h-16 safe-area-pb",
+      "desktop": "sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-white/5"
+    },
+    "visual_enhancers": {
+      "glow_effects": "Use 'shadow-[0_0_30px_-5px_var(--tw-shadow-color)]' for active states.",
+      "noise_texture": "Use a subtle fixed noise overlay at 2% opacity for analog feel.",
+      "borders": "1px solid rgba(255,255,255,0.08) - never pure grey."
+    }
+  },
+  "assets": {
+    "image_urls": {
+      "login_hero": "https://images.unsplash.com/photo-1696861270495-7f35c35c3273?q=80&w=2070&auto=format&fit=crop",
+      "admin_bg": "https://images.unsplash.com/photo-1696861273647-92dfe8bb697c?q=80&w=2070&auto=format&fit=crop",
+      "empty_state": "https://images.pexels.com/photos/8276364/pexels-photo-8276364.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "Stroke width 1.5px, crisp edges."
+    }
+  },
+  "instructions_to_main_agent": [
+    "PHASE 1: Setup Theme. Implement the dark mode colors in 'tailwind.config.js' immediately. Extend the theme with the specific neon accents.",
+    "PHASE 2: Layouts. Build the 'Admin Dashboard' using the 'Bento Grid' strategy. Do not use standard bootstrap rows.",
+    "PHASE 3: User App. Focus on 'Thumb Zone' navigation. Primary actions (Punch, Scan) must be bottom-aligned.",
+    "PHASE 4: Live Screen. This is a TV interface. Use 'vh' units for typography to ensure readability at distance. High contrast is mandatory.",
+    "CRITICAL: Do not use gradients for text. It impairs readability on projectors.",
+    "CRITICAL: All interactive elements must have 'data-testid' attributes.",
+    "CRITICAL: Use 'sonner' for all notifications."
+  ],
+  "universal_guidelines": [
+    "Avoid AI slop: No generic centered layouts.",
+    "Dark colors: Use independently, avoid dark gradients.",
+    "Depth: Use z-index and layered shadows.",
+    "Glassmorphism: Use backdrop-blur-md or xl with semi-transparent backgrounds.",
+    "Transitions: Specific properties only (transform, opacity, colors), never 'all'.",
+    "No text-align: center on app container.",
+    "Buttons: Sharp or pill-shaped, animated on hover.",
+    "Micro-animations: Hover, active, focus states are mandatory.",
+    "Spacing: Luxurious spacing (p-8, p-12).",
+    "Textures: Grain/noise overlays recommended.",
+    "Toasts: Use Sonner."
+  ]
+}
