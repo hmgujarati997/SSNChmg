@@ -265,10 +265,98 @@ async def create_category(data: CategoryCreate, admin=Depends(require_admin)):
 
 @router.get("/categories")
 async def list_categories(admin=Depends(require_admin)):
-    cats = await db.categories.find({}, {"_id": 0}).to_list(200)
+    cats = await db.categories.find({}, {"_id": 0}).sort("name", 1).to_list(200)
     for cat in cats:
         cat['subcategory_count'] = await db.subcategories.count_documents({"category_id": cat['id']})
     return cats
+
+
+@router.post("/categories/upload-csv")
+async def upload_categories_csv(file: UploadFile = File(...), admin=Depends(require_admin)):
+    """
+    Upload CSV where each column header is a business category
+    and rows below are subcategories for that category.
+    Duplicates are skipped. Everything sorted A-Z.
+    """
+    content = await file.read()
+    text = content.decode('utf-8')
+    reader = csv.reader(io.StringIO(text))
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(400, "Empty CSV file")
+
+    headers = [h.strip() for h in rows[0] if h.strip()]
+    if not headers:
+        raise HTTPException(400, "No category headers found in first row")
+
+    cats_created = 0
+    cats_skipped = 0
+    subs_created = 0
+    subs_skipped = 0
+
+    # Sort headers A-Z
+    col_map = {}
+    for idx, h in enumerate(rows[0]):
+        stripped = h.strip()
+        if stripped:
+            col_map[idx] = stripped
+
+    sorted_cat_names = sorted(col_map.values(), key=lambda x: x.lower())
+
+    # Build reverse lookup: cat_name -> column index
+    name_to_cols = {}
+    for idx, name in col_map.items():
+        name_to_cols.setdefault(name, []).append(idx)
+
+    for cat_name in sorted_cat_names:
+        # Check if category already exists (case-insensitive)
+        existing_cat = await db.categories.find_one(
+            {"name": {"$regex": f"^{cat_name}$", "$options": "i"}}
+        )
+        if existing_cat:
+            cat_id = existing_cat['id']
+            cats_skipped += 1
+        else:
+            cat_id = str(uuid.uuid4())
+            await db.categories.insert_one({
+                "id": cat_id,
+                "name": cat_name,
+                "collaborates_with": []
+            })
+            cats_created += 1
+
+        # Collect all subcategories from all columns for this category
+        sub_names = set()
+        for col_idx in name_to_cols.get(cat_name, []):
+            for row in rows[1:]:
+                if col_idx < len(row):
+                    val = row[col_idx].strip()
+                    if val:
+                        sub_names.add(val)
+
+        # Sort subcategories A-Z and insert non-duplicates
+        for sub_name in sorted(sub_names, key=lambda x: x.lower()):
+            existing_sub = await db.subcategories.find_one({
+                "category_id": cat_id,
+                "name": {"$regex": f"^{sub_name}$", "$options": "i"}
+            })
+            if existing_sub:
+                subs_skipped += 1
+            else:
+                await db.subcategories.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "name": sub_name,
+                    "category_id": cat_id
+                })
+                subs_created += 1
+
+    return {
+        "message": "CSV processed successfully",
+        "categories_created": cats_created,
+        "categories_skipped": cats_skipped,
+        "subcategories_created": subs_created,
+        "subcategories_skipped": subs_skipped
+    }
 
 
 @router.put("/categories/{cat_id}")
@@ -297,7 +385,7 @@ async def list_subcategories(category_id: str = None, admin=Depends(require_admi
     query = {}
     if category_id:
         query["category_id"] = category_id
-    return await db.subcategories.find(query, {"_id": 0}).to_list(500)
+    return await db.subcategories.find(query, {"_id": 0}).sort("name", 1).to_list(500)
 
 
 @router.put("/subcategories/{sub_id}")
