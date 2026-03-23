@@ -96,7 +96,14 @@ async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(
     if not event:
         raise HTTPException(404, "Event not found")
     content = await file.read()
-    text = content.decode('utf-8')
+    for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
+        try:
+            text = content.decode(encoding)
+            break
+        except (UnicodeDecodeError, LookupError):
+            continue
+    else:
+        raise HTTPException(400, "Could not decode CSV file. Please save it as UTF-8.")
     reader = csv.DictReader(io.StringIO(text))
     created = 0
     skipped = 0
@@ -279,7 +286,15 @@ async def upload_categories_csv(file: UploadFile = File(...), admin=Depends(requ
     Duplicates are skipped. Everything sorted A-Z.
     """
     content = await file.read()
-    text = content.decode('utf-8')
+    # Try multiple encodings for Excel-exported CSVs
+    for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
+        try:
+            text = content.decode(encoding)
+            break
+        except (UnicodeDecodeError, LookupError):
+            continue
+    else:
+        raise HTTPException(400, "Could not decode CSV file. Please save it as UTF-8.")
     reader = csv.reader(io.StringIO(text))
     rows = list(reader)
     if not rows:
