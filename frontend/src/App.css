@@ -1,34 +1,54 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* App-level styles */
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+.animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Staggered entrance */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+
+/* Live screen pulse */
+.pulse-live {
+    animation: pulseLive 2s ease-in-out infinite;
+}
+
+@keyframes pulseLive {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Table number badge */
+.table-badge {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    background: rgba(99, 102, 241, 0.15);
+    color: hsl(239, 84%, 67%);
+    border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
-.App-link {
-    color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+/* Bottom nav safe area */
+.safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
