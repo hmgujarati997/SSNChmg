@@ -179,33 +179,72 @@ class SSNCAPITester:
         )
         return success
 
-    def test_user_registration(self):
-        """Test user registration"""
-        user_data = {
+    def test_user_registration_mandatory_business_info(self):
+        """Test user registration with mandatory business info validation"""
+        # Test 1: Registration without business_name should fail
+        user_data_no_business = {
             "full_name": "Test User",
-            "phone": f"9876543{datetime.now().strftime('%H%M')}",  # Unique phone
+            "phone": f"9876543{datetime.now().strftime('%H%M')}",
             "email": f"testuser{datetime.now().strftime('%H%M%S')}@test.com",
-            "business_name": "Test Business",
+            "business_name": "",  # Empty business name
             "category_id": self.created_category_id or "",
             "subcategory_id": "",
-            "position": "Test Position",
-            "password": "testpass123"
+            "position": "Test Position"
         }
         
         success, response = self.run_test(
-            "User Registration",
+            "User Registration - Missing Business Name (Should Fail)",
+            "POST",
+            "auth/user/register",
+            400,  # Should fail
+            data=user_data_no_business
+        )
+        
+        # Test 2: Registration without category should fail
+        user_data_no_category = {
+            "full_name": "Test User 2",
+            "phone": f"9876544{datetime.now().strftime('%H%M')}",
+            "email": f"testuser2{datetime.now().strftime('%H%M%S')}@test.com",
+            "business_name": "Test Business",
+            "category_id": "",  # Empty category
+            "subcategory_id": "",
+            "position": "Test Position"
+        }
+        
+        success2, response2 = self.run_test(
+            "User Registration - Missing Category (Should Fail)",
+            "POST",
+            "auth/user/register",
+            400,  # Should fail
+            data=user_data_no_category
+        )
+        
+        # Test 3: Valid registration with all required fields
+        user_data_valid = {
+            "full_name": "Test User Valid",
+            "phone": f"9876545{datetime.now().strftime('%H%M')}",
+            "email": f"testuser3{datetime.now().strftime('%H%M%S')}@test.com",
+            "business_name": "Test Business Valid",
+            "category_id": self.created_category_id or "",
+            "subcategory_id": "",
+            "position": "Test Position"
+        }
+        
+        success3, response3 = self.run_test(
+            "User Registration - Valid Data",
             "POST",
             "auth/user/register",
             200,
-            data=user_data
+            data=user_data_valid
         )
-        if success and 'token' in response:
-            self.user_token = response['token']
-            if 'user' in response and 'id' in response['user']:
-                self.created_user_id = response['user']['id']
+        
+        if success3 and 'token' in response3:
+            self.user_token = response3['token']
+            if 'user' in response3 and 'id' in response3['user']:
+                self.created_user_id = response3['user']['id']
                 print(f"   User created with ID: {self.created_user_id}")
-            return True
-        return False
+        
+        return success and success2 and success3
 
     def test_user_login(self):
         """Test user login with created user"""
@@ -347,6 +386,142 @@ class SSNCAPITester:
         )
         return success
 
+    def test_admin_create_user_with_event_registration(self):
+        """Test admin creating user with optional event registration"""
+        if not self.admin_token:
+            print("❌ Skipping - No admin token")
+            return False
+        
+        user_data = {
+            "full_name": "Admin Created User",
+            "phone": f"9876546{datetime.now().strftime('%H%M')}",
+            "email": f"adminuser{datetime.now().strftime('%H%M%S')}@test.com",
+            "business_name": "Admin Test Business",
+            "category_id": self.created_category_id or "",
+            "subcategory_id": "",
+            "position": "Admin Test Position",
+            "event_id": self.created_event_id or ""
+        }
+        
+        success, response = self.run_test(
+            "Admin Create User with Event Registration",
+            "POST",
+            "admin/users",
+            200,
+            data=user_data,
+            token=self.admin_token
+        )
+        return success
+
+    def test_admin_users_list_with_business_info(self):
+        """Test admin users list includes business info"""
+        if not self.admin_token:
+            print("❌ Skipping - No admin token")
+            return False
+        
+        success, response = self.run_test(
+            "Admin Users List with Business Info",
+            "GET",
+            "admin/users",
+            200,
+            token=self.admin_token
+        )
+        
+        if success and isinstance(response, list) and len(response) > 0:
+            # Check if users have business info fields
+            user = response[0]
+            has_business_fields = all(field in user for field in ['business_name', 'category_name'])
+            if has_business_fields:
+                print("   ✅ Users list includes business info fields")
+                return True
+            else:
+                print("   ❌ Users list missing business info fields")
+                return False
+        return success
+
+    def test_event_registrations_with_business_info(self):
+        """Test event registrations include business info"""
+        if not self.admin_token or not self.created_event_id:
+            print("❌ Skipping - No admin token or event")
+            return False
+        
+        success, response = self.run_test(
+            "Event Registrations with Business Info",
+            "GET",
+            f"admin/events/{self.created_event_id}/registrations",
+            200,
+            token=self.admin_token
+        )
+        
+        if success and isinstance(response, list):
+            print(f"   Found {len(response)} registrations")
+            if len(response) > 0:
+                # Check if registrations have business info
+                reg = response[0]
+                if 'user' in reg and reg['user']:
+                    user = reg['user']
+                    has_business_fields = 'business_name' in user
+                    if has_business_fields:
+                        print("   ✅ Event registrations include business info")
+                        return True
+                    else:
+                        print("   ❌ Event registrations missing business info")
+                        return False
+        return success
+
+    def test_profile_completion_status(self):
+        """Test profile completion status check"""
+        if not self.user_token:
+            print("❌ Skipping - No user token")
+            return False
+        
+        success, response = self.run_test(
+            "Profile Completion Status",
+            "GET",
+            "user/profile-status",
+            200,
+            token=self.user_token
+        )
+        
+        if success and 'complete' in response:
+            print(f"   Profile complete: {response['complete']}")
+            if 'missing_fields' in response:
+                print(f"   Missing fields: {response['missing_fields']}")
+            return True
+        return success
+
+    def test_incomplete_user_login(self):
+        """Test login with user that has incomplete profile (phone: 1111111111)"""
+        success, response = self.run_test(
+            "Incomplete User Login",
+            "POST",
+            "auth/user/login",
+            200,
+            data={"phone": "1111111111", "password": "1111111111"}
+        )
+        
+        if success and 'token' in response:
+            # Check profile status for this user
+            incomplete_token = response['token']
+            success2, response2 = self.run_test(
+                "Incomplete User Profile Status",
+                "GET",
+                "user/profile-status",
+                200,
+                token=incomplete_token
+            )
+            
+            if success2 and 'complete' in response2:
+                is_complete = response2['complete']
+                print(f"   Profile complete: {is_complete}")
+                if not is_complete:
+                    print("   ✅ Correctly identified incomplete profile")
+                    return True
+                else:
+                    print("   ❌ Profile should be incomplete but shows as complete")
+                    return False
+        return success
+
 def main():
     print("🚀 Starting SSNC Speed Networking API Tests")
     print("=" * 50)
@@ -362,7 +537,7 @@ def main():
         tester.test_list_categories,
         tester.test_create_event,
         tester.test_list_events,
-        tester.test_user_registration,
+        tester.test_user_registration_mandatory_business_info,
         tester.test_user_login,
         tester.test_create_volunteer,
         tester.test_volunteer_login,
@@ -371,6 +546,11 @@ def main():
         tester.test_user_profile,
         tester.test_user_events,
         tester.test_admin_settings,
+        tester.test_admin_create_user_with_event_registration,
+        tester.test_admin_users_list_with_business_info,
+        tester.test_event_registrations_with_business_info,
+        tester.test_profile_completion_status,
+        tester.test_incomplete_user_login,
     ]
     
     # Run all tests

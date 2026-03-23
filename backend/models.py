@@ -80,6 +80,18 @@ class UserCreate(BaseModel):
     password: str = ""
 
 
+class AdminUserCreate(BaseModel):
+    full_name: str
+    phone: str
+    email: str = ""
+    business_name: str = ""
+    category_id: str = ""
+    subcategory_id: str = ""
+    position: str = ""
+    password: str = ""
+    event_id: str = ""  # optional: auto-register for event
+
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None

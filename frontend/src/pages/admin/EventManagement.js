@@ -157,22 +157,26 @@ function EventDetail({ eventId, onBack }) {
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">CSV format: full_name, phone, email, business_name, category, subcategory, position</p>
                     <div className="glass-card rounded-xl overflow-hidden">
+                        <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead><tr className="border-b border-white/5">
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase">Name</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden sm:table-cell">Phone</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden md:table-cell">Business</th>
+                                <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden lg:table-cell">Category / Sub</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase">Status</th>
                             </tr></thead>
                             <tbody>{regs.map(r => (
                                 <tr key={r.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                     <td className="p-3 font-medium">{r.user?.full_name || 'N/A'}</td>
                                     <td className="p-3 text-muted-foreground hidden sm:table-cell">{r.user?.phone}</td>
-                                    <td className="p-3 text-muted-foreground hidden md:table-cell">{r.user?.business_name}</td>
+                                    <td className="p-3 text-muted-foreground hidden md:table-cell">{r.user?.business_name || <span className="text-destructive/60 text-xs">Missing</span>}</td>
+                                    <td className="p-3 hidden lg:table-cell">{r.user?.category_name ? <><Badge variant="outline" className="text-xs">{r.user.category_name}</Badge>{r.user.subcategory_name && <span className="text-xs text-muted-foreground ml-1">/ {r.user.subcategory_name}</span>}</> : <span className="text-destructive/60 text-xs">Missing</span>}</td>
                                     <td className="p-3"><Badge variant={r.payment_status === 'paid' ? 'default' : 'outline'} className="text-xs">{r.payment_status}</Badge></td>
                                 </tr>
                             ))}</tbody>
                         </table>
+                        </div>
                         {regs.length === 0 && <p className="p-6 text-center text-muted-foreground">No registrations yet</p>}
                     </div>
                 </TabsContent>

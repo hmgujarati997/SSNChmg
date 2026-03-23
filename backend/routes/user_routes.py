@@ -8,6 +8,22 @@ from datetime import datetime, timezone
 router = APIRouter(prefix="/api/user", tags=["User"])
 
 
+@router.get("/profile-status")
+async def profile_status(user=Depends(require_user)):
+    """Check if user has completed mandatory business fields."""
+    profile = await db.users.find_one({"id": user['sub']}, {"_id": 0, "password_hash": 0})
+    if not profile:
+        raise HTTPException(404, "Profile not found")
+    missing = []
+    if not profile.get('business_name'):
+        missing.append('business_name')
+    if not profile.get('category_id'):
+        missing.append('category_id')
+    if not profile.get('subcategory_id'):
+        missing.append('subcategory_id')
+    return {"complete": len(missing) == 0, "missing_fields": missing}
+
+
 @router.get("/profile")
 async def get_profile(user=Depends(require_user)):
     profile = await db.users.find_one({"id": user['sub']}, {"_id": 0, "password_hash": 0})

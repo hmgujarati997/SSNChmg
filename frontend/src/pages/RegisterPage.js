@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Zap } from 'lucide-react';
+import { ArrowLeft, Zap, AlertCircle } from 'lucide-react';
 
 export default function RegisterPage() {
     const { login } = useAuth();
@@ -21,6 +21,7 @@ export default function RegisterPage() {
         linkedin: '', instagram: '', twitter: '', youtube: '',
         whatsapp: '', facebook: '', website: ''
     });
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         API.get('/public/categories').then(r => setCategories(r.data)).catch(() => {});
@@ -34,10 +35,21 @@ export default function RegisterPage() {
         }
     }, [form.category_id]);
 
+    const validate = () => {
+        const e = {};
+        if (!form.full_name.trim()) e.full_name = 'Required';
+        if (!form.phone.trim()) e.phone = 'Required';
+        if (!form.business_name.trim()) e.business_name = 'Required';
+        if (!form.category_id) e.category_id = 'Required';
+        if (!form.subcategory_id) e.subcategory_id = 'Required';
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!form.full_name || !form.phone) {
-            toast.error('Name and phone number are required');
+        if (!validate()) {
+            toast.error('Please fill all required fields');
             return;
         }
         setLoading(true);
@@ -51,7 +63,14 @@ export default function RegisterPage() {
         setLoading(false);
     };
 
-    const u = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
+    const u = (key, value) => {
+        setForm(prev => ({ ...prev, [key]: value }));
+        if (errors[key]) setErrors(prev => ({ ...prev, [key]: undefined }));
+    };
+
+    const FieldError = ({ field }) => errors[field] ? (
+        <span className="text-xs text-destructive flex items-center gap-1 mt-1"><AlertCircle size={10} />{errors[field]}</span>
+    ) : null;
 
     return (
         <div className="min-h-screen bg-background p-6 pb-20" data-testid="register-page">
@@ -70,15 +89,17 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="glass-card rounded-xl p-6 space-y-4">
-                        <h3 className="text-base font-semibold text-white tracking-wide uppercase text-xs opacity-60">Personal Info</h3>
+                        <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Personal Info</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-sm text-muted-foreground">Full Name *</Label>
-                                <Input value={form.full_name} onChange={e => u('full_name', e.target.value)} placeholder="John Doe" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-name-input" />
+                                <Label className="text-sm text-muted-foreground">Full Name <span className="text-destructive">*</span></Label>
+                                <Input value={form.full_name} onChange={e => u('full_name', e.target.value)} placeholder="John Doe" className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.full_name ? 'border-destructive' : ''}`} data-testid="reg-name-input" />
+                                <FieldError field="full_name" />
                             </div>
                             <div>
-                                <Label className="text-sm text-muted-foreground">Phone Number *</Label>
-                                <Input value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="9876543210" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-phone-input" />
+                                <Label className="text-sm text-muted-foreground">Phone Number <span className="text-destructive">*</span></Label>
+                                <Input value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="9876543210" className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.phone ? 'border-destructive' : ''}`} data-testid="reg-phone-input" />
+                                <FieldError field="phone" />
                             </div>
                             <div>
                                 <Label className="text-sm text-muted-foreground">Email</Label>
@@ -92,16 +113,17 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="glass-card rounded-xl p-6 space-y-4">
-                        <h3 className="text-base font-semibold text-white tracking-wide uppercase text-xs opacity-60">Business Info</h3>
+                        <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Business Info <span className="text-destructive">*</span></h3>
                         <div>
-                            <Label className="text-sm text-muted-foreground">Business Name</Label>
-                            <Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Your Company" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-business-input" />
+                            <Label className="text-sm text-muted-foreground">Business Name <span className="text-destructive">*</span></Label>
+                            <Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Your Company" className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.business_name ? 'border-destructive' : ''}`} data-testid="reg-business-input" />
+                            <FieldError field="business_name" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <Label className="text-sm text-muted-foreground">Business Category</Label>
-                                <Select onValueChange={v => u('category_id', v)}>
-                                    <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-category-trigger">
+                                <Label className="text-sm text-muted-foreground">Business Category <span className="text-destructive">*</span></Label>
+                                <Select value={form.category_id} onValueChange={v => { u('category_id', v); u('subcategory_id', ''); }}>
+                                    <SelectTrigger className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.category_id ? 'border-destructive' : ''}`} data-testid="reg-category-trigger">
                                         <SelectValue placeholder="Select category" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -110,11 +132,12 @@ export default function RegisterPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <FieldError field="category_id" />
                             </div>
                             <div>
-                                <Label className="text-sm text-muted-foreground">Sub Category</Label>
-                                <Select onValueChange={v => u('subcategory_id', v)}>
-                                    <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-subcategory-trigger">
+                                <Label className="text-sm text-muted-foreground">Sub Category <span className="text-destructive">*</span></Label>
+                                <Select value={form.subcategory_id} onValueChange={v => u('subcategory_id', v)}>
+                                    <SelectTrigger className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.subcategory_id ? 'border-destructive' : ''}`} data-testid="reg-subcategory-trigger">
                                         <SelectValue placeholder="Select sub-category" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -123,29 +146,18 @@ export default function RegisterPage() {
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                <FieldError field="subcategory_id" />
                             </div>
                         </div>
                     </div>
 
                     <div className="glass-card rounded-xl p-6 space-y-4">
-                        <h3 className="text-base font-semibold text-white tracking-wide uppercase text-xs opacity-60">Social Links (Optional)</h3>
+                        <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Social Links (Optional)</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <Label className="text-sm text-muted-foreground">LinkedIn</Label>
-                                <Input value={form.linkedin} onChange={e => u('linkedin', e.target.value)} placeholder="linkedin.com/in/..." className="bg-black/30 border-white/10 h-11 mt-1" />
-                            </div>
-                            <div>
-                                <Label className="text-sm text-muted-foreground">Website</Label>
-                                <Input value={form.website} onChange={e => u('website', e.target.value)} placeholder="www.example.com" className="bg-black/30 border-white/10 h-11 mt-1" />
-                            </div>
-                            <div>
-                                <Label className="text-sm text-muted-foreground">WhatsApp</Label>
-                                <Input value={form.whatsapp} onChange={e => u('whatsapp', e.target.value)} placeholder="WhatsApp number" className="bg-black/30 border-white/10 h-11 mt-1" />
-                            </div>
-                            <div>
-                                <Label className="text-sm text-muted-foreground">Instagram</Label>
-                                <Input value={form.instagram} onChange={e => u('instagram', e.target.value)} placeholder="@username" className="bg-black/30 border-white/10 h-11 mt-1" />
-                            </div>
+                            <div><Label className="text-sm text-muted-foreground">LinkedIn</Label><Input value={form.linkedin} onChange={e => u('linkedin', e.target.value)} placeholder="linkedin.com/in/..." className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">Website</Label><Input value={form.website} onChange={e => u('website', e.target.value)} placeholder="www.example.com" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">WhatsApp</Label><Input value={form.whatsapp} onChange={e => u('whatsapp', e.target.value)} placeholder="WhatsApp number" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">Instagram</Label><Input value={form.instagram} onChange={e => u('instagram', e.target.value)} placeholder="@username" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
                         </div>
                     </div>
 

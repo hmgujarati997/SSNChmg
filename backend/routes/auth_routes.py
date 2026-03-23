@@ -28,6 +28,14 @@ async def user_login(data: UserLogin):
 
 @router.post("/user/register")
 async def user_register(data: UserCreate):
+    if not data.full_name or not data.phone:
+        raise HTTPException(400, "Full name and phone number are required")
+    if not data.business_name:
+        raise HTTPException(400, "Business name is required")
+    if not data.category_id:
+        raise HTTPException(400, "Business category is required")
+    if not data.subcategory_id:
+        raise HTTPException(400, "Business sub-category is required")
     existing = await db.users.find_one({"phone": data.phone})
     if existing:
         raise HTTPException(400, "Phone number already registered")

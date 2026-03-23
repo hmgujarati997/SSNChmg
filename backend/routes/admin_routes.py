@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from database import db
 from auth_utils import require_admin, hash_password
 from models import (EventCreate, EventUpdate, CategoryCreate, SubCategoryCreate,
-                    VolunteerCreate, TableCaptainAssign, SiteSettingsUpdate, RoundControl)
+                    VolunteerCreate, TableCaptainAssign, SiteSettingsUpdate, RoundControl,
+                    AdminUserCreate)
 from seating import assign_tables
 import uuid
 import io
@@ -258,6 +259,13 @@ async def get_registrations(event_id: str, admin=Depends(require_admin)):
     regs = await db.event_registrations.find({"event_id": event_id}, {"_id": 0}).to_list(2000)
     for r in regs:
         user = await db.users.find_one({"id": r['user_id']}, {"_id": 0, "password_hash": 0})
+        if user:
+            if user.get('category_id'):
+                cat = await db.categories.find_one({"id": user['category_id']}, {"_id": 0})
+                user['category_name'] = cat['name'] if cat else ''
+            if user.get('subcategory_id'):
+                sub = await db.subcategories.find_one({"id": user['subcategory_id']}, {"_id": 0})
+                user['subcategory_name'] = sub['name'] if sub else ''
         r['user'] = user
     return regs
 
@@ -427,6 +435,124 @@ async def list_users(admin=Depends(require_admin)):
             sub = await db.subcategories.find_one({"id": u['subcategory_id']}, {"_id": 0})
             u['subcategory_name'] = sub['name'] if sub else ''
     return users
+
+
+@router.post("/users")
+async def create_user(data: AdminUserCreate, admin=Depends(require_admin)):
+    """Admin creates a user manually, optionally registers for an event."""
+    existing = await db.users.find_one({"phone": data.phone})
+    if existing:
+        raise HTTPException(400, "Phone number already registered")
+    password = data.password if data.password else data.phone
+    user_doc = {
+        "id": str(uuid.uuid4()),
+        "full_name": data.full_name,
+        "phone": data.phone,
+        "email": data.email,
+        "password_hash": hash_password(password),
+        "business_name": data.business_name,
+        "category_id": data.category_id,
+        "subcategory_id": data.subcategory_id,
+        "position": data.position,
+        "profile_picture": "",
+        "company_logo": "",
+        "social_links": {},
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user_doc)
+    result = {k: v for k, v in user_doc.items() if k not in ('password_hash', '_id')}
+
+    # Auto-register for event if event_id provided
+    if data.event_id and data.event_id != 'none':
+        existing_reg = await db.event_registrations.find_one({"event_id": data.event_id, "user_id": user_doc['id']})
+        if not existing_reg:
+            await db.event_registrations.insert_one({
+                "id": str(uuid.uuid4()),
+                "event_id": data.event_id,
+                "user_id": user_doc['id'],
+                "payment_status": "paid",
+                "registered_at": datetime.now(timezone.utc).isoformat()
+            })
+            result['registered_for_event'] = True
+    return result
+
+
+@router.post("/users/upload-csv")
+async def upload_users_csv(file: UploadFile = File(...), event_id: str = "", admin=Depends(require_admin)):
+    """
+    Upload CSV of users. Columns: full_name, phone, email, business_name, category, subcategory, position.
+    Optional query param event_id to auto-register all users for an event.
+    """
+    content = await file.read()
+    for encoding in ('utf-8-sig', 'utf-8', 'latin-1', 'cp1252'):
+        try:
+            text = content.decode(encoding)
+            break
+        except (UnicodeDecodeError, LookupError):
+            continue
+    else:
+        raise HTTPException(400, "Could not decode CSV file. Please save it as UTF-8.")
+    reader = csv.DictReader(io.StringIO(text))
+    created = 0
+    skipped = 0
+    registered = 0
+    errors = []
+    for row in reader:
+        phone = row.get('phone', '').strip()
+        if not phone:
+            errors.append("Missing phone in a row")
+            continue
+        cat_id = ""
+        subcat_id = ""
+        cat_name = row.get('category', '').strip()
+        subcat_name = row.get('subcategory', '').strip()
+        if cat_name:
+            cat = await db.categories.find_one({"name": {"$regex": f"^{cat_name}$", "$options": "i"}})
+            if cat:
+                cat_id = cat['id']
+                if subcat_name:
+                    subcat = await db.subcategories.find_one({
+                        "category_id": cat_id,
+                        "name": {"$regex": f"^{subcat_name}$", "$options": "i"}
+                    })
+                    if subcat:
+                        subcat_id = subcat['id']
+        existing = await db.users.find_one({"phone": phone})
+        if not existing:
+            user_doc = {
+                "id": str(uuid.uuid4()),
+                "full_name": row.get('full_name', '').strip(),
+                "phone": phone,
+                "email": row.get('email', '').strip(),
+                "password_hash": hash_password(phone),
+                "business_name": row.get('business_name', '').strip(),
+                "category_id": cat_id,
+                "subcategory_id": subcat_id,
+                "position": row.get('position', '').strip(),
+                "profile_picture": "",
+                "company_logo": "",
+                "social_links": {},
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(user_doc)
+            user_id = user_doc['id']
+            created += 1
+        else:
+            user_id = existing['id']
+            skipped += 1
+        # Register for event if event_id provided
+        if event_id and event_id != 'none':
+            existing_reg = await db.event_registrations.find_one({"event_id": event_id, "user_id": user_id})
+            if not existing_reg:
+                await db.event_registrations.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "event_id": event_id,
+                    "user_id": user_id,
+                    "payment_status": "paid",
+                    "registered_at": datetime.now(timezone.utc).isoformat()
+                })
+                registered += 1
+    return {"created": created, "skipped": skipped, "registered": registered, "errors": errors}
 
 
 @router.get("/users/{user_id}")
