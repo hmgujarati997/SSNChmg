@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowRightLeft, Send, Eye, Building2, Check, BookUser, X } from 'lucide-react';
+import { Send, Eye, Building2, Check, BookUser, X } from 'lucide-react';
 
 const SOCIAL_ICONS = {
     whatsapp: { color: '#25D366', label: 'WA', url: v => `https://wa.me/${v}` },
@@ -41,6 +41,8 @@ function SocialIcons({ links }) {
         </div>
     );
 }
+
+const hasContactPicker = typeof navigator !== 'undefined' && 'contacts' in navigator && 'select' in (navigator.contacts || {});
 
 export default function PunchReferences() {
     const { user } = useAuth();
@@ -92,36 +94,37 @@ export default function PunchReferences() {
         } catch { setTablePeople([]); }
     };
 
-    const openRefDialog = (person) => {
+    // Open dialog with empty form (manual entry)
+    const openRefDialog = (person, prefill = null) => {
         setSelectedPerson(person);
-        setRefForm({ contact_name: '', contact_phone: '', contact_email: '', notes: '' });
+        setRefForm(prefill || { contact_name: '', contact_phone: '', contact_email: '', notes: '' });
         setDialogOpen(true);
     };
 
-    const pickContact = () => {
-        // Use native share target - open phone's contact app via intent
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.vcf,text/vcard';
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            try {
-                const text = await file.text();
-                const getName = (t) => { const m = t.match(/FN:(.*)/); return m ? m[1].trim() : ''; };
-                const getTel = (t) => { const m = t.match(/TEL[^:]*:(.*)/); return m ? m[1].trim().replace(/[^0-9+]/g, '') : ''; };
-                const getEmail = (t) => { const m = t.match(/EMAIL[^:]*:(.*)/); return m ? m[1].trim() : ''; };
-                setRefForm(prev => ({
-                    ...prev,
-                    contact_name: getName(text) || prev.contact_name,
-                    contact_phone: getTel(text) || prev.contact_phone,
-                    contact_email: getEmail(text) || prev.contact_email,
-                }));
-                toast.success('Contact imported from vCard');
-            } catch { toast.error('Could not read contact file'); }
-        };
-        input.click();
-    };
+    // Pick contact from phone book FIRST (outside dialog), then open dialog with data
+    const pickAndPassRef = useCallback(async (person) => {
+        if (!hasContactPicker) {
+            toast.info('Phone book not available. Please type contact details.');
+            openRefDialog(person);
+            return;
+        }
+        try {
+            const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: false });
+            if (contacts && contacts.length > 0) {
+                const c = contacts[0];
+                openRefDialog(person, {
+                    contact_name: (c.name && c.name[0]) || '',
+                    contact_phone: (c.tel && c.tel[0]) || '',
+                    contact_email: (c.email && c.email[0]) || '',
+                    notes: '',
+                });
+            }
+        } catch (err) {
+            if (err && err.name === 'AbortError') return;
+            // Fallback: open dialog without prefill
+            openRefDialog(person);
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitReference = async () => {
         if (!activeEvent || !selectedRound || !selectedPerson) return;
@@ -195,9 +198,17 @@ export default function PunchReferences() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-1.5">
-                                            <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
-                                                <Send size={14} className="mr-1" />Pass Ref
-                                            </Button>
+                                            <div className="flex gap-1.5">
+                                                {hasContactPicker && (
+                                                    <Button size="sm" variant="outline" onClick={() => pickAndPassRef(p)}
+                                                        className="h-8 w-8 p-0" title="Pick from phone book" data-testid={`pick-contact-${p.id}`}>
+                                                        <BookUser size={14} />
+                                                    </Button>
+                                                )}
+                                                <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
+                                                    <Send size={14} className="mr-1" />Pass Ref
+                                                </Button>
+                                            </div>
                                             {count > 0 && (
                                                 <Badge className="bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))] border-0 text-[10px]">
                                                     <Check size={10} className="mr-0.5" />{count} passed
@@ -223,13 +234,6 @@ export default function PunchReferences() {
                     </DialogHeader>
                     <div className="space-y-4 mt-2">
                         <p className="text-xs text-muted-foreground">Add the contact details of the person you are referring.</p>
-
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={pickContact} className="text-xs" data-testid="pick-contact-btn">
-                                <BookUser size={14} className="mr-1" />Import from Contacts (.vcf)
-                            </Button>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">Share a contact as .vcf from your phone book, or type details below.</p>
 
                         <div className="grid grid-cols-1 gap-3">
                             <div>
