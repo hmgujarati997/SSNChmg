@@ -95,7 +95,20 @@ export default function UserProfile() {
                     {['linkedin', 'instagram', 'twitter', 'youtube', 'whatsapp', 'facebook', 'website'].map(f => (
                         <div key={f}>
                             <Label className="text-xs text-muted-foreground capitalize">{f}</Label>
-                            <Input value={(profile.social_links || {})[f] || ''} onChange={e => uSocial(f, e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" placeholder={f} />
+                            {f === 'whatsapp' ? (
+                                <div className="flex mt-1">
+                                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-white/10 bg-black/50 text-muted-foreground text-xs">+</span>
+                                    <Input
+                                        value={(profile.social_links || {})[f] || '91'}
+                                        onChange={e => uSocial(f, e.target.value.replace(/[^0-9]/g, ''))}
+                                        className="bg-black/30 border-white/10 h-10 rounded-l-none"
+                                        placeholder="919876543210"
+                                        data-testid="social-whatsapp-input"
+                                    />
+                                </div>
+                            ) : (
+                                <Input value={(profile.social_links || {})[f] || ''} onChange={e => uSocial(f, e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" placeholder={f} />
+                            )}
                         </div>
                     ))}
                 </div>

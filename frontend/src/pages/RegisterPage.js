@@ -19,7 +19,7 @@ export default function RegisterPage() {
         full_name: '', phone: '', email: '', business_name: '',
         category_id: '', subcategory_id: '', position: '',
         linkedin: '', instagram: '', twitter: '', youtube: '',
-        whatsapp: '', facebook: '', website: ''
+        whatsapp: '91', facebook: '', website: ''
     });
     const [errors, setErrors] = useState({});
 
@@ -156,7 +156,12 @@ export default function RegisterPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div><Label className="text-sm text-muted-foreground">LinkedIn</Label><Input value={form.linkedin} onChange={e => u('linkedin', e.target.value)} placeholder="linkedin.com/in/..." className="bg-black/30 border-white/10 h-11 mt-1" /></div>
                             <div><Label className="text-sm text-muted-foreground">Website</Label><Input value={form.website} onChange={e => u('website', e.target.value)} placeholder="www.example.com" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-                            <div><Label className="text-sm text-muted-foreground">WhatsApp</Label><Input value={form.whatsapp} onChange={e => u('whatsapp', e.target.value)} placeholder="WhatsApp number" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">WhatsApp</Label>
+                                <div className="flex mt-1">
+                                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-white/10 bg-black/50 text-muted-foreground text-xs">+</span>
+                                    <Input value={form.whatsapp} onChange={e => u('whatsapp', e.target.value.replace(/[^0-9]/g, ''))} placeholder="919876543210" className="bg-black/30 border-white/10 h-11 rounded-l-none" data-testid="register-whatsapp-input" />
+                                </div>
+                            </div>
                             <div><Label className="text-sm text-muted-foreground">Instagram</Label><Input value={form.instagram} onChange={e => u('instagram', e.target.value)} placeholder="@username" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
                         </div>
                     </div>
