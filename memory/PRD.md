@@ -41,15 +41,21 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
   - User Management (inside Upload CSV dialog)
   - Business Categories (in top action bar)
   - Event Management (in registrations tab)
+- PWA Support: manifest.json, service worker (sw.js), app icons (192x192, 512x512), install prompt popup
+  - Apple meta tags for iOS home screen support
+  - InstallPrompt component shows "Install SSNC App" banner when browser supports it
+- Camera-based QR Scanner for Volunteers:
+  - Uses html5-qrcode library for real camera scanning
+  - Toggle between Camera Scan and Manual Entry modes
+  - Auto-extracts user ID from profile URLs
+  - Stops camera after successful scan
 
 ## P0 Features Remaining
 - WhatsApp API integration (user to provide docs later)
 - Razorpay payment integration
-- Camera-based QR scanning for volunteers (currently manual entry/URL paste)
 
 ## P1 Features Remaining
 - File upload for profile pictures and company logos (currently URL-based)
-- PWA manifest and service worker for offline support
 - Collaboration category tagging in category management UI
 - Email/SMS notifications
 
