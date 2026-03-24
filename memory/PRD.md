@@ -36,6 +36,12 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - Default admin: admin@ssnc.com / admin123
 - Default live screen password: ssnc2026
 
+## What's Been Implemented (2026-03-24)
+- Download Sample CSV buttons added to all 3 admin CSV upload locations:
+  - User Management (inside Upload CSV dialog)
+  - Business Categories (in top action bar)
+  - Event Management (in registrations tab)
+
 ## P0 Features Remaining
 - WhatsApp API integration (user to provide docs later)
 - Razorpay payment integration
