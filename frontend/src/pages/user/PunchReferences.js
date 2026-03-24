@@ -100,29 +100,25 @@ export default function PunchReferences() {
 
     const pickContact = async () => {
         try {
-            if (typeof navigator.contacts === 'undefined' || typeof navigator.contacts.select !== 'function') {
-                toast.info('Phone book access is only available on Android Chrome. Please enter details manually.');
+            if (!navigator.contacts || !navigator.contacts.select) {
+                toast.info('Phone book access not available on this browser. Please enter details manually.');
                 return;
             }
-            const supported = await navigator.contacts.getProperties();
-            const props = supported.filter(p => ['name', 'tel', 'email'].includes(p));
-            const contacts = await navigator.contacts.select(props, { multiple: false });
+            const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: false });
             if (contacts && contacts.length > 0) {
                 const c = contacts[0];
                 setRefForm(prev => ({
                     ...prev,
-                    contact_name: c.name?.[0] || prev.contact_name,
-                    contact_phone: c.tel?.[0] || prev.contact_phone,
-                    contact_email: c.email?.[0] || prev.contact_email,
+                    contact_name: (c.name && c.name[0]) || prev.contact_name,
+                    contact_phone: (c.tel && c.tel[0]) || prev.contact_phone,
+                    contact_email: (c.email && c.email[0]) || prev.contact_email,
                 }));
                 toast.success('Contact imported');
             }
         } catch (err) {
-            if (err?.name === 'InvalidStateError' || err?.name === 'TypeError') {
-                toast.info('Phone book access is only available on Android Chrome. Please enter details manually.');
-            } else if (err?.name !== 'AbortError') {
-                toast.error('Could not access contacts');
-            }
+            if (err && err.name === 'AbortError') return;
+            console.error('Contact Picker error:', err);
+            toast.info('Could not access contacts. Please enter details manually.');
         }
     };
 
