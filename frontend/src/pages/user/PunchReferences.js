@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Send, Eye, Building2, Check, BookUser, X, Loader2 } from 'lucide-react';
+import { Send, Eye, Building2, Check, X } from 'lucide-react';
 
 const SOCIAL_ICONS = {
     whatsapp: { color: '#25D366', label: 'WA', url: v => `https://wa.me/${v}` },
@@ -42,8 +42,6 @@ function SocialIcons({ links }) {
     );
 }
 
-const hasContactPicker = typeof navigator !== 'undefined' && 'contacts' in navigator && 'select' in (navigator.contacts || {});
-
 export default function PunchReferences() {
     const { user } = useAuth();
     const [events, setEvents] = useState([]);
@@ -59,7 +57,6 @@ export default function PunchReferences() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedPerson, setSelectedPerson] = useState(null);
     const [refForm, setRefForm] = useState({ contact_name: '', contact_phone: '', contact_email: '', notes: '' });
-    const [pickingContact, setPickingContact] = useState(null); // holds person.id while picker is open
 
     useEffect(() => {
         API.get('/user/events').then(r => {
@@ -96,51 +93,11 @@ export default function PunchReferences() {
     };
 
     // Open dialog with empty form (manual entry)
-    const openRefDialog = (person, prefill = null) => {
+    const openRefDialog = (person) => {
         setSelectedPerson(person);
-        setRefForm(prefill || { contact_name: '', contact_phone: '', contact_email: '', notes: '' });
+        setRefForm({ contact_name: '', contact_phone: '', contact_email: '', notes: '' });
         setDialogOpen(true);
     };
-
-    // Pick contact from phone book FIRST (outside dialog), then open dialog with data
-    const pickAndPassRef = useCallback(async (person) => {
-        if (!hasContactPicker) {
-            toast.info('Phone book not available. Please type contact details.');
-            openRefDialog(person);
-            return;
-        }
-        setPickingContact(person.id);
-        toast.info('Opening phone book... please wait for contacts to load before searching.');
-        try {
-            // Use a timeout to prevent the app from hanging indefinitely
-            const pickerPromise = navigator.contacts.select(['name', 'tel'], { multiple: false });
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('timeout')), 60000)
-            );
-            const contacts = await Promise.race([pickerPromise, timeoutPromise]);
-            if (contacts && contacts.length > 0) {
-                const c = contacts[0];
-                openRefDialog(person, {
-                    contact_name: (c.name && c.name[0]) || '',
-                    contact_phone: (c.tel && c.tel[0]) || '',
-                    contact_email: '',
-                    notes: '',
-                });
-            }
-        } catch (err) {
-            if (err && err.name === 'AbortError') {
-                // User cancelled — do nothing
-            } else if (err && err.message === 'timeout') {
-                toast.error('Phone book took too long. Please enter details manually.');
-                openRefDialog(person);
-            } else {
-                toast.error('Could not load phone book. Please enter details manually.');
-                openRefDialog(person);
-            }
-        } finally {
-            setPickingContact(null);
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const submitReference = async () => {
         if (!activeEvent || !selectedRound || !selectedPerson) return;
@@ -214,18 +171,9 @@ export default function PunchReferences() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-1.5">
-                                            <div className="flex gap-1.5">
-                                                {hasContactPicker && (
-                                                    <Button size="sm" variant="outline" onClick={() => pickAndPassRef(p)}
-                                                        disabled={pickingContact === p.id}
-                                                        className="h-8 w-8 p-0" title="Pick from phone book" data-testid={`pick-contact-${p.id}`}>
-                                                        {pickingContact === p.id ? <Loader2 size={14} className="animate-spin" /> : <BookUser size={14} />}
-                                                    </Button>
-                                                )}
-                                                <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
-                                                    <Send size={14} className="mr-1" />Pass Ref
-                                                </Button>
-                                            </div>
+                                            <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
+                                                <Send size={14} className="mr-1" />Pass Ref
+                                            </Button>
                                             {count > 0 && (
                                                 <Badge className="bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))] border-0 text-[10px]">
                                                     <Check size={10} className="mr-0.5" />{count} passed

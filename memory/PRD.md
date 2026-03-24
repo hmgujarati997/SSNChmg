@@ -52,6 +52,12 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - Moved Table & Round Configuration from "Create Event" form into a dedicated "Configuration" tab inside event detail
   - Admins can now adjust tables, chairs, rounds, etc. anytime as registrations grow
 
+## What's Been Implemented (2026-03-25)
+- Removed "Import from Phone Book" (Contact Picker API) feature from Pass Reference flow
+  - The native Contact Picker API could not handle 5000+ contacts and crashed the PWA
+  - Users now manually type contact details (name, phone, email) in the Pass Reference dialog
+  - This eliminates all PWA crash issues related to the Contact Picker API
+
 ## P0 Features Remaining
 - WhatsApp API integration (user to provide docs later)
 - Razorpay payment integration
