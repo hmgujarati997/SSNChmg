@@ -310,11 +310,22 @@ function EventDetail({ eventId, onBack }) {
                                         <div key={a.id} className="glass-card rounded-lg p-4">
                                             <div className="flex items-center gap-2 mb-3">
                                                 <div className="table-badge text-sm">{a.table_number}</div>
-                                                <span className="text-xs text-muted-foreground">{a.users?.length || 0} people</span>
-                                                {a.captain && <Badge variant="outline" className="text-xs ml-auto"><Crown size={10} className="mr-1" />{a.captain.full_name}</Badge>}
+                                                <span className="text-xs text-muted-foreground">{(a.users?.length || 0) + (a.captain ? 1 : 0)} people</span>
                                             </div>
-                                            <div className="space-y-1">{(a.users || []).map(u => (
-                                                <div key={u.id} className="text-xs flex justify-between"><span className="text-white">{u.full_name}</span><span className="text-muted-foreground">{u.category_name}</span></div>
+                                            {a.captain && (
+                                                <div className="mb-2 pb-2 border-b border-white/5">
+                                                    <div className="flex items-center gap-1.5 text-xs">
+                                                        <Crown size={10} className="text-[hsl(var(--gold))]" />
+                                                        <span className="font-semibold text-[hsl(var(--gold))]">{a.captain.full_name}</span>
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground ml-4">{a.captain.category_name}{a.captain.subcategory_name ? ` / ${a.captain.subcategory_name}` : ''}</p>
+                                                </div>
+                                            )}
+                                            <div className="space-y-1.5">{(a.users || []).map(u => (
+                                                <div key={u.id} className="text-xs">
+                                                    <span className="text-white">{u.full_name}</span>
+                                                    <p className="text-[10px] text-muted-foreground">{u.category_name}{u.subcategory_name ? ` / ${u.subcategory_name}` : ''}</p>
+                                                </div>
                                             ))}</div>
                                         </div>
                                     ))}

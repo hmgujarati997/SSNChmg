@@ -216,10 +216,17 @@ async def get_assignments(event_id: str, admin=Depends(require_admin)):
             if user:
                 cat = await db.categories.find_one({"id": user.get('category_id', '')}, {"_id": 0})
                 user['category_name'] = cat['name'] if cat else ''
+                subcat = await db.subcategories.find_one({"id": user.get('subcategory_id', '')}, {"_id": 0})
+                user['subcategory_name'] = subcat['name'] if subcat else ''
                 enriched.append(user)
         a['users'] = enriched
         if a.get('captain_id'):
             captain = await db.users.find_one({"id": a['captain_id']}, {"_id": 0, "password_hash": 0})
+            if captain:
+                cat = await db.categories.find_one({"id": captain.get('category_id', '')}, {"_id": 0})
+                captain['category_name'] = cat['name'] if cat else ''
+                subcat = await db.subcategories.find_one({"id": captain.get('subcategory_id', '')}, {"_id": 0})
+                captain['subcategory_name'] = subcat['name'] if subcat else ''
             a['captain'] = captain
     return assignments
 
