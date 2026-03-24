@@ -135,6 +135,12 @@ function EventDetail({ eventId, onBack }) {
         setSavingConfig(false);
     };
 
+    const deleteEvent = async () => {
+        if (!window.confirm('Delete this event? Users will NOT be deleted.')) return;
+        try { await API.delete(`/admin/events/${eventId}`); toast.success('Event deleted'); onBack(); }
+        catch { toast.error('Delete failed'); }
+    };
+
     if (!event) return <div className="p-4 text-muted-foreground">Loading...</div>;
 
     const regUserIds = new Set(regs.map(r => r.user_id));
@@ -300,6 +306,10 @@ function EventDetail({ eventId, onBack }) {
                             )}
                         </div>
                         <p className="text-xs text-muted-foreground">Live screen URL: <code className="bg-[#171717] px-2 py-1 rounded text-primary">/live/{eventId}</code></p>
+                        <div className="border-t border-white/5 pt-4 mt-4">
+                            <Button variant="destructive" onClick={deleteEvent} data-testid="delete-event-btn"><Trash2 size={16} className="mr-2" />Delete Event</Button>
+                            <p className="text-xs text-muted-foreground mt-2">This will delete the event, registrations, seating, and references. Users will not be deleted.</p>
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
@@ -314,6 +324,13 @@ export default function EventManagement() {
 
     const load = () => { API.get('/admin/events').then(r => setEvents(r.data)).catch(() => {}); };
     useEffect(() => { load(); }, []);
+
+    const deleteEvent = async (e, id) => {
+        e.stopPropagation();
+        if (!window.confirm('Delete this event? Users will NOT be deleted.')) return;
+        try { await API.delete(`/admin/events/${id}`); toast.success('Event deleted'); load(); }
+        catch { toast.error('Delete failed'); }
+    };
 
     if (selectedEventId) return <EventDetail eventId={selectedEventId} onBack={() => { setSelectedEventId(null); load(); }} />;
 
@@ -339,9 +356,12 @@ export default function EventManagement() {
                                 <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">{e.name}</h3>
                                 <div className="flex gap-4 mt-1 text-sm text-muted-foreground"><span>{e.date}</span><span>{e.venue}</span></div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 items-center">
                                 <Badge variant="outline">{e.registration_count} registered</Badge>
                                 <Badge variant={e.status === 'live' ? 'default' : 'outline'}>{e.status}</Badge>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(ev) => deleteEvent(ev, e.id)} data-testid={`delete-event-${e.id}`}>
+                                    <Trash2 size={16} className="text-destructive" />
+                                </Button>
                             </div>
                         </div>
                     </div>
