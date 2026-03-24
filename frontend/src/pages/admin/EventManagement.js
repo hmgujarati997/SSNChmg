@@ -66,6 +66,8 @@ function EventDetail({ eventId, onBack }) {
                 API.get('/admin/users')
             ]);
             setEvent(ev.data); setRegs(rg.data); setAssignments(as.data); setCaptains(cp.data); setUsers(us.data);
+            const nextTable = cp.data.length > 0 ? Math.max(...cp.data.map(c => c.table_number)) + 1 : 1;
+            setCaptainForm(p => ({ ...p, table_number: nextTable }));
             setConfig({
                 total_tables: ev.data.total_tables || 10,
                 chairs_per_table: ev.data.chairs_per_table || 8,
@@ -116,7 +118,7 @@ function EventDetail({ eventId, onBack }) {
     const addCaptain = async () => {
         if (!captainForm.user_id) return;
         try { await API.post('/admin/table-captains', { event_id: eventId, ...captainForm });
-            toast.success('Captain assigned'); load(); setCaptainForm({ user_id: '', table_number: 1 });
+            toast.success(`Captain assigned to Table ${captainForm.table_number}`); load(); setCaptainForm(p => ({ ...p, user_id: '' }));
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
     };
 
@@ -238,15 +240,18 @@ function EventDetail({ eventId, onBack }) {
                                 <Label className="text-xs">User</Label>
                                 <Select value={captainForm.user_id} onValueChange={v => setCaptainForm(p => ({ ...p, user_id: v }))}>
                                     <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1"><SelectValue placeholder="Select user" /></SelectTrigger>
-                                    <SelectContent>{regs.map(r => r.user && <SelectItem key={r.user_id} value={r.user_id}>{r.user.full_name} - {r.user.business_name}</SelectItem>)}</SelectContent>
+                                    <SelectContent>{regs.filter(r => r.user && !captains.some(c => c.user_id === r.user_id)).map(r => (
+                                        <SelectItem key={r.user_id} value={r.user_id}>{r.user.full_name} - {r.user.business_name}</SelectItem>
+                                    ))}</SelectContent>
                                 </Select>
                             </div>
                             <div className="w-24">
                                 <Label className="text-xs">Table #</Label>
-                                <Input type="number" min={1} max={event.total_tables} value={captainForm.table_number} onChange={e => setCaptainForm(p => ({ ...p, table_number: Number(e.target.value) }))} className="bg-black/30 border-white/10 h-10 mt-1" />
+                                <Input type="number" min={1} max={event.total_tables} value={captainForm.table_number} readOnly className="bg-black/30 border-white/10 h-10 mt-1 opacity-60" />
                             </div>
                             <Button onClick={addCaptain} data-testid="assign-captain-btn"><Crown size={16} className="mr-2" />Assign</Button>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-2">Table number auto-increments. Already assigned users are excluded.</p>
                     </div>
                     <div className="space-y-2">
                         {captains.map(c => (
