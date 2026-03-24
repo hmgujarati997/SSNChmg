@@ -98,28 +98,29 @@ export default function PunchReferences() {
         setDialogOpen(true);
     };
 
-    const pickContact = async () => {
-        try {
-            if (!navigator.contacts || !navigator.contacts.select) {
-                toast.info('Phone book access not available on this browser. Please enter details manually.');
-                return;
-            }
-            const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: false });
-            if (contacts && contacts.length > 0) {
-                const c = contacts[0];
+    const pickContact = () => {
+        // Use native share target - open phone's contact app via intent
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.vcf,text/vcard';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const getName = (t) => { const m = t.match(/FN:(.*)/); return m ? m[1].trim() : ''; };
+                const getTel = (t) => { const m = t.match(/TEL[^:]*:(.*)/); return m ? m[1].trim().replace(/[^0-9+]/g, '') : ''; };
+                const getEmail = (t) => { const m = t.match(/EMAIL[^:]*:(.*)/); return m ? m[1].trim() : ''; };
                 setRefForm(prev => ({
                     ...prev,
-                    contact_name: (c.name && c.name[0]) || prev.contact_name,
-                    contact_phone: (c.tel && c.tel[0]) || prev.contact_phone,
-                    contact_email: (c.email && c.email[0]) || prev.contact_email,
+                    contact_name: getName(text) || prev.contact_name,
+                    contact_phone: getTel(text) || prev.contact_phone,
+                    contact_email: getEmail(text) || prev.contact_email,
                 }));
-                toast.success('Contact imported');
-            }
-        } catch (err) {
-            if (err && err.name === 'AbortError') return;
-            console.error('Contact Picker error:', err);
-            toast.info('Could not access contacts. Please enter details manually.');
-        }
+                toast.success('Contact imported from vCard');
+            } catch { toast.error('Could not read contact file'); }
+        };
+        input.click();
     };
 
     const submitReference = async () => {
@@ -225,9 +226,10 @@ export default function PunchReferences() {
 
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" onClick={pickContact} className="text-xs" data-testid="pick-contact-btn">
-                                <BookUser size={14} className="mr-1" />Import from Phone Book
+                                <BookUser size={14} className="mr-1" />Import from Contacts (.vcf)
                             </Button>
                         </div>
+                        <p className="text-[10px] text-muted-foreground">Share a contact as .vcf from your phone book, or type details below.</p>
 
                         <div className="grid grid-cols-1 gap-3">
                             <div>
