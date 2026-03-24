@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Trash2, Tags, ChevronDown, ChevronRight, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Tags, ChevronDown, ChevronRight, Upload, FileSpreadsheet, AlertCircle, Download } from 'lucide-react';
 
 export default function BusinessCategories() {
     const [categories, setCategories] = useState([]);
@@ -81,6 +81,15 @@ export default function BusinessCategories() {
         else { setExpandedCat(catId); loadSubcategories(catId); }
     };
 
+    const downloadSampleCSV = () => {
+        const csv = `IT Services,Real Estate,Finance\nWeb Development,Residential,Banking\nMobile Apps,Commercial,Insurance\nCloud Computing,Land,Investment`;
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'sample_categories.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handleCSVUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -113,6 +122,9 @@ export default function BusinessCategories() {
                 <h2 className="text-3xl font-bold tracking-tight" style={{fontFamily:'Outfit'}}>Business Categories</h2>
                 <div className="flex gap-2">
                     <input type="file" ref={fileRef} accept=".csv" className="hidden" onChange={handleCSVUpload} />
+                    <Button variant="outline" onClick={downloadSampleCSV} data-testid="download-sample-categories-csv-btn">
+                        <Download size={16} className="mr-2" />Sample CSV
+                    </Button>
                     <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} data-testid="upload-csv-categories-btn">
                         <Upload size={16} className="mr-2" />{uploading ? 'Uploading...' : 'Upload CSV'}
                     </Button>

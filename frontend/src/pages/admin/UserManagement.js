@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Search, Users, Plus, Upload, Trash2, FileSpreadsheet } from 'lucide-react';
+import { Search, Users, Plus, Upload, Trash2, FileSpreadsheet, Download } from 'lucide-react';
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -72,6 +72,15 @@ export default function UserManagement() {
         if (fileRef.current) fileRef.current.value = '';
     };
 
+    const downloadSampleCSV = () => {
+        const csv = `full_name,phone,email,business_name,category,subcategory,position\nJohn Doe,9876543210,john@example.com,ABC Corp,IT Services,Web Development,Director\nJane Smith,9876543211,jane@example.com,XYZ Ltd,Real Estate,Commercial,Manager`;
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'sample_users.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const filtered = users.filter(u =>
         (u.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
         (u.phone || '').includes(search) ||
@@ -108,6 +117,9 @@ export default function UserManagement() {
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <Button variant="outline" onClick={downloadSampleCSV} className="w-full" data-testid="download-sample-users-csv-btn">
+                                    <Download size={16} className="mr-2" />Download Sample CSV
+                                </Button>
                                 <input type="file" ref={fileRef} accept=".csv" className="hidden" onChange={handleCSVUpload} />
                                 <Button onClick={() => fileRef.current?.click()} className="w-full" disabled={uploading} data-testid="upload-csv-file-btn">
                                     <FileSpreadsheet size={16} className="mr-2" />{uploading ? 'Uploading...' : 'Choose CSV File'}

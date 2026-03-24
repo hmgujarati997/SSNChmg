@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download } from 'lucide-react';
 
 function EventForm({ onCreated }) {
     const [form, setForm] = useState({ name: '', date: '', time: '', venue: '', registration_fee: 500, payment_type: 'manual', payment_link: '', total_tables: 10, chairs_per_table: 8, total_rounds: 3, vacant_seats_per_table: 1, round_duration_minutes: 10, speaker_time_seconds: 60 });
@@ -84,6 +84,15 @@ function EventDetail({ eventId, onBack }) {
         } catch (err) { toast.error('CSV upload failed'); }
     };
 
+    const downloadSampleCSV = () => {
+        const csv = `full_name,phone,email,business_name,category,subcategory,position\nJohn Doe,9876543210,john@example.com,ABC Corp,IT Services,Web Development,Director\nJane Smith,9876543211,jane@example.com,XYZ Ltd,Real Estate,Commercial,Manager`;
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = 'sample_event_users.csv'; a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const assignTables = async () => {
         try { const r = await API.post(`/admin/events/${eventId}/assign-tables`);
             toast.success(`Tables assigned! ${r.data.total_users} users across ${r.data.rounds} rounds`); load();
@@ -152,6 +161,7 @@ function EventDetail({ eventId, onBack }) {
                 <TabsContent value="registrations">
                     <div className="flex gap-3 mb-4 flex-wrap">
                         <input type="file" ref={fileRef} accept=".csv" className="hidden" onChange={uploadCSV} />
+                        <Button variant="outline" onClick={downloadSampleCSV} data-testid="download-sample-event-csv-btn"><Download size={16} className="mr-2" />Sample CSV</Button>
                         <Button variant="outline" onClick={() => fileRef.current?.click()} data-testid="upload-csv-btn"><Upload size={16} className="mr-2" />Upload CSV</Button>
                         <Button variant="outline" onClick={toggleReg} data-testid="toggle-reg-btn">{event.registration_open ? 'Close Registration' : 'Open Registration'}</Button>
                     </div>
