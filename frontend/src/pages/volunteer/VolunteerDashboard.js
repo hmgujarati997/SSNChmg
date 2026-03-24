@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import API from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { QrCode, Camera, CheckCircle, AlertCircle, MapPin, LogOut, Zap } from 'lucide-react';
+import { QrCode, CheckCircle, AlertCircle, MapPin, LogOut, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import QrScanner from '@/components/QrScanner';
 
 export default function VolunteerDashboard() {
     const { logout } = useAuth();
@@ -18,6 +19,7 @@ export default function VolunteerDashboard() {
     const [manualId, setManualId] = useState('');
     const [scanResult, setScanResult] = useState(null);
     const [scanning, setScanning] = useState(false);
+    const [mode, setMode] = useState('camera'); // 'camera' or 'manual'
 
     useEffect(() => {
         API.get('/volunteer/events').then(r => {
@@ -43,12 +45,18 @@ export default function VolunteerDashboard() {
 
     const handleManualScan = () => {
         if (manualId.trim()) {
-            // Extract user ID from URL if pasted
             let userId = manualId.trim();
             const match = userId.match(/\/profile\/([a-f0-9-]+)/);
             if (match) userId = match[1];
             handleScan(userId);
         }
+    };
+
+    const handleQrScan = (decodedText) => {
+        let userId = decodedText;
+        const match = decodedText.match(/\/profile\/([a-f0-9-]+)/);
+        if (match) userId = match[1];
+        handleScan(userId);
     };
 
     return (
@@ -80,17 +88,42 @@ export default function VolunteerDashboard() {
                         </Select>
                     </div>
 
-                    <div>
-                        <Label className="text-xs text-muted-foreground">Scan QR or Enter User ID / URL</Label>
-                        <div className="flex gap-2 mt-1">
-                            <Input value={manualId} onChange={e => setManualId(e.target.value)} placeholder="Paste QR URL or User ID"
-                                className="bg-black/30 border-white/10 h-11" data-testid="volunteer-scan-input"
-                                onKeyDown={e => e.key === 'Enter' && handleManualScan()} />
-                            <Button onClick={handleManualScan} disabled={scanning} className="bg-primary h-11 px-6" data-testid="volunteer-scan-btn">
-                                <QrCode size={16} className="mr-2" />{scanning ? '...' : 'Scan'}
-                            </Button>
-                        </div>
+                    {/* Mode Toggle */}
+                    <div className="flex rounded-lg bg-black/30 p-1 gap-1" data-testid="scan-mode-toggle">
+                        <button
+                            onClick={() => setMode('camera')}
+                            className={`flex-1 h-9 rounded-md text-xs font-medium transition-all ${mode === 'camera' ? 'bg-primary text-white shadow-lg' : 'text-muted-foreground hover:text-white'}`}
+                            data-testid="mode-camera-btn"
+                        >
+                            Camera Scan
+                        </button>
+                        <button
+                            onClick={() => setMode('manual')}
+                            className={`flex-1 h-9 rounded-md text-xs font-medium transition-all ${mode === 'manual' ? 'bg-primary text-white shadow-lg' : 'text-muted-foreground hover:text-white'}`}
+                            data-testid="mode-manual-btn"
+                        >
+                            Manual Entry
+                        </button>
                     </div>
+
+                    {mode === 'camera' ? (
+                        <QrScanner
+                            onScan={handleQrScan}
+                            onError={(msg) => toast.error(msg)}
+                        />
+                    ) : (
+                        <div>
+                            <Label className="text-xs text-muted-foreground">Enter User ID or QR URL</Label>
+                            <div className="flex gap-2 mt-1">
+                                <Input value={manualId} onChange={e => setManualId(e.target.value)} placeholder="Paste QR URL or User ID"
+                                    className="bg-black/30 border-white/10 h-11" data-testid="volunteer-scan-input"
+                                    onKeyDown={e => e.key === 'Enter' && handleManualScan()} />
+                                <Button onClick={handleManualScan} disabled={scanning} className="bg-primary h-11 px-6" data-testid="volunteer-scan-btn">
+                                    <QrCode size={16} className="mr-2" />{scanning ? '...' : 'Scan'}
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {scanResult && (

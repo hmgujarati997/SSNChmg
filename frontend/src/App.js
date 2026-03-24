@@ -9,6 +9,7 @@ import UserLayout from "@/pages/user/UserLayout";
 import VolunteerDashboard from "@/pages/volunteer/VolunteerDashboard";
 import LiveScreen from "@/pages/LiveScreen";
 import PublicProfile from "@/pages/PublicProfile";
+import InstallPrompt from "@/components/InstallPrompt";
 
 function ProtectedRoute({ children, requiredRole }) {
     const { user, role } = useAuth();
@@ -52,6 +53,7 @@ function App() {
                 <AppRoutes />
             </BrowserRouter>
             <Toaster richColors position="top-right" />
+            <InstallPrompt />
         </AuthProvider>
     );
 }
