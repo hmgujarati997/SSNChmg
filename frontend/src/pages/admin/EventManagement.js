@@ -56,6 +56,8 @@ function EventDetail({ eventId, onBack }) {
     const [captainForm, setCaptainForm] = useState({ user_id: '', table_number: 1 });
     const [config, setConfig] = useState(null);
     const [savingConfig, setSavingConfig] = useState(false);
+    const [captainSearch, setCaptainSearch] = useState('');
+    const [userSearch, setUserSearch] = useState('');
     const fileRef = useRef(null);
 
     const load = async () => {
@@ -66,7 +68,12 @@ function EventDetail({ eventId, onBack }) {
                 API.get('/admin/users')
             ]);
             setEvent(ev.data); setRegs(rg.data); setAssignments(as.data); setCaptains(cp.data); setUsers(us.data);
-            const nextTable = cp.data.length > 0 ? Math.max(...cp.data.map(c => c.table_number)) + 1 : 1;
+            // Find first available table number (fills gaps)
+            const usedTables = new Set(cp.data.map(c => c.table_number));
+            let nextTable = null;
+            for (let i = 1; i <= (ev.data.total_tables || 10); i++) {
+                if (!usedTables.has(i)) { nextTable = i; break; }
+            }
             setCaptainForm(p => ({ ...p, table_number: nextTable }));
             setConfig({
                 total_tables: ev.data.total_tables || 10,
@@ -233,38 +240,61 @@ function EventDetail({ eventId, onBack }) {
                 </TabsContent>
 
                 <TabsContent value="captains">
-                    <div className="glass-card rounded-xl p-6 mb-4">
-                        <h4 className="text-sm font-semibold mb-3">Assign Table Captain</h4>
-                        <div className="flex gap-3 items-end flex-wrap">
-                            <div className="flex-1 min-w-[200px]">
-                                <Label className="text-xs">User</Label>
-                                <Select value={captainForm.user_id} onValueChange={v => setCaptainForm(p => ({ ...p, user_id: v }))}>
-                                    <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1"><SelectValue placeholder="Select user" /></SelectTrigger>
-                                    <SelectContent>{regs.filter(r => r.user && !captains.some(c => c.user_id === r.user_id)).map(r => (
-                                        <SelectItem key={r.user_id} value={r.user_id}>{r.user.full_name} - {r.user.business_name}</SelectItem>
-                                    ))}</SelectContent>
-                                </Select>
-                            </div>
-                            <div className="w-24">
-                                <Label className="text-xs">Table #</Label>
-                                <Input type="number" min={1} max={event.total_tables} value={captainForm.table_number} readOnly className="bg-black/30 border-white/10 h-10 mt-1 opacity-60" />
-                            </div>
-                            <Button onClick={addCaptain} data-testid="assign-captain-btn"><Crown size={16} className="mr-2" />Assign</Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">Table number auto-increments. Already assigned users are excluded.</p>
-                    </div>
-                    <div className="space-y-2">
-                        {captains.map(c => (
-                            <div key={c.id} className="glass-card rounded-lg p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="table-badge">{c.table_number}</div>
-                                    <div><p className="font-medium">{c.user?.full_name}</p><p className="text-xs text-muted-foreground">{c.user?.business_name}</p></div>
+                    {(() => {
+                        const allTablesFilled = captainForm.table_number === null;
+                        const availableUsers = regs.filter(r => r.user && !captains.some(c => c.user_id === r.user_id));
+                        const filteredAvailable = userSearch ? availableUsers.filter(r => r.user.full_name.toLowerCase().includes(userSearch.toLowerCase()) || (r.user.business_name || '').toLowerCase().includes(userSearch.toLowerCase())) : availableUsers;
+                        const filteredCaptains = captainSearch ? captains.filter(c => (c.user?.full_name || '').toLowerCase().includes(captainSearch.toLowerCase()) || (c.user?.business_name || '').toLowerCase().includes(captainSearch.toLowerCase()) || String(c.table_number).includes(captainSearch)) : captains;
+                        return (<>
+                            <div className="glass-card rounded-xl p-6 mb-4">
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-sm font-semibold">Assign Table Captain</h4>
+                                    <span className="text-xs text-muted-foreground">{captains.length} / {event.total_tables} tables assigned</span>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => removeCaptain(c.id)}><Trash2 size={16} className="text-destructive" /></Button>
+                                {allTablesFilled ? (
+                                    <p className="text-sm text-[hsl(var(--emerald))]">All {event.total_tables} tables have captains assigned.</p>
+                                ) : (
+                                    <>
+                                        <div className="flex gap-3 items-end flex-wrap">
+                                            <div className="flex-1 min-w-[200px]">
+                                                <Label className="text-xs">Search & Select User</Label>
+                                                <Input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Type to search..." className="bg-black/30 border-white/10 h-10 mt-1 mb-1" data-testid="captain-user-search" />
+                                                <Select value={captainForm.user_id} onValueChange={v => { setCaptainForm(p => ({ ...p, user_id: v })); setUserSearch(''); }}>
+                                                    <SelectTrigger className="bg-black/30 border-white/10 h-10"><SelectValue placeholder={`${availableUsers.length} users available`} /></SelectTrigger>
+                                                    <SelectContent>{filteredAvailable.map(r => (
+                                                        <SelectItem key={r.user_id} value={r.user_id}>{r.user.full_name} — {r.user.business_name || 'N/A'}</SelectItem>
+                                                    ))}
+                                                    {filteredAvailable.length === 0 && <div className="p-3 text-xs text-muted-foreground text-center">No matching users</div>}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="w-24">
+                                                <Label className="text-xs">Table #</Label>
+                                                <Input type="number" value={captainForm.table_number || ''} readOnly className="bg-black/30 border-white/10 h-10 mt-1 opacity-60" />
+                                            </div>
+                                            <Button onClick={addCaptain} disabled={!captainForm.user_id} data-testid="assign-captain-btn"><Crown size={16} className="mr-2" />Assign</Button>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground mt-2">Table number auto-fills to the next open slot. Already assigned users are excluded.</p>
+                                    </>
+                                )}
                             </div>
-                        ))}
-                        {captains.length === 0 && <p className="text-center text-muted-foreground p-6">No table captains assigned</p>}
-                    </div>
+                            <div className="mb-3">
+                                <Input value={captainSearch} onChange={e => setCaptainSearch(e.target.value)} placeholder="Search assigned captains by name, business, or table #..." className="bg-black/30 border-white/10 h-10" data-testid="captain-list-search" />
+                            </div>
+                            <div className="space-y-2">
+                                {filteredCaptains.sort((a, b) => a.table_number - b.table_number).map(c => (
+                                    <div key={c.id} className="glass-card rounded-lg p-4 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="table-badge">{c.table_number}</div>
+                                            <div><p className="font-medium">{c.user?.full_name}</p><p className="text-xs text-muted-foreground">{c.user?.business_name}</p></div>
+                                        </div>
+                                        <Button variant="ghost" size="icon" onClick={() => removeCaptain(c.id)}><Trash2 size={16} className="text-destructive" /></Button>
+                                    </div>
+                                ))}
+                                {filteredCaptains.length === 0 && <p className="text-center text-muted-foreground p-6">{captainSearch ? 'No matching captains' : 'No table captains assigned'}</p>}
+                            </div>
+                        </>);
+                    })()}
                 </TabsContent>
 
                 <TabsContent value="seating">
