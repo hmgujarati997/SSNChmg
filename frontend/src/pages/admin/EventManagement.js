@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download } from 'lucide-react';
 
 function EventForm({ onCreated }) {
-    const [form, setForm] = useState({ name: '', date: '', time: '', venue: '', registration_fee: 500, payment_type: 'manual', payment_link: '', total_tables: 10, chairs_per_table: 8, total_rounds: 3, vacant_seats_per_table: 1, round_duration_minutes: 10, speaker_time_seconds: 60 });
+    const [form, setForm] = useState({ name: '', date: '', time: '', venue: '', registration_fee: 500, payment_type: 'manual', payment_link: '' });
     const [loading, setLoading] = useState(false);
     const u = (k, v) => setForm(p => ({ ...p, [k]: v }));
     const submit = async (e) => {
@@ -41,15 +41,7 @@ function EventForm({ onCreated }) {
                 </div>
                 {form.payment_type === 'payment_link' && <div className="sm:col-span-2"><Label>Payment Link</Label><Input value={form.payment_link} onChange={e => u('payment_link', e.target.value)} className="bg-black/30 border-white/10 h-11 mt-1" /></div>}
             </div>
-            <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold pt-4">Table & Round Configuration</h4>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div><Label>Tables</Label><Input type="number" value={form.total_tables} onChange={e => u('total_tables', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="event-tables-input" /></div>
-                <div><Label>Chairs/Table</Label><Input type="number" value={form.chairs_per_table} onChange={e => u('chairs_per_table', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-                <div><Label>Rounds</Label><Input type="number" value={form.total_rounds} onChange={e => u('total_rounds', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="event-rounds-input" /></div>
-                <div><Label>Vacant Seats</Label><Input type="number" value={form.vacant_seats_per_table} onChange={e => u('vacant_seats_per_table', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-                <div><Label>Round Duration (min)</Label><Input type="number" value={form.round_duration_minutes} onChange={e => u('round_duration_minutes', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-                <div><Label>Speaker Time (sec)</Label><Input type="number" value={form.speaker_time_seconds} onChange={e => u('speaker_time_seconds', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-            </div>
+            <p className="text-xs text-muted-foreground">Table & round configuration can be set after creating the event.</p>
             <Button type="submit" className="w-full h-11" disabled={loading} data-testid="create-event-btn">{loading ? 'Creating...' : 'Create Event'}</Button>
         </form>
     );
@@ -62,6 +54,8 @@ function EventDetail({ eventId, onBack }) {
     const [captains, setCaptains] = useState([]);
     const [users, setUsers] = useState([]);
     const [captainForm, setCaptainForm] = useState({ user_id: '', table_number: 1 });
+    const [config, setConfig] = useState(null);
+    const [savingConfig, setSavingConfig] = useState(false);
     const fileRef = useRef(null);
 
     const load = async () => {
@@ -72,6 +66,14 @@ function EventDetail({ eventId, onBack }) {
                 API.get('/admin/users')
             ]);
             setEvent(ev.data); setRegs(rg.data); setAssignments(as.data); setCaptains(cp.data); setUsers(us.data);
+            setConfig({
+                total_tables: ev.data.total_tables || 10,
+                chairs_per_table: ev.data.chairs_per_table || 8,
+                total_rounds: ev.data.total_rounds || 3,
+                vacant_seats_per_table: ev.data.vacant_seats_per_table || 1,
+                round_duration_minutes: ev.data.round_duration_minutes || 10,
+                speaker_time_seconds: ev.data.speaker_time_seconds || 60
+            });
         } catch {}
     };
     useEffect(() => { load(); }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -122,6 +124,17 @@ function EventDetail({ eventId, onBack }) {
         try { await API.delete(`/admin/table-captains/${id}`); toast.success('Removed'); load(); } catch {}
     };
 
+    const uc = (k, v) => setConfig(p => ({ ...p, [k]: v }));
+    const saveConfig = async () => {
+        setSavingConfig(true);
+        try {
+            await API.put(`/admin/events/${eventId}`, config);
+            toast.success('Configuration saved');
+            load();
+        } catch (err) { toast.error(err.response?.data?.detail || 'Error saving config'); }
+        setSavingConfig(false);
+    };
+
     if (!event) return <div className="p-4 text-muted-foreground">Loading...</div>;
 
     const regUserIds = new Set(regs.map(r => r.user_id));
@@ -153,6 +166,7 @@ function EventDetail({ eventId, onBack }) {
             <Tabs defaultValue="registrations" className="w-full">
                 <TabsList className="bg-[#171717] mb-6 flex-wrap h-auto gap-1 p-1">
                     <TabsTrigger value="registrations">Registrations ({regs.length})</TabsTrigger>
+                    <TabsTrigger value="config" data-testid="config-tab">Configuration</TabsTrigger>
                     <TabsTrigger value="captains">Table Captains</TabsTrigger>
                     <TabsTrigger value="seating">Seating</TabsTrigger>
                     <TabsTrigger value="controls">Controls</TabsTrigger>
@@ -189,6 +203,25 @@ function EventDetail({ eventId, onBack }) {
                         </div>
                         {regs.length === 0 && <p className="p-6 text-center text-muted-foreground">No registrations yet</p>}
                     </div>
+                </TabsContent>
+
+                <TabsContent value="config">
+                    {config && (
+                        <div className="glass-card rounded-xl p-6 space-y-5" data-testid="event-config-section">
+                            <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Table & Round Configuration</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div><Label>Tables</Label><Input type="number" min={1} value={config.total_tables} onChange={e => uc('total_tables', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-tables-input" /></div>
+                                <div><Label>Chairs/Table</Label><Input type="number" min={1} value={config.chairs_per_table} onChange={e => uc('chairs_per_table', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-chairs-input" /></div>
+                                <div><Label>Rounds</Label><Input type="number" min={1} value={config.total_rounds} onChange={e => uc('total_rounds', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-rounds-input" /></div>
+                                <div><Label>Vacant Seats/Table</Label><Input type="number" min={0} value={config.vacant_seats_per_table} onChange={e => uc('vacant_seats_per_table', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-vacant-input" /></div>
+                                <div><Label>Round Duration (min)</Label><Input type="number" min={1} value={config.round_duration_minutes} onChange={e => uc('round_duration_minutes', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-duration-input" /></div>
+                                <div><Label>Speaker Time (sec)</Label><Input type="number" min={1} value={config.speaker_time_seconds} onChange={e => uc('speaker_time_seconds', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-speaker-input" /></div>
+                            </div>
+                            <Button onClick={saveConfig} disabled={savingConfig} className="bg-primary" data-testid="save-config-btn">
+                                {savingConfig ? 'Saving...' : 'Save Configuration'}
+                            </Button>
+                        </div>
+                    )}
                 </TabsContent>
 
                 <TabsContent value="captains">

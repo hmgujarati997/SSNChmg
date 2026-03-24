@@ -49,6 +49,8 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
   - Toggle between Camera Scan and Manual Entry modes
   - Auto-extracts user ID from profile URLs
   - Stops camera after successful scan
+- Moved Table & Round Configuration from "Create Event" form into a dedicated "Configuration" tab inside event detail
+  - Admins can now adjust tables, chairs, rounds, etc. anytime as registrations grow
 
 ## P0 Features Remaining
 - WhatsApp API integration (user to provide docs later)
