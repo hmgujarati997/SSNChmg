@@ -122,14 +122,6 @@ async def get_table_people(event_id: str, round_number: int, user=Depends(requir
 
 @router.post("/references")
 async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
-    existing = await db.references.find_one({
-        "event_id": data.event_id,
-        "from_user_id": user['sub'],
-        "to_user_id": data.to_user_id,
-        "round_number": data.round_number
-    })
-    if existing:
-        raise HTTPException(400, "Reference already punched for this person in this round")
     ref_doc = {
         "id": str(uuid.uuid4()),
         "event_id": data.event_id,
@@ -138,10 +130,13 @@ async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
         "round_number": data.round_number,
         "table_number": data.table_number,
         "notes": data.notes,
+        "contact_name": data.contact_name,
+        "contact_phone": data.contact_phone,
+        "contact_email": data.contact_email,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.references.insert_one(ref_doc)
-    return {"message": "Reference punched", "id": ref_doc['id']}
+    return {"message": "Reference passed", "id": ref_doc['id']}
 
 
 @router.get("/references/{event_id}")

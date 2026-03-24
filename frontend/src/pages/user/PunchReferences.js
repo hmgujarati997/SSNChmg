@@ -4,9 +4,43 @@ import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { ArrowRightLeft, Send, Eye, User, Building2, Check } from 'lucide-react';
+import { ArrowRightLeft, Send, Eye, Building2, Check, BookUser, X } from 'lucide-react';
+
+const SOCIAL_ICONS = {
+    whatsapp: { color: '#25D366', label: 'WA', url: v => `https://wa.me/${v}` },
+    linkedin: { color: '#0A66C2', label: 'in', url: v => v.startsWith('http') ? v : `https://linkedin.com/in/${v}` },
+    instagram: { color: '#E4405F', label: 'IG', url: v => v.startsWith('http') ? v : `https://instagram.com/${v}` },
+    twitter: { color: '#1DA1F2', label: 'X', url: v => v.startsWith('http') ? v : `https://x.com/${v}` },
+    facebook: { color: '#1877F2', label: 'FB', url: v => v.startsWith('http') ? v : `https://facebook.com/${v}` },
+    youtube: { color: '#FF0000', label: 'YT', url: v => v.startsWith('http') ? v : `https://youtube.com/${v}` },
+    website: { color: '#6366F1', label: 'W', url: v => v.startsWith('http') ? v : `https://${v}` },
+};
+
+function SocialIcons({ links }) {
+    if (!links) return null;
+    const active = Object.entries(links).filter(([, v]) => v);
+    if (active.length === 0) return null;
+    return (
+        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+            {active.map(([key, val]) => {
+                const s = SOCIAL_ICONS[key];
+                if (!s) return null;
+                return (
+                    <a key={key} href={s.url(val)} target="_blank" rel="noopener noreferrer"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white hover:scale-110 transition-transform"
+                        style={{ backgroundColor: s.color }} title={key} data-testid={`social-${key}`}>
+                        {s.label}
+                    </a>
+                );
+            })}
+        </div>
+    );
+}
 
 export default function PunchReferences() {
     const { user } = useAuth();
@@ -16,9 +50,13 @@ export default function PunchReferences() {
     const [selectedRound, setSelectedRound] = useState(null);
     const [tablePeople, setTablePeople] = useState([]);
     const [tableNumber, setTableNumber] = useState(0);
-    const [notes, setNotes] = useState({});
-    const [punched, setPunched] = useState(new Set());
-    const [loading, setLoading] = useState({});
+    const [refCounts, setRefCounts] = useState({});
+    const [loading, setLoading] = useState(false);
+
+    // Dialog state
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedPerson, setSelectedPerson] = useState(null);
+    const [refForm, setRefForm] = useState({ contact_name: '', contact_phone: '', contact_email: '', notes: '' });
 
     useEffect(() => {
         API.get('/user/events').then(r => {
@@ -27,13 +65,22 @@ export default function PunchReferences() {
             if (reg) {
                 setActiveEvent(reg);
                 API.get(`/user/events/${reg.id}/my-tables`).then(t => setMyTables(t.data)).catch(() => {});
-                API.get(`/user/references/${reg.id}`).then(refs => {
-                    const punchedSet = new Set(refs.data.given.map(g => `${g.to_user_id}-${g.round_number}`));
-                    setPunched(punchedSet);
-                }).catch(() => {});
+                loadRefCounts(reg.id);
             }
         }).catch(() => {});
     }, []);
+
+    const loadRefCounts = async (eventId) => {
+        try {
+            const refs = await API.get(`/user/references/${eventId}`);
+            const counts = {};
+            for (const g of refs.data.given) {
+                const key = `${g.to_user_id}-${g.round_number}`;
+                counts[key] = (counts[key] || 0) + 1;
+            }
+            setRefCounts(counts);
+        } catch {}
+    };
 
     const loadTablePeople = async (roundNumber) => {
         if (!activeEvent) return;
@@ -45,30 +92,59 @@ export default function PunchReferences() {
         } catch { setTablePeople([]); }
     };
 
-    const punchRef = async (toUserId) => {
-        if (!activeEvent || !selectedRound) return;
-        const key = `${toUserId}-${selectedRound}`;
-        if (punched.has(key)) return;
-        setLoading(prev => ({ ...prev, [toUserId]: true }));
+    const openRefDialog = (person) => {
+        setSelectedPerson(person);
+        setRefForm({ contact_name: '', contact_phone: '', contact_email: '', notes: '' });
+        setDialogOpen(true);
+    };
+
+    const pickContact = async () => {
+        if (!('contacts' in navigator && 'ContactsManager' in window)) {
+            toast.error('Phone book access not supported on this device');
+            return;
+        }
+        try {
+            const props = ['name', 'tel', 'email'];
+            const contacts = await navigator.contacts.select(props, { multiple: false });
+            if (contacts.length > 0) {
+                const c = contacts[0];
+                setRefForm(prev => ({
+                    ...prev,
+                    contact_name: c.name?.[0] || prev.contact_name,
+                    contact_phone: c.tel?.[0] || prev.contact_phone,
+                    contact_email: c.email?.[0] || prev.contact_email,
+                }));
+                toast.success('Contact imported');
+            }
+        } catch { toast.error('Could not access contacts'); }
+    };
+
+    const submitReference = async () => {
+        if (!activeEvent || !selectedRound || !selectedPerson) return;
+        setLoading(true);
         try {
             await API.post('/user/references', {
-                event_id: activeEvent.id, to_user_id: toUserId,
-                round_number: selectedRound, table_number: tableNumber,
-                notes: notes[toUserId] || ''
+                event_id: activeEvent.id,
+                to_user_id: selectedPerson.id,
+                round_number: selectedRound,
+                table_number: tableNumber,
+                ...refForm
             });
-            toast.success('Reference punched!');
-            setPunched(prev => new Set([...prev, key]));
+            toast.success('Reference passed!');
+            const key = `${selectedPerson.id}-${selectedRound}`;
+            setRefCounts(prev => ({ ...prev, [key]: (prev[key] || 0) + 1 }));
+            setDialogOpen(false);
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
-        setLoading(prev => ({ ...prev, [toUserId]: false }));
+        setLoading(false);
     };
 
     if (!activeEvent) return <div className="p-4 text-center text-muted-foreground">No registered event</div>;
 
     return (
-        <div className="space-y-6 animate-fade-in" data-testid="punch-references">
+        <div className="space-y-6 animate-fade-in" data-testid="pass-references">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight" style={{fontFamily:'Outfit'}}>Punch References</h1>
+                    <h1 className="text-2xl font-bold tracking-tight" style={{fontFamily:'Outfit'}}>Pass References</h1>
                     <p className="text-sm text-muted-foreground mt-1">{activeEvent.name}</p>
                 </div>
                 <Link to="/user/references/view" data-testid="view-references-link">
@@ -76,7 +152,6 @@ export default function PunchReferences() {
                 </Link>
             </div>
 
-            {/* Round selector */}
             <div>
                 <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-3">Select Round</h3>
                 <div className="flex gap-2 flex-wrap">
@@ -92,19 +167,18 @@ export default function PunchReferences() {
                 {myTables.length === 0 && <p className="text-sm text-muted-foreground">Table assignments not ready yet</p>}
             </div>
 
-            {/* People at table */}
             {selectedRound && (
                 <div>
                     <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-3">People at Table {tableNumber}</h3>
                     <div className="space-y-3">
                         {tablePeople.map(p => {
                             const key = `${p.id}-${selectedRound}`;
-                            const isPunched = punched.has(key);
+                            const count = refCounts[key] || 0;
                             return (
                                 <div key={p.id} className="glass-card rounded-xl p-4" data-testid={`person-${p.id}`}>
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
                                                 {(p.full_name || '?')[0].toUpperCase()}
                                             </div>
                                             <div>
@@ -113,20 +187,20 @@ export default function PunchReferences() {
                                                     <Building2 size={10} />{p.business_name}
                                                     {p.category_name && <Badge variant="outline" className="text-[10px] px-1.5">{p.category_name}</Badge>}
                                                 </div>
+                                                <SocialIcons links={p.social_links} />
                                             </div>
                                         </div>
-                                        {isPunched ? (
-                                            <Badge className="bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))] border-0"><Check size={12} className="mr-1" />Punched</Badge>
-                                        ) : (
-                                            <Button size="sm" onClick={() => punchRef(p.id)} disabled={loading[p.id]} className="bg-primary" data-testid={`punch-${p.id}`}>
-                                                <Send size={14} className="mr-1" />{loading[p.id] ? '...' : 'Punch'}
+                                        <div className="flex flex-col items-end gap-1.5">
+                                            <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
+                                                <Send size={14} className="mr-1" />Pass Ref
                                             </Button>
-                                        )}
+                                            {count > 0 && (
+                                                <Badge className="bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))] border-0 text-[10px]">
+                                                    <Check size={10} className="mr-0.5" />{count} passed
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
-                                    {!isPunched && (
-                                        <Input placeholder="Add notes (optional)" value={notes[p.id] || ''} onChange={e => setNotes(prev => ({ ...prev, [p.id]: e.target.value }))}
-                                            className="bg-black/20 border-white/5 h-9 mt-3 text-sm" />
-                                    )}
                                 </div>
                             );
                         })}
@@ -134,6 +208,57 @@ export default function PunchReferences() {
                     </div>
                 </div>
             )}
+
+            {/* Pass Reference Dialog */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="bg-[#1a1a1a] border-white/10 max-w-md" data-testid="pass-ref-dialog">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg" style={{fontFamily:'Outfit'}}>
+                            Pass Reference to {selectedPerson?.full_name}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-2">
+                        <p className="text-xs text-muted-foreground">Add the contact details of the person you are referring.</p>
+
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={pickContact} className="text-xs" data-testid="pick-contact-btn">
+                                <BookUser size={14} className="mr-1" />Import from Phone Book
+                            </Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                            <div>
+                                <Label className="text-xs">Contact Name</Label>
+                                <Input value={refForm.contact_name} onChange={e => setRefForm(p => ({ ...p, contact_name: e.target.value }))}
+                                    placeholder="Person's name" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="ref-contact-name" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">Contact Phone</Label>
+                                <Input value={refForm.contact_phone} onChange={e => setRefForm(p => ({ ...p, contact_phone: e.target.value }))}
+                                    placeholder="Phone number" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="ref-contact-phone" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">Contact Email</Label>
+                                <Input value={refForm.contact_email} onChange={e => setRefForm(p => ({ ...p, contact_email: e.target.value }))}
+                                    placeholder="Email address" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="ref-contact-email" />
+                            </div>
+                            <div>
+                                <Label className="text-xs">Note</Label>
+                                <Textarea value={refForm.notes} onChange={e => setRefForm(p => ({ ...p, notes: e.target.value }))}
+                                    placeholder="E.g., Looking for web development services, budget ~50k"
+                                    className="bg-black/30 border-white/10 mt-1 min-h-[80px] text-sm" data-testid="ref-notes" />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2">
+                            <Button onClick={submitReference} disabled={loading} className="flex-1 bg-primary" data-testid="submit-ref-btn">
+                                <Send size={14} className="mr-2" />{loading ? 'Passing...' : 'Pass Reference'}
+                            </Button>
+                            <Button variant="outline" onClick={() => setDialogOpen(false)}><X size={14} /></Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
