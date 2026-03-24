@@ -14,17 +14,22 @@ def assign_tables(users, event, captains, categories):
     """
     total_tables = event['total_tables']
     chairs_per_table = event['chairs_per_table']
-    vacant = event['vacant_seats_per_table']
+    total_vacant = event.get('vacant_seats_per_table', 0)
     total_rounds = event['total_rounds']
 
     captain_tables = {c['table_number']: c for c in captains}
 
+    # Distribute total vacant seats across tables (1 per table until exhausted)
     table_capacity = {}
+    vacant_remaining = total_vacant
     for t in range(1, total_tables + 1):
-        cap = chairs_per_table - vacant
+        vacancy = 1 if vacant_remaining > 0 else 0
+        if vacancy:
+            vacant_remaining -= 1
+        cap = chairs_per_table - vacancy
         if t in captain_tables:
-            cap -= 1
-        table_capacity[t] = max(cap, 1)
+            cap -= 1  # captain already occupies one seat
+        table_capacity[t] = max(cap, 0)
 
     user_cats = {u['id']: u.get('category_id', '') for u in users}
     user_subcats = {u['id']: u.get('subcategory_id', '') for u in users}
