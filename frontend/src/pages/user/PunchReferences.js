@@ -99,14 +99,15 @@ export default function PunchReferences() {
     };
 
     const pickContact = async () => {
-        if (!('contacts' in navigator && 'ContactsManager' in window)) {
-            toast.error('Phone book access not supported on this device');
-            return;
-        }
         try {
-            const props = ['name', 'tel', 'email'];
+            if (typeof navigator.contacts === 'undefined' || typeof navigator.contacts.select !== 'function') {
+                toast.info('Phone book access is only available on Android Chrome. Please enter details manually.');
+                return;
+            }
+            const supported = await navigator.contacts.getProperties();
+            const props = supported.filter(p => ['name', 'tel', 'email'].includes(p));
             const contacts = await navigator.contacts.select(props, { multiple: false });
-            if (contacts.length > 0) {
+            if (contacts && contacts.length > 0) {
                 const c = contacts[0];
                 setRefForm(prev => ({
                     ...prev,
@@ -116,7 +117,13 @@ export default function PunchReferences() {
                 }));
                 toast.success('Contact imported');
             }
-        } catch { toast.error('Could not access contacts'); }
+        } catch (err) {
+            if (err?.name === 'InvalidStateError' || err?.name === 'TypeError') {
+                toast.info('Phone book access is only available on Android Chrome. Please enter details manually.');
+            } else if (err?.name !== 'AbortError') {
+                toast.error('Could not access contacts');
+            }
+        }
     };
 
     const submitReference = async () => {
