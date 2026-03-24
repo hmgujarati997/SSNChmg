@@ -12,155 +12,163 @@ The user wants to build a Progressive Web App (PWA) for a speed networking event
 - **User Role**:
     - Account management: Register, login (phone number is username/password for users added by admin).
     - Profile management: Update details which serve as a vCard (name, contact, business info, social links).
-    - Event Interaction: Register for events, punch/view references passed during the event.
+    - Event Interaction: Pass references (previously punch), with contact details and notes.
 - **Volunteer Role**:
-    - Scan attendee QR codes for venue entry and validation.
-    - View attendees' table assignments for each round to assist them.
+    - Scan attendee QR codes for venue entry and validation using the device camera.
 - **Live Screen**:
-    - A public, password-protected page displaying real-time data like timers for rounds, and leaderboards for references passed/received.
+    - A public, password-protected page displaying real-time data.
 - **Key User-Requested Features (added during session)**:
-    - CSV upload for business categories with de-duplication and A-Z sorting.
-    - Mandatory business information (company, category, subcategory) for all users.
-    - A profile completion gate for users with incomplete data.
-    - Admins must be able to download sample CSV files to ensure correct formatting.
+    - PWA functionality to allow the app to be installed on a device's home screen.
+    - A robust seating algorithm with hard constraints: no two people meet twice, no main/sub-category duplicates on the same table.
+    - An improved Pass Reference flow in the user dashboard, including a popup dialog, fields for the referred person's contact details, notes, and a non-crashing phone book import feature.
 
 **User's preferred language**: English
 
 **what currently exists?**
-A full-stack PWA for SSNC speed networking events has been developed.
--   **Backend (FastAPI)**: Implements JWT authentication for Admin, User, and Volunteer roles. It features CRUD APIs for events, users, business categories, and volunteers. It includes CSV upload capabilities for users and categories (with robust encoding detection and de-duplication), and endpoints to enforce mandatory business profile completion.
--   **Frontend (React/Shadcn)**: A dark-themed, mobile-first UI with distinct layouts for Admin, User, and Volunteer dashboards. Key implemented features include login, registration, event management, user management (manual add & CSV upload), category management (manual add & CSV upload), and a profile completion gate for users with incomplete data.
+The SSNC PWA is a feature-rich full-stack application.
+-   **Backend (FastAPI)**: Features role-based JWT authentication, comprehensive CRUD APIs for all entities, and a highly optimized seating algorithm that enforces strict constraints (no remeets, no category/subcategory conflicts). The API supports CSV uploads, PWA requirements, and the revamped Pass Reference data model.
+-   **Frontend (React/Shadcn)**: A mobile-first, dark-themed UI. It is now a fully installable PWA with a service worker and manifest. The admin panel includes refined event management (config moved inside events, delete functionality, improved table captain assignment UI). The volunteer dashboard features a camera-based QR code scanner. The user dashboard has a revamped Pass Reference workflow with a stable contact import mechanism.
 
 **Last working item**:
--   **Last item agent was working**: To add a Download Sample CSV feature in the admin panel for both user and category imports. This aims to guide admins on the correct data format and prevent upload errors. The agent began by inspecting  to find the best location for the download link.
--   **Status**: IN PROGRESS
+-   **Last item agent was working**: The user reported a new bug: i got the issue, i need to wait for a while before i search, its not able to handle the load i assume, what can we do to fix it?. The agent has acknowledged the message but has not started investigating or fixing it. The issue is most likely related to the search/filter functionality on a large list of users, probably in the Table Captains assignment UI.
+-   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
 -   **Which testing method agent to use?**: manual testing by curl
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1**: (P0) Implement Download Sample CSV feature for admins.
+-   **Issue 1**: (P0) Performance lag on search input.
 
 **Issues Detail**:
 -   **Issue 1**:
-    -   **Description**: Admins need a way to download a template CSV file for user and business category imports to ensure they use the correct format, thus preventing upload failures.
-    -   **Attempted fixes**: None yet. The agent was in the initial exploration phase.
+    -   **Description**: The user experiences a significant lag when using a search feature, forcing them to wait before typing. This points to an unoptimized filtering operation on a large dataset, likely the user list (~500 users) in the Assign Table Captain dropdown in .
+    -   **Attempted fixes**: None.
     -   **Next debug checklist**:
-        1.  Modify  to add a download link/button for the user import sample CSV.
-        2.  Modify  to add a similar download link/button for the categories sample CSV.
-        3.  Implement the download functionality on the frontend, possibly using a static string converted to a data URI, which requires no backend changes.
-    -   **Why fix this issue and what will be achieved with the fix?**: This will improve the admin user experience and reduce support issues related to incorrect CSV formatting.
-    -   **Status**: IN PROGRESS
+        1.  Confirm the lag occurs in  when filtering users to assign a table captain.
+        2.  The root cause is likely the filter function running on every keystroke, causing expensive re-renders on a large list.
+        3.  Implement a debounce mechanism on the search input to delay the filtering function until the user stops typing for ~300ms. A  custom hook would be a clean solution.
+        4.  Verify the fix by testing the search functionality with a large user list to ensure it is smooth and responsive.
+    -   **Why fix this issue and what will be achieved with the fix?**: A laggy UI provides a poor user experience and can make the application feel broken. Fixing this will make admin tasks smoother and more efficient, especially for large events.
+    -   **Status**: NOT STARTED
     -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Frontend (using the screenshot tool to verify the button/link is visible).
+    -   **Should Test frontend/backend/both after fix?**: Frontend
     -   **Blocked on other issue**: None.
 
 **In progress Task List**:
--   **Task 1**: Add Sample CSV Download Feature
-    -   **Where to resume**: The agent should now modify  and . The next action is to add the UI element (e.g., a button or link) and the logic to trigger the download of a pre-formatted sample CSV file.
-    -   **What will be achieved with this?**: Admins will have easy access to correctly formatted CSV templates, streamlining the data import process.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on something**: No.
+-   None.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   (P1) Implement a camera-based QR code scanner within the app for volunteers to use for attendee check-in.
--   **Future Tasks**:
-    -   (P2) Integrate the Razorpay payment gateway for event registration fees.
-    -   (P3) Integrate a WhatsApp API to send notifications, table assignments, and QR codes to users.
+- **Upcoming Tasks**:
+  - (P0) Razorpay payment gateway integration for event fees.
+  - (P1) WhatsApp API integration for sending notifications.
+- **Future Tasks**:
+  - File upload for user profile pictures.
+  - An analytics dashboard for admins.
+  - Export functionality for reports (CSV/PDF).
 
 **Completed work in this session**
--   Initial MVP of the full-stack application (Backend, Frontend, DB) was built.
--   Admin panel with dashboards for Event, User, Category, and Volunteer management was created.
--   Implemented user registration and role-based login flows.
--   Added CSV upload for Business Categories, including de-duplication and A-Z sorting.
--   Fixed a  for all CSV uploads by implementing robust character encoding detection.
--   Enforced mandatory business information (company name, category, subcategory) on user profiles.
--   Implemented a Profile Completion Gate to force users with incomplete data to update their profiles upon login.
--   Enhanced the admin panel to allow manual user creation and CSV user uploads, with an option to register them for an event simultaneously.
--   Updated admin tables to display users' business information.
+- **Download Sample CSV Feature**: Added download links for sample CSV files on the User, Category, and Event management pages.
+- **PWA Functionality**: Implemented , a service worker, app icons, and an install prompt, making the app installable.
+- **Camera QR Scanner**: Integrated a camera-based QR code scanner into the volunteer dashboard using .
+- **Event Management Refactor**: Moved table/round configuration from the event creation form into a dedicated Configuration tab within the event details.
+- **Delete Event Feature**: Added functionality for admins to delete events, which correctly preserves user accounts.
+- **Table Captain Assignment UI/UX**:
+    - Implemented a search bar for assigned captains.
+    - Added a searchable dropdown for selecting users.
+    - Capped assignments to the total number of tables.
+    - Improved logic to fill gaps from deleted captains instead of only using max+1.
+- **Seating Algorithm Overhaul**:
+    - Fixed logic for distributing vacant seats.
+    - Rewrote the algorithm to enforce hard constraints: no sub-category duplicates on a table, and no two people meeting more than once across all rounds.
+- **UI Enhancement**: Updated the seating display to show the category and sub-category for both captains and regular users.
+- **Pass Reference Feature Revamp**:
+    - Renamed from Punch Reference.
+    - Created a popup dialog for submitting a reference with fields for the referred person's contact info and notes.
+    - Updated backend to allow multiple references to the same user and store the new contact details.
+- **Bug Fix (Critical)**: Resolved a persistent PWA crash on Android caused by the Contact Picker API. The final, stable solution involves invoking the API *before* opening any UI dialogs.
+
+**Earlier issues found/mentioned but not fixed**
+-   None. The agent has addressed all issues raised by the user in this session, with the latest performance issue being the next item to tackle.
+
+**Known issue recurrence from previous fork**
+- **Issue recurrence in previous fork**: The Contact Picker API () caused the PWA to crash on Android devices.
+- **Recurrence count**: 3. The agent attempted several fixes: (1) adding a simple feature check, (2) removing the  call, (3) replacing it with a VCF file import. None fully resolved the user's issue.
+- **Status**: RESOLVED. The final fix was to change the UX flow: the contact is now picked *before* any dialog is opened, preventing a context-loss crash in the browser. The next agent should be aware of this pattern if similar native APIs are used.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, , Shadcn/UI, Tailwind CSS
+-   **Frontend**: React, , Shadcn/UI, Tailwind CSS, 
 -   **Backend**: FastAPI, Pydantic, Motor (async MongoDB driver)
 -   **Database**: MongoDB
--   **Authentication**: JSON Web Tokens (JWT) for role-based access control (admin, user, volunteer).
--   **Architecture**: RESTful API with a Single Page Application (SPA) frontend.
+-   **Authentication**: JSON Web Tokens (JWT)
+-   **PWA**: Service Workers, Web App Manifest () for installability.
+-   **Native Web APIs**:  (Contact Picker API). Its implementation required careful handling to avoid browser crashes, specifically by not calling it from within a modal/dialog portal.
 
 **key DB schema**
--   **users**: User profiles, including authentication and business details.
--   **events**: Details for each networking event.
--   **categories**: Top-level business categories.
--   **subcategories**: Sub-categories linked to a parent category.
--   **event_registrations**: Maps users to the events they are registered for.
--   **volunteers**: Credentials for volunteer users.
--   **table_assignments**: Stores the seating arrangement for each round of an event.
+-   **references**: Updated to include , , . The unique constraint on  was removed to allow multiple references.
+-   Other collections remain the same.
 
 **changes in tech stack**
--   None.
+-    library was added to the frontend for camera-based QR code scanning.
 
 **All files of reference**
--   : Heavily modified to add CSV uploads, user management endpoints, and encoding fixes.
--   : Updated to enforce mandatory business info during registration.
--   : Updated to add a profile status check endpoint.
--   : Rewritten to add manual/CSV user creation and event registration.
--   : Rewritten to support CSV upload.
--   : Rewritten to implement the profile completion gate.
--   : Rewritten to add validation for mandatory business fields.
--   : Document created to track project requirements and progress.
--   , : Reports from the testing agent.
+-   : Completely rewritten to implement a complex, constraint-based seating algorithm. **Critical file.**
+-   : Heavily modified to refactor event configuration and dramatically improve the Table Captains assignment UI.
+-   : Completely rewritten to implement the new Pass Reference workflow, including the fix for the Contact Picker API crash.
+-   : Rewritten to integrate a camera-based QR scanner.
+-   : Modified to pass full user data to the new seating algorithm.
+-   :  model updated with new fields.
+-   : Logic updated to support the new reference model.
+-   , : New files for PWA functionality.
+-   , : New reusable components.
 
 **Areas that need refactoring**:
--   None identified.
+-   The search input in  that is causing the performance lag needs to be refactored to use a debounce mechanism.
 
 **key api endpoints**
--   : New user registration.
--   : Role-based login.
--   : Check if the logged-in user's profile is complete.
--   : Bulk upload business categories.
--   : Manually create a new user.
--   : Bulk upload new users and optionally register them for an event.
--   : Retrieve registered users for an event, including their business details.
+-   : Now used to update table/round configuration.
+-   : New endpoint to delete an event and its related data (but not users).
+-   : The payload model was updated, and the backend logic was changed to allow multiple references from one user to another.
+-   : Backend logic updated to enrich captain and user data with category/subcategory names.
 
 **Critical Info for New Agent**
--   User has deferred WhatsApp integration and Razorpay payment implementation.
--   A critical feature is the profile completion gate in , which blocks access to the app until users imported via CSV complete their business profiles.
--   All CSV upload endpoints in  must handle multiple character encodings (, , etc.) to prevent errors from files exported by different editors (e.g., Excel).
--   The backend correctly handles a none value for  during user creation, meaning no event registration will occur.
+-   **Admin Password**: The admin password is . The email is .
+-   **Seating Algorithm**: The current algorithm in  is highly optimized and complex. It successfully generates seating plans with zero violations for the user's specific scenario (400+ users, 62 tables, 3 rounds). Avoid making changes to it unless absolutely necessary.
+-   **Contact Picker API**: This native API is unstable and platform-dependent. The established working pattern is to call it *outside* of any dialog/modal to prevent crashes. Do not change this flow.
+-   **Debouncing**: The user's latest complaint about search lag strongly suggests the need for debouncing. This should be the first priority.
 
 **documents and test reports created in this job**
 -   
 -   
--   
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Request**: give option to download sample CSV... - **Status**: In Progress.
-2.  **Request**: Make user business info mandatory and add a profile completion gate for CSV-imported users. - **Status**: Completed.
-3.  **Feedback**: i am uploading a csv but its showing failed. - **Status**: Completed (bug fixed).
-4.  **Request**: Add CSV upload for business categories with de-duplication. - **Status**: Completed.
-5.  **Initial Choices**: Confirmed manual payment link for now, defined QR code purpose, and deferred WhatsApp integration. - **Status**: Acknowledged and planned.
-6.  **Instruction**: Start the task now. - **Status**: Completed.
+1.  **Request**: when i click import from phone book the pwa is crashing - **Status**: Completed. The agent identified the root cause and implemented a stable fix.
+2.  **Request**: i was doing it on my android phone - **Status**: Completed. User clarified the crash was on a supported device, leading the agent to find the true root cause.
+3.  **Request**: the app is still crashing - **Status**: Completed. User confirmed a previous fix didn't work.
+4.  **Request**: but i cant download individual vcf file and then upload the vcf file every time, it should pickup from phone book - **Status**: Completed. User rejected the VCF file workaround.
+5.  **User Info**: Provided browser version and OS for debugging the crash. - **Status**: Completed.
+6.  **Request**: i got the issue, i need to wait for a while before i search, its not able to handle the load i assume, waht can we do to fix it? - **Status**: **PENDING**. This is the current highest-priority task.
 
 **Project Health Check:**
--   **Broken**: None.
--   **Mocked**: The smart seating algorithm in  is a placeholder. Razorpay and WhatsApp integrations are planned but not implemented.
+-   **Broken**: Search functionality in the admin panel is performant-challenged and provides a poor UX.
+-   **Mocked**: Razorpay and WhatsApp integrations are placeholders.
 
 **3rd Party Integrations**
 -   **Active**:
-    -   : Used in the backend for generating QR code data.
-    -   : Used in the frontend to display QR codes.
+    -    (backend)
+    -    (frontend)
+    -    (frontend, for camera scanning)
 -   **Planned**:
     -   Razorpay (Payment Gateway)
     -   A WhatsApp API Provider
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, it was run after the initial MVP build and after implementing the mandatory business info features.
+-   **Testing agent used after significant changes**: YES. It was used after the Download CSV feature and after the PWA/QR scanner implementation, with all tests passing.
 -   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: The testing agent created/updated .
+-   **Test files created**: None in this session, but previous test files were used by the testing agent.
 -   **Known regressions**: None.
 
 **Credentials to test flow:**
@@ -168,6 +176,7 @@ A full-stack PWA for SSNC speed networking events has been developed.
     -   **URL**:  (select the Admin tab)
     -   **Email**: 
     -   **Password**: 
+-   **User Login**: Find a user from the admin panel (e.g., Shaurya Goel, phone ). The password is the user's phone number.
 
 **What agent forgot to execute**
--   The agent has followed all user requests sequentially. The current task (adding a sample CSV download link) is the immediate next step and is actively being worked on.</analysis>
+-   The agent has been diligent in following user requests. No tasks appear to have been overlooked. The next step is to address the newly reported performance bug.</analysis>

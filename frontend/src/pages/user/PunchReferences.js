@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Send, Eye, Building2, Check, BookUser, X } from 'lucide-react';
+import { Send, Eye, Building2, Check, BookUser, X, Loader2 } from 'lucide-react';
 
 const SOCIAL_ICONS = {
     whatsapp: { color: '#25D366', label: 'WA', url: v => `https://wa.me/${v}` },
@@ -59,6 +59,7 @@ export default function PunchReferences() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [selectedPerson, setSelectedPerson] = useState(null);
     const [refForm, setRefForm] = useState({ contact_name: '', contact_phone: '', contact_email: '', notes: '' });
+    const [pickingContact, setPickingContact] = useState(null); // holds person.id while picker is open
 
     useEffect(() => {
         API.get('/user/events').then(r => {
@@ -108,21 +109,36 @@ export default function PunchReferences() {
             openRefDialog(person);
             return;
         }
+        setPickingContact(person.id);
+        toast.info('Opening phone book... please wait for contacts to load before searching.');
         try {
-            const contacts = await navigator.contacts.select(['name', 'tel', 'email'], { multiple: false });
+            // Use a timeout to prevent the app from hanging indefinitely
+            const pickerPromise = navigator.contacts.select(['name', 'tel'], { multiple: false });
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), 60000)
+            );
+            const contacts = await Promise.race([pickerPromise, timeoutPromise]);
             if (contacts && contacts.length > 0) {
                 const c = contacts[0];
                 openRefDialog(person, {
                     contact_name: (c.name && c.name[0]) || '',
                     contact_phone: (c.tel && c.tel[0]) || '',
-                    contact_email: (c.email && c.email[0]) || '',
+                    contact_email: '',
                     notes: '',
                 });
             }
         } catch (err) {
-            if (err && err.name === 'AbortError') return;
-            // Fallback: open dialog without prefill
-            openRefDialog(person);
+            if (err && err.name === 'AbortError') {
+                // User cancelled — do nothing
+            } else if (err && err.message === 'timeout') {
+                toast.error('Phone book took too long. Please enter details manually.');
+                openRefDialog(person);
+            } else {
+                toast.error('Could not load phone book. Please enter details manually.');
+                openRefDialog(person);
+            }
+        } finally {
+            setPickingContact(null);
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -201,8 +217,9 @@ export default function PunchReferences() {
                                             <div className="flex gap-1.5">
                                                 {hasContactPicker && (
                                                     <Button size="sm" variant="outline" onClick={() => pickAndPassRef(p)}
+                                                        disabled={pickingContact === p.id}
                                                         className="h-8 w-8 p-0" title="Pick from phone book" data-testid={`pick-contact-${p.id}`}>
-                                                        <BookUser size={14} />
+                                                        {pickingContact === p.id ? <Loader2 size={14} className="animate-spin" /> : <BookUser size={14} />}
                                                     </Button>
                                                 )}
                                                 <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
