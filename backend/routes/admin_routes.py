@@ -181,6 +181,7 @@ async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
         user = await db.users.find_one({"id": cap['user_id']}, {"_id": 0})
         if user:
             cap['category_id'] = user.get('category_id', '')
+            cap['subcategory_id'] = user.get('subcategory_id', '')
     categories = await db.categories.find({}, {"_id": 0}).to_list(100)
     captain_user_ids = {c['user_id'] for c in captains}
     regular_users = [u for u in users if u['id'] not in captain_user_ids]
