@@ -110,6 +110,30 @@ function EventDetail({ eventId, onBack }) {
         } catch (err) { toast.error(err.response?.data?.detail || 'Assignment failed'); }
     };
 
+    const downloadSeatingCSV = () => {
+        const rows = [['Round', 'Table', 'Role', 'Name', 'Phone', 'Email', 'Position', 'Business', 'Category', 'Sub Category']];
+        const rounds = [...new Set(assignments.map(a => a.round_number))].sort();
+        for (const round of rounds) {
+            const tables = assignments.filter(a => a.round_number === round).sort((a, b) => a.table_number - b.table_number);
+            for (const t of tables) {
+                if (t.captain) {
+                    const c = t.captain;
+                    rows.push([round, t.table_number, 'Captain', c.full_name || '', c.phone || '', c.email || '', c.position || '', c.business_name || '', c.category_name || '', c.subcategory_name || '']);
+                }
+                for (const u of (t.users || [])) {
+                    rows.push([round, t.table_number, 'Member', u.full_name || '', u.phone || '', u.email || '', u.position || '', u.business_name || '', u.category_name || '', u.subcategory_name || '']);
+                }
+            }
+        }
+        const esc = v => { const s = String(v); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+        const csv = rows.map(r => r.map(esc).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `${event?.name || 'seating'}_seating_plan.csv`; a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const roundControl = async (action, roundNumber) => {
         try { await API.post(`/admin/events/${eventId}/round-control`, { action, round_number: roundNumber || 0 });
             toast.success(`Round ${action}ed`); load();
@@ -300,6 +324,9 @@ function EventDetail({ eventId, onBack }) {
                 <TabsContent value="seating">
                     <div className="flex gap-3 mb-6">
                         <Button onClick={assignTables} className="bg-primary" data-testid="assign-tables-btn"><TableProperties size={16} className="mr-2" />Assign Tables</Button>
+                        {assignments.length > 0 && (
+                            <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
+                        )}
                     </div>
                     {assignments.length > 0 ? (
                         <div className="space-y-6">{[...new Set(assignments.map(a => a.round_number))].sort().map(round => (
