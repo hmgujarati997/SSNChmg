@@ -97,7 +97,7 @@ export default function UserManagement() {
                         <DialogTrigger asChild>
                             <Button variant="outline" data-testid="upload-users-csv-btn"><Upload size={16} className="mr-2" />Upload CSV</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-border">
+                        <DialogContent className="bg-background border-border">
                             <DialogHeader><DialogTitle>Upload Users CSV</DialogTitle></DialogHeader>
                             <div className="space-y-4">
                                 <div className="text-xs text-muted-foreground bg-card rounded-lg p-3">
@@ -131,7 +131,7 @@ export default function UserManagement() {
                         <DialogTrigger asChild>
                             <Button className="bg-primary" data-testid="add-user-btn"><Plus size={16} className="mr-2" />Add User</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-border max-w-lg max-h-[85vh] overflow-y-auto">
+                        <DialogContent className="bg-background border-border max-w-lg max-h-[85vh] overflow-y-auto">
                             <DialogHeader><DialogTitle>Add User</DialogTitle></DialogHeader>
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">

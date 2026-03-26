@@ -445,7 +445,7 @@ export default function EventManagement() {
                     <DialogTrigger asChild>
                         <Button className="bg-primary" data-testid="new-event-btn"><Plus size={16} className="mr-2" />New Event</Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#121212] border-border max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="bg-background border-border max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader><DialogTitle>Create Event</DialogTitle></DialogHeader>
                         <EventForm onCreated={() => { setShowCreate(false); load(); }} />
                     </DialogContent>

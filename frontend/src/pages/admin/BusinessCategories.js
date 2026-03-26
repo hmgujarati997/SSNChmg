@@ -132,7 +132,7 @@ export default function BusinessCategories() {
                         <DialogTrigger asChild>
                             <Button className="bg-primary" data-testid="add-category-btn"><Plus size={16} className="mr-2" />Add Category</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-border">
+                        <DialogContent className="bg-background border-border">
                             <DialogHeader><DialogTitle>Add Category</DialogTitle></DialogHeader>
                             <div className="space-y-4">
                                 <div><Label>Category Name</Label><Input value={catName} onChange={e => setCatName(e.target.value)} placeholder="e.g., IT Services" className="bg-muted/50 border-border h-11 mt-1" data-testid="category-name-input" onKeyDown={e => e.key === 'Enter' && addCategory()} /></div>
@@ -214,7 +214,7 @@ export default function BusinessCategories() {
             </div>
 
             <Dialog open={showAddSub} onOpenChange={setShowAddSub}>
-                <DialogContent className="bg-[#121212] border-border">
+                <DialogContent className="bg-background border-border">
                     <DialogHeader><DialogTitle>Add Subcategory</DialogTitle></DialogHeader>
                     <div className="space-y-4">
                         <div><Label>Subcategory Name</Label><Input value={subName} onChange={e => setSubName(e.target.value)} placeholder="e.g., Web Development" className="bg-muted/50 border-border h-11 mt-1" data-testid="subcategory-name-input" onKeyDown={e => e.key === 'Enter' && addSubcategory()} /></div>

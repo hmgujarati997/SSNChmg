@@ -35,7 +35,7 @@ export default function VolunteerManagement() {
                     <DialogTrigger asChild>
                         <Button className="bg-primary" data-testid="add-volunteer-btn"><Plus size={16} className="mr-2" />Add Volunteer</Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#121212] border-border">
+                    <DialogContent className="bg-background border-border">
                         <DialogHeader><DialogTitle>Add Volunteer</DialogTitle></DialogHeader>
                         <div className="space-y-4">
                             <div><Label>Name *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="John Doe" className="bg-muted/50 border-border h-11 mt-1" data-testid="volunteer-name-input" /></div>
