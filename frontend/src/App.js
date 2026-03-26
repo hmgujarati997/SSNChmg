@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PWAProvider } from "@/contexts/PWAContext";
+import { BrandingProvider } from "@/contexts/BrandingContext";
 import { Toaster } from "@/components/ui/sonner";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -51,12 +52,14 @@ function App() {
     return (
         <ThemeProvider>
             <PWAProvider>
-                <AuthProvider>
-                    <BrowserRouter>
-                        <AppRoutes />
-                    </BrowserRouter>
-                    <Toaster richColors position="top-right" />
-                </AuthProvider>
+                <BrandingProvider>
+                    <AuthProvider>
+                        <BrowserRouter>
+                            <AppRoutes />
+                        </BrowserRouter>
+                        <Toaster richColors position="top-right" />
+                    </AuthProvider>
+                </BrandingProvider>
             </PWAProvider>
         </ThemeProvider>
     );

@@ -4,6 +4,7 @@ from auth_utils import require_admin, hash_password
 from models import (EventCreate, EventUpdate, CategoryCreate, SubCategoryCreate,
                     VolunteerCreate, TableCaptainAssign, SiteSettingsUpdate, RoundControl,
                     AdminUserCreate)
+from db_helpers import enrich_users_with_categories, bulk_fetch_users
 from seating import assign_tables
 import uuid
 import io
@@ -56,8 +57,16 @@ async def create_event(data: EventCreate, admin=Depends(require_admin)):
 @router.get("/events")
 async def list_events(admin=Depends(require_admin)):
     events = await db.events.find({}, {"_id": 0}).to_list(100)
-    for e in events:
-        e['registration_count'] = await db.event_registrations.count_documents({"event_id": e['id']})
+    if events:
+        event_ids = [e['id'] for e in events]
+        pipeline = [
+            {"$match": {"event_id": {"$in": event_ids}}},
+            {"$group": {"_id": "$event_id", "count": {"$sum": 1}}}
+        ]
+        counts = await db.event_registrations.aggregate(pipeline).to_list(len(event_ids))
+        count_map = {c['_id']: c['count'] for c in counts}
+        for e in events:
+            e['registration_count'] = count_map.get(e['id'], 0)
     return events
 
 
@@ -221,25 +230,17 @@ async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
 @router.get("/events/{event_id}/assignments")
 async def get_assignments(event_id: str, admin=Depends(require_admin)):
     assignments = await db.table_assignments.find({"event_id": event_id}, {"_id": 0}).sort("round_number", 1).to_list(1000)
+    # Collect all user IDs across all assignments
+    all_uids = set()
     for a in assignments:
-        enriched = []
-        for uid in a.get('user_ids', []):
-            user = await db.users.find_one({"id": uid}, {"_id": 0, "password_hash": 0})
-            if user:
-                cat = await db.categories.find_one({"id": user.get('category_id', '')}, {"_id": 0})
-                user['category_name'] = cat['name'] if cat else ''
-                subcat = await db.subcategories.find_one({"id": user.get('subcategory_id', '')}, {"_id": 0})
-                user['subcategory_name'] = subcat['name'] if subcat else ''
-                enriched.append(user)
-        a['users'] = enriched
+        all_uids.update(a.get('user_ids', []))
         if a.get('captain_id'):
-            captain = await db.users.find_one({"id": a['captain_id']}, {"_id": 0, "password_hash": 0})
-            if captain:
-                cat = await db.categories.find_one({"id": captain.get('category_id', '')}, {"_id": 0})
-                captain['category_name'] = cat['name'] if cat else ''
-                subcat = await db.subcategories.find_one({"id": captain.get('subcategory_id', '')}, {"_id": 0})
-                captain['subcategory_name'] = subcat['name'] if subcat else ''
-            a['captain'] = captain
+            all_uids.add(a['captain_id'])
+    # Bulk fetch all users with categories in 3 queries max
+    user_map = await bulk_fetch_users(all_uids)
+    for a in assignments:
+        a['users'] = [user_map[uid] for uid in a.get('user_ids', []) if uid in user_map]
+        a['captain'] = user_map.get(a.get('captain_id'))
     return assignments
 
 
@@ -277,16 +278,10 @@ async def toggle_registration(event_id: str, admin=Depends(require_admin)):
 @router.get("/events/{event_id}/registrations")
 async def get_registrations(event_id: str, admin=Depends(require_admin)):
     regs = await db.event_registrations.find({"event_id": event_id}, {"_id": 0}).to_list(2000)
+    user_ids = [r['user_id'] for r in regs]
+    user_map = await bulk_fetch_users(user_ids)
     for r in regs:
-        user = await db.users.find_one({"id": r['user_id']}, {"_id": 0, "password_hash": 0})
-        if user:
-            if user.get('category_id'):
-                cat = await db.categories.find_one({"id": user['category_id']}, {"_id": 0})
-                user['category_name'] = cat['name'] if cat else ''
-            if user.get('subcategory_id'):
-                sub = await db.subcategories.find_one({"id": user['subcategory_id']}, {"_id": 0})
-                user['subcategory_name'] = sub['name'] if sub else ''
-        r['user'] = user
+        r['user'] = user_map.get(r['user_id'])
     return regs
 
 
@@ -447,13 +442,7 @@ async def delete_subcategory(sub_id: str, admin=Depends(require_admin)):
 @router.get("/users")
 async def list_users(admin=Depends(require_admin)):
     users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(2000)
-    for u in users:
-        if u.get('category_id'):
-            cat = await db.categories.find_one({"id": u['category_id']}, {"_id": 0})
-            u['category_name'] = cat['name'] if cat else ''
-        if u.get('subcategory_id'):
-            sub = await db.subcategories.find_one({"id": u['subcategory_id']}, {"_id": 0})
-            u['subcategory_name'] = sub['name'] if sub else ''
+    await enrich_users_with_categories(users)
     return users
 
 
@@ -685,7 +674,8 @@ async def update_settings(data: SiteSettingsUpdate, admin=Depends(require_admin)
 
 
 @router.post("/upload-logo")
-async def upload_logo(file: UploadFile = File(...), admin=Depends(require_admin)):
+async def upload_logo(file: UploadFile = File(...), logo_type: str = "header_logo", admin=Depends(require_admin)):
+    """Upload different logos. logo_type: header_logo, login_logo_1, login_logo_2, favicon, pwa_icon"""
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(400, "Only image files allowed")
     from pathlib import Path
@@ -694,32 +684,41 @@ async def upload_logo(file: UploadFile = File(...), admin=Depends(require_admin)
     uploads_dir = Path(__file__).parent.parent / "uploads"
     uploads_dir.mkdir(exist_ok=True)
     content = await file.read()
-    # Save original
     ext = file.filename.split(".")[-1] if "." in file.filename else "png"
-    orig_path = uploads_dir / f"app_logo.{ext}"
-    with open(orig_path, "wb") as f:
+    filename = f"{logo_type}.{ext}"
+    with open(uploads_dir / filename, "wb") as f:
         f.write(content)
-    logo_url = f"/api/uploads/app_logo.{ext}"
-    # Generate PWA icons from uploaded logo
+    file_url = f"/api/uploads/{filename}"
+    # Generate sized icons for favicon and pwa_icon
     try:
         img = Image.open(io.BytesIO(content)).convert("RGBA")
-        for size, name in [(192, "icon-192.png"), (512, "icon-512.png"), (32, "favicon-32.png"), (180, "apple-touch-icon.png")]:
-            icon = Image.new("RGBA", (size, size), (255, 255, 255, 0))
-            pad = int(size * 0.1)
-            inner = size - 2 * pad
-            ratio = min(inner / img.width, inner / img.height)
+        if logo_type == "favicon":
+            for size, name in [(32, "favicon-32.png"), (16, "favicon-16.png")]:
+                icon = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+                pad = int(size * 0.05)
+                inner = size - 2 * pad
+                ratio = min(inner / img.width, inner / img.height)
+                nw, nh = int(img.width * ratio), int(img.height * ratio)
+                resized = img.resize((nw, nh), Image.LANCZOS)
+                icon.paste(resized, ((size - nw) // 2, (size - nh) // 2), resized)
+                icon.save(str(uploads_dir / name), "PNG")
+            fav = Image.new("RGBA", (32, 32), (255, 255, 255, 0))
+            ratio = min(32 / img.width, 32 / img.height)
             nw, nh = int(img.width * ratio), int(img.height * ratio)
             resized = img.resize((nw, nh), Image.LANCZOS)
-            icon.paste(resized, ((size - nw) // 2, (size - nh) // 2), resized)
-            icon.save(str(uploads_dir / name), "PNG")
-        # Favicon ICO
-        fav = Image.new("RGBA", (32, 32), (255, 255, 255, 0))
-        ratio = min(32 / img.width, 32 / img.height)
-        nw, nh = int(img.width * ratio), int(img.height * ratio)
-        resized = img.resize((nw, nh), Image.LANCZOS)
-        fav.paste(resized, ((32 - nw) // 2, (32 - nh) // 2), resized)
-        fav.save(str(uploads_dir / "favicon.ico"), format="ICO", sizes=[(32, 32)])
+            fav.paste(resized, ((32 - nw) // 2, (32 - nh) // 2), resized)
+            fav.save(str(uploads_dir / "favicon.ico"), format="ICO", sizes=[(32, 32)])
+        elif logo_type == "pwa_icon":
+            for size, name in [(192, "pwa-icon-192.png"), (512, "pwa-icon-512.png"), (180, "apple-touch-icon.png")]:
+                icon = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+                pad = int(size * 0.05)
+                inner = size - 2 * pad
+                ratio = min(inner / img.width, inner / img.height)
+                nw, nh = int(img.width * ratio), int(img.height * ratio)
+                resized = img.resize((nw, nh), Image.LANCZOS)
+                icon.paste(resized, ((size - nw) // 2, (size - nh) // 2), resized)
+                icon.save(str(uploads_dir / name), "PNG")
     except Exception:
-        pass  # Icons generation failed, but logo is still saved
-    await db.site_settings.update_one({"id": "default"}, {"$set": {"app_logo": logo_url}}, upsert=True)
-    return {"message": "Logo uploaded", "url": logo_url}
+        pass
+    await db.site_settings.update_one({"id": "default"}, {"$set": {logo_type: file_url}}, upsert=True)
+    return {"message": "Logo uploaded", "url": file_url, "type": logo_type}

@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Home, User, ArrowRightLeft, LogOut, AlertCircle, Save } from 'lucide-react';
-import { ThemeToggle, InstallButton } from '@/components/AppBranding';
+import { ThemeToggle, InstallButton, HeaderLogo } from '@/components/AppBranding';
 import UserDashboard from './UserDashboard';
 import UserProfile from './UserProfile';
 import PunchReferences from './PunchReferences';
@@ -128,7 +128,7 @@ export default function UserLayout() {
         <div className="min-h-screen bg-background pb-20" data-testid="user-layout">
             <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <img src="/sbc_logo.png" alt="SBC" className="h-8 w-auto object-contain" />
+                    <HeaderLogo />
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground hidden sm:block">{user?.full_name}</span>

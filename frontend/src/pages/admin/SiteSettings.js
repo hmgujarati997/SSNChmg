@@ -4,17 +4,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, Settings, Upload, Image } from 'lucide-react';
+import { Save, Settings, Upload, Image, Globe, Smartphone, Star } from 'lucide-react';
+
+const LOGO_TYPES = [
+    { key: 'favicon', label: 'Favicon', desc: 'Browser tab icon (auto-generates 16px, 32px, ICO)', icon: Globe },
+    { key: 'pwa_icon', label: 'PWA App Icon', desc: 'Icon shown when app is installed on phone (auto-generates 192px, 512px)', icon: Smartphone },
+    { key: 'header_logo', label: 'Website Header Logo', desc: 'Logo shown in sidebar/header across the app', icon: Star },
+    { key: 'login_logo_1', label: 'Login Logo 1 (Left)', desc: 'First logo on the login page (e.g. SGCCI)', icon: Image },
+    { key: 'login_logo_2', label: 'Login Logo 2 (Right)', desc: 'Second logo on the login page (e.g. SBC)', icon: Image },
+];
 
 export default function SiteSettings() {
-    const [settings, setSettings] = useState({ admin_email: '', live_screen_password: '', razorpay_key_id: '', razorpay_key_secret: '', app_logo: '' });
+    const [settings, setSettings] = useState({ admin_email: '', live_screen_password: '', razorpay_key_id: '' });
+    const [logos, setLogos] = useState({});
     const [newPassword, setNewPassword] = useState('');
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const fileRef = useRef(null);
+    const [uploading, setUploading] = useState({});
+    const fileRefs = useRef({});
 
     useEffect(() => {
         API.get('/admin/settings').then(r => setSettings(r.data)).catch(() => {});
+        API.get('/public/branding').then(r => setLogos(r.data)).catch(() => {});
     }, []);
 
     const save = async () => {
@@ -30,21 +40,21 @@ export default function SiteSettings() {
         setLoading(false);
     };
 
-    const uploadLogo = async (e) => {
+    const uploadLogo = async (e, logoType) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setUploading(true);
+        setUploading(p => ({ ...p, [logoType]: true }));
         try {
             const formData = new FormData();
             formData.append('file', file);
-            const r = await API.post('/admin/upload-logo', formData, {
+            const r = await API.post(`/admin/upload-logo?logo_type=${logoType}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            setSettings(p => ({ ...p, app_logo: r.data.url }));
-            toast.success('Logo uploaded!');
+            setLogos(p => ({ ...p, [logoType]: r.data.url }));
+            toast.success(`${logoType.replace(/_/g, ' ')} uploaded! Refresh to see changes.`);
         } catch (err) { toast.error('Upload failed'); }
-        setUploading(false);
-        if (fileRef.current) fileRef.current.value = '';
+        setUploading(p => ({ ...p, [logoType]: false }));
+        if (fileRefs.current[logoType]) fileRefs.current[logoType].value = '';
     };
 
     const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
@@ -54,21 +64,44 @@ export default function SiteSettings() {
             <h2 className="text-3xl font-bold tracking-tight mb-8" style={{fontFamily:'Outfit'}}>Settings</h2>
 
             <div className="space-y-6 max-w-xl">
-                <div className="glass-card rounded-xl p-6 space-y-4">
-                    <div className="flex items-center gap-2 mb-2"><Image size={18} className="text-primary" /><h3 className="font-semibold">App Logo</h3></div>
-                    <p className="text-xs text-muted-foreground">Upload a custom logo for the app. It will appear on the login page and navigation.</p>
-                    {settings.app_logo && (
-                        <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                            <img src={`${backendUrl}${settings.app_logo}`} alt="App Logo" className="h-16 w-auto object-contain rounded" />
-                            <span className="text-sm text-muted-foreground">Current logo</span>
+                {/* Logo Upload Sections */}
+                <div className="glass-card rounded-xl p-6 space-y-5">
+                    <h3 className="font-semibold text-lg flex items-center gap-2"><Image size={20} className="text-primary" />App Logos & Icons</h3>
+                    <p className="text-xs text-muted-foreground">Upload images for different parts of the app. Changes take effect after a page refresh.</p>
+
+                    {LOGO_TYPES.map(({ key, label, desc, icon: Icon }) => (
+                        <div key={key} className="flex items-start gap-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+                                <Icon size={18} className="text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">{label}</p>
+                                <p className="text-xs text-muted-foreground mb-2">{desc}</p>
+                                {logos[key] && (
+                                    <div className="mb-2">
+                                        <img src={`${backendUrl}${logos[key]}`} alt={label} className="h-10 w-auto object-contain rounded bg-muted/50 p-1" />
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    ref={el => fileRefs.current[key] = el}
+                                    accept="image/*"
+                                    onChange={e => uploadLogo(e, key)}
+                                    className="hidden"
+                                    data-testid={`${key}-file-input`}
+                                />
+                                <Button
+                                    variant="outline" size="sm"
+                                    onClick={() => fileRefs.current[key]?.click()}
+                                    disabled={uploading[key]}
+                                    data-testid={`upload-${key}-btn`}
+                                >
+                                    <Upload size={14} className="mr-1.5" />
+                                    {uploading[key] ? 'Uploading...' : logos[key] ? 'Replace' : 'Upload'}
+                                </Button>
+                            </div>
                         </div>
-                    )}
-                    <div>
-                        <input type="file" ref={fileRef} accept="image/*" onChange={uploadLogo} className="hidden" data-testid="logo-file-input" />
-                        <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} data-testid="upload-logo-btn">
-                            <Upload size={16} className="mr-2" />{uploading ? 'Uploading...' : 'Upload Logo'}
-                        </Button>
-                    </div>
+                    ))}
                 </div>
 
                 <div className="glass-card rounded-xl p-6 space-y-4">

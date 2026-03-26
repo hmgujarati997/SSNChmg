@@ -84,9 +84,14 @@ async def get_public_events():
 @router.get("/branding")
 async def get_branding():
     settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+    if not settings:
+        settings = {}
     return {
-        "app_logo": settings.get("app_logo", "") if settings else "",
-        "app_name": settings.get("app_name", "SSNC") if settings else "SSNC",
+        "header_logo": settings.get("header_logo", ""),
+        "login_logo_1": settings.get("login_logo_1", ""),
+        "login_logo_2": settings.get("login_logo_2", ""),
+        "favicon": settings.get("favicon", ""),
+        "pwa_icon": settings.get("pwa_icon", ""),
     }
 
 
@@ -94,16 +99,23 @@ async def get_branding():
 async def dynamic_manifest():
     from fastapi.responses import JSONResponse
     settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
-    has_custom = settings and settings.get("app_logo")
-    icon_base = "/api/uploads" if has_custom else ""
+    has_pwa = settings and settings.get("pwa_icon")
+    has_fav = settings and settings.get("favicon")
+    icons = []
+    if has_fav:
+        icons.append({"src": "/api/uploads/favicon-32.png", "sizes": "32x32", "type": "image/png"})
+    else:
+        icons.append({"src": "/favicon-32.png", "sizes": "32x32", "type": "image/png"})
+    if has_pwa:
+        icons.append({"src": "/api/uploads/pwa-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"})
+        icons.append({"src": "/api/uploads/pwa-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"})
+    else:
+        icons.append({"src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"})
+        icons.append({"src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"})
     return JSONResponse({
-        "short_name": "SBC",
-        "name": "SGCCI Business Connect - Speed Networking",
-        "icons": [
-            {"src": f"{icon_base}/favicon-32.png", "sizes": "32x32", "type": "image/png"},
-            {"src": f"{icon_base}/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-            {"src": f"{icon_base}/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
-        ],
+        "short_name": "SSNC",
+        "name": "SSNC - Speed Networking",
+        "icons": icons,
         "start_url": "/",
         "display": "standalone",
         "theme_color": "#32329A",

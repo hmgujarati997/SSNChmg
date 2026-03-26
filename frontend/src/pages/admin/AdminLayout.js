@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Calendar, Tags, Users, UserCheck, Settings, LogOut, Menu, X } from 'lucide-react';
-import { ThemeToggle, InstallButton } from '@/components/AppBranding';
+import { ThemeToggle, InstallButton, HeaderLogo } from '@/components/AppBranding';
 import EventManagement from './EventManagement';
 import BusinessCategories from './BusinessCategories';
 import UserManagement from './UserManagement';
@@ -76,7 +76,7 @@ export default function AdminLayout() {
             {/* Sidebar */}
             <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-card border-r border-border flex flex-col transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                 <div className="p-6 flex items-center gap-3 border-b border-border">
-                    <img src="/sbc_logo.png" alt="SBC" className="h-9 w-auto object-contain" />
+                    <HeaderLogo />
                     <span className="text-xs text-muted-foreground ml-auto bg-muted px-2 py-0.5 rounded">Admin</span>
                 </div>
                 <nav className="flex-1 p-4 space-y-1">
@@ -109,7 +109,7 @@ export default function AdminLayout() {
                     <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(!sidebarOpen)} data-testid="mobile-menu-btn">
                         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
                     </Button>
-                    <img src="/sbc_logo.png" alt="SBC" className="h-7 w-auto" />
+                    <HeaderLogo size="sm" />
                     <span className="text-sm text-muted-foreground">Admin</span>
                 </header>
                 <div className="p-6 lg:p-10 max-w-7xl">

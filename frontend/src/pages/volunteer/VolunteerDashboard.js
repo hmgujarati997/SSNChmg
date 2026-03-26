@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { QrCode, CheckCircle, AlertCircle, MapPin, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QrScanner from '@/components/QrScanner';
-import { ThemeToggle, InstallButton } from '@/components/AppBranding';
+import { ThemeToggle, InstallButton, HeaderLogo } from '@/components/AppBranding';
 
 export default function VolunteerDashboard() {
     const { logout } = useAuth();
@@ -64,7 +64,7 @@ export default function VolunteerDashboard() {
         <div className="min-h-screen bg-background" data-testid="volunteer-dashboard">
             <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <img src="/sbc_logo.png" alt="SBC" className="h-8 w-auto object-contain" />
+                    <HeaderLogo />
                     <Badge variant="outline" className="text-xs">Volunteer</Badge>
                 </div>
                 <div className="flex items-center gap-2">

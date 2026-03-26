@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from database import db
 from auth_utils import require_user
 from models import UserUpdate, ReferenceCreate
+from db_helpers import enrich_users_with_categories, bulk_fetch_users
 import uuid
 from datetime import datetime, timezone
 
@@ -104,19 +105,9 @@ async def get_table_people(event_id: str, round_number: int, user=Depends(requir
     all_user_ids = list(assignment.get('user_ids', []))
     if assignment.get('captain_id'):
         all_user_ids.append(assignment['captain_id'])
-    people = []
-    for uid in all_user_ids:
-        if uid == user['sub']:
-            continue
-        u = await db.users.find_one({"id": uid}, {"_id": 0, "password_hash": 0})
-        if u:
-            if u.get('category_id'):
-                cat = await db.categories.find_one({"id": u['category_id']}, {"_id": 0})
-                u['category_name'] = cat['name'] if cat else ''
-            if u.get('subcategory_id'):
-                sub = await db.subcategories.find_one({"id": u['subcategory_id']}, {"_id": 0})
-                u['subcategory_name'] = sub['name'] if sub else ''
-            people.append(u)
+    other_ids = [uid for uid in all_user_ids if uid != user['sub']]
+    user_map = await bulk_fetch_users(other_ids)
+    people = [user_map[uid] for uid in other_ids if uid in user_map]
     return {"table_number": assignment['table_number'], "people": people}
 
 
@@ -143,12 +134,12 @@ async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
 async def get_my_references(event_id: str, user=Depends(require_user)):
     given = await db.references.find({"event_id": event_id, "from_user_id": user['sub']}, {"_id": 0}).to_list(500)
     received = await db.references.find({"event_id": event_id, "to_user_id": user['sub']}, {"_id": 0}).to_list(500)
+    all_ids = set(r['to_user_id'] for r in given) | set(r['from_user_id'] for r in received)
+    user_map = await bulk_fetch_users(all_ids, enrich=False)
     for ref in given:
-        u = await db.users.find_one({"id": ref['to_user_id']}, {"_id": 0, "password_hash": 0})
-        ref['to_user'] = u
+        ref['to_user'] = user_map.get(ref['to_user_id'])
     for ref in received:
-        u = await db.users.find_one({"id": ref['from_user_id']}, {"_id": 0, "password_hash": 0})
-        ref['from_user'] = u
+        ref['from_user'] = user_map.get(ref['from_user_id'])
     return {"given": given, "received": received}
 
 

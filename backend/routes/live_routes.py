@@ -41,27 +41,23 @@ async def get_leaderboard(event_id: str):
         {"$match": {"event_id": event_id}},
         {"$group": {"_id": "$from_user_id", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
-        {"$limit": 10}
+        {"$limit": 10},
+        {"$lookup": {"from": "users", "localField": "_id", "foreignField": "id", "as": "user_doc"}},
+        {"$unwind": {"path": "$user_doc", "preserveNullAndEmptyArrays": True}}
     ]
     top_givers_raw = await db.references.aggregate(pipeline_givers).to_list(10)
-    top_givers = []
-    for g in top_givers_raw:
-        user = await db.users.find_one({"id": g['_id']}, {"_id": 0, "password_hash": 0})
-        if user:
-            top_givers.append({"user": {"full_name": user.get('full_name', ''), "business_name": user.get('business_name', '')}, "count": g['count']})
+    top_givers = [{"user": {"full_name": g.get('user_doc', {}).get('full_name', ''), "business_name": g.get('user_doc', {}).get('business_name', '')}, "count": g['count']} for g in top_givers_raw if g.get('user_doc')]
 
     pipeline_receivers = [
         {"$match": {"event_id": event_id}},
         {"$group": {"_id": "$to_user_id", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
-        {"$limit": 10}
+        {"$limit": 10},
+        {"$lookup": {"from": "users", "localField": "_id", "foreignField": "id", "as": "user_doc"}},
+        {"$unwind": {"path": "$user_doc", "preserveNullAndEmptyArrays": True}}
     ]
     top_receivers_raw = await db.references.aggregate(pipeline_receivers).to_list(10)
-    top_receivers = []
-    for r in top_receivers_raw:
-        user = await db.users.find_one({"id": r['_id']}, {"_id": 0, "password_hash": 0})
-        if user:
-            top_receivers.append({"user": {"full_name": user.get('full_name', ''), "business_name": user.get('business_name', '')}, "count": r['count']})
+    top_receivers = [{"user": {"full_name": r.get('user_doc', {}).get('full_name', ''), "business_name": r.get('user_doc', {}).get('business_name', '')}, "count": r['count']} for r in top_receivers_raw if r.get('user_doc')]
 
     pipeline_tables = [
         {"$match": {"event_id": event_id}},

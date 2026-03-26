@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,12 @@ export default function LoginPage() {
     const [userPassword, setUserPassword] = useState('');
     const [volPhone, setVolPhone] = useState('');
     const [volPassword, setVolPassword] = useState('');
+    const [branding, setBranding] = useState({});
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+
+    useEffect(() => {
+        API.get('/public/branding').then(r => setBranding(r.data)).catch(() => {});
+    }, []);
 
     const handleLogin = async (e, endpoint, credentials, redirectTo) => {
         e.preventDefault();
@@ -39,8 +46,8 @@ export default function LoginPage() {
             <div className="w-full max-w-md animate-fade-in">
                 <div className="text-center mb-10">
                     <div className="flex items-center justify-center gap-4 mb-4">
-                        <img src="/sgcci_logo.png" alt="SGCCI" className="h-16 w-auto object-contain" />
-                        <img src="/sbc_logo.png" alt="SBC" className="h-16 w-auto object-contain" />
+                        <img src={branding.login_logo_1 ? `${backendUrl}${branding.login_logo_1}` : '/sgcci_logo.png'} alt="Logo 1" className="h-16 w-auto object-contain" />
+                        <img src={branding.login_logo_2 ? `${backendUrl}${branding.login_logo_2}` : '/sbc_logo.png'} alt="Logo 2" className="h-16 w-auto object-contain" />
                     </div>
                     <h1 className="text-3xl sm:text-4xl font-black text-foreground tracking-tight" style={{fontFamily:'Outfit'}}>Speed Networking</h1>
                     <p className="text-muted-foreground text-sm mt-1">SGCCI Business Connect</p>

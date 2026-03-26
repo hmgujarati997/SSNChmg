@@ -4,13 +4,13 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#32329A" />
-        <meta name="description" content="SGCCI Business Connect - Speed Networking" />
+        <meta name="description" content="SSNC - Speed Networking" />
         <link rel="manifest" href="/api/public/dynamic-manifest.json" />
-        <link rel="apple-touch-icon" href="/api/uploads/apple-touch-icon.png" onerror="this.href='/apple-touch-icon.png'" />
-        <link rel="icon" id="dynamic-favicon" type="image/png" sizes="32x32" href="/api/uploads/favicon-32.png" onerror="this.href='/favicon-32.png'" />
+        <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
+        <link rel="icon" id="app-favicon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="SBC" />
+        <meta name="apple-mobile-web-app-title" content="SSNC" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
@@ -27,7 +27,18 @@
         work correctly both with client-side routing and a non-root public URL.
         Learn how to configure a non-root public URL by running `npm run build`.
         -->
-        <title>SBC - Speed Networking</title>
+        <title>SSNC - Speed Networking</title>
+        <script>
+            // Dynamic favicon from admin settings
+            fetch('/api/public/branding').then(r=>r.json()).then(b=>{
+                if(b.favicon){
+                    var f=document.getElementById('app-favicon');
+                    if(f) f.href='/api/uploads/favicon-32.png';
+                    var a=document.querySelector('link[rel="apple-touch-icon"]');
+                    if(a) a.href='/api/uploads/apple-touch-icon.png';
+                }
+            }).catch(()=>{});
+        </script>
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
     </head>

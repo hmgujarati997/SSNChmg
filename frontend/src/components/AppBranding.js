@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePWA } from '@/contexts/PWAContext';
+import { useBranding } from '@/contexts/BrandingContext';
 import { Moon, Sun, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -22,11 +23,14 @@ export function InstallButton() {
     );
 }
 
-export function AppLogo({ size = 'md' }) {
+export function HeaderLogo({ size = 'md' }) {
+    const branding = useBranding();
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
     const sizes = { sm: 'h-7', md: 'h-9', lg: 'h-12' };
+    const src = branding.header_logo ? `${backendUrl}${branding.header_logo}` : '/sbc_logo.png';
     return (
         <div className="flex items-center gap-2" data-testid="app-logo">
-            <img src="/sbc_logo.png" alt="SBC" className={`${sizes[size]} w-auto object-contain`} />
+            <img src={src} alt="Logo" className={`${sizes[size]} w-auto object-contain`} />
         </div>
     );
 }

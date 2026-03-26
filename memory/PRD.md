@@ -63,22 +63,18 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 ## What's Been Implemented (2026-03-26)
 - **SGCCI & SBC Branding**: Added SGCCI and SBC logos to login page, admin sidebar, user header, volunteer header
 - **Color Theme Update**: Changed primary color from violet to SGCCI blue (#32329A)
-- **Dark/Light Theme Toggle**: 
-  - Created ThemeContext with localStorage persistence
-  - Theme toggle button (sun/moon) available on login page, admin sidebar, user header
-  - Updated all CSS variables for both dark and light modes
-  - Replaced all hardcoded dark-mode colors (bg-black/30, border-white/10, text-white, etc.) with theme-aware Tailwind classes
-- **Admin Logo Upload**: 
-  - New "App Logo" section in admin Settings page
-  - Upload endpoint (POST /api/admin/upload-logo) saves to /app/backend/uploads/
-  - Public branding endpoint (GET /api/public/branding) for retrieving logo without auth
-  - StaticFiles mount serves uploaded logos via /api/uploads/
-- **Light Theme Text Fix**: Fixed all remaining `text-white` hardcoded colors across Users, Volunteers, Categories, Live Screen, Public Profile, Register pages
-- **Duplicate Captain Prevention**: Backend now rejects assigning the same user as captain on two tables (returns error with current table number)
-- **Seating Verification**: 
-  - Backend returns warning if any registered users were missed during seating assignment
-  - Frontend shows verification summary (Registered / Seated / Captains count) with green "All users assigned" or red warning badge
-  - Toast notification warns admin if users were missed
+- **Dark/Light Theme Toggle**: ThemeContext with localStorage, toggle on all pages, all hardcoded dark colors replaced
+- **Dynamic Logo System (5 separate uploads)**:
+  - Favicon (auto-generates 16px, 32px, ICO)
+  - PWA App Icon (auto-generates 192px, 512px, apple-touch-icon)
+  - Website Header Logo (sidebar/header across all layouts)
+  - Login Logo 1 (left) and Login Logo 2 (right)
+  - Dynamic manifest.json served from backend, references uploaded icons
+  - Favicon dynamically updated on page load from admin settings
+- **N+1 Query Optimization**: Fixed all 8 N+1 database patterns across admin_routes, user_routes, live_routes using bulk queries and aggregation pipelines
+- **Seating Validation**: Backend returns warning if users missed, frontend shows verification badge
+- **Duplicate Captain Prevention**: Backend rejects same user as captain on 2 tables
+- **PWA name**: Changed to "SSNC" as default
   - This eliminates all PWA crash issues related to the Contact Picker API
 
 ## P0 Features Remaining
