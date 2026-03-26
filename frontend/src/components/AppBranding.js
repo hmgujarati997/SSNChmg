@@ -1,5 +1,6 @@
 import { useTheme } from '@/contexts/ThemeContext';
-import { Moon, Sun } from 'lucide-react';
+import { usePWA } from '@/contexts/PWAContext';
+import { Moon, Sun, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export function ThemeToggle({ className = '' }) {
@@ -7,6 +8,16 @@ export function ThemeToggle({ className = '' }) {
     return (
         <Button variant="ghost" size="icon" onClick={toggleTheme} className={className} data-testid="theme-toggle-btn" title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </Button>
+    );
+}
+
+export function InstallButton() {
+    const { canInstall, install } = usePWA();
+    if (!canInstall) return null;
+    return (
+        <Button variant="outline" size="sm" onClick={install} className="gap-1.5 h-8 text-xs font-medium" data-testid="pwa-header-install-btn">
+            <Download size={14} /> Install App
         </Button>
     );
 }

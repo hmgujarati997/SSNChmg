@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { Shield, User, UserCheck } from 'lucide-react';
-import { ThemeToggle } from '@/components/AppBranding';
+import { ThemeToggle, InstallButton } from '@/components/AppBranding';
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -35,7 +35,7 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6 relative" data-testid="login-page">
-            <div className="absolute top-4 right-4"><ThemeToggle /></div>
+            <div className="absolute top-4 right-4 flex items-center gap-2"><InstallButton /><ThemeToggle /></div>
             <div className="w-full max-w-md animate-fade-in">
                 <div className="text-center mb-10">
                     <div className="flex items-center justify-center gap-4 mb-4">

@@ -2,6 +2,7 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { PWAProvider } from "@/contexts/PWAContext";
 import { Toaster } from "@/components/ui/sonner";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -10,7 +11,6 @@ import UserLayout from "@/pages/user/UserLayout";
 import VolunteerDashboard from "@/pages/volunteer/VolunteerDashboard";
 import LiveScreen from "@/pages/LiveScreen";
 import PublicProfile from "@/pages/PublicProfile";
-import InstallPrompt from "@/components/InstallPrompt";
 
 function ProtectedRoute({ children, requiredRole }) {
     const { user, role } = useAuth();
@@ -50,13 +50,14 @@ function AppRoutes() {
 function App() {
     return (
         <ThemeProvider>
-            <AuthProvider>
-                <BrowserRouter>
-                    <AppRoutes />
-                </BrowserRouter>
-                <Toaster richColors position="top-right" />
-                <InstallPrompt />
-            </AuthProvider>
+            <PWAProvider>
+                <AuthProvider>
+                    <BrowserRouter>
+                        <AppRoutes />
+                    </BrowserRouter>
+                    <Toaster richColors position="top-right" />
+                </AuthProvider>
+            </PWAProvider>
         </ThemeProvider>
     );
 }

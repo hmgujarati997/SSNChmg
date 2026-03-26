@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Home, User, ArrowRightLeft, LogOut, AlertCircle, Save } from 'lucide-react';
-import { ThemeToggle } from '@/components/AppBranding';
+import { ThemeToggle, InstallButton } from '@/components/AppBranding';
 import UserDashboard from './UserDashboard';
 import UserProfile from './UserProfile';
 import PunchReferences from './PunchReferences';
@@ -132,6 +132,7 @@ export default function UserLayout() {
                 </div>
                 <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground hidden sm:block">{user?.full_name}</span>
+                    <InstallButton />
                     <ThemeToggle />
                     <Button variant="ghost" size="icon" onClick={() => { logout(); navigate('/login'); }} data-testid="user-logout-btn">
                         <LogOut size={18} />

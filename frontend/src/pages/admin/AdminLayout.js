@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { LayoutDashboard, Calendar, Tags, Users, UserCheck, Settings, LogOut, Menu, X } from 'lucide-react';
-import { ThemeToggle } from '@/components/AppBranding';
+import { ThemeToggle, InstallButton } from '@/components/AppBranding';
 import EventManagement from './EventManagement';
 import BusinessCategories from './BusinessCategories';
 import UserManagement from './UserManagement';
@@ -92,11 +92,14 @@ export default function AdminLayout() {
                         );
                     })}
                 </nav>
-                <div className="p-4 border-t border-border flex items-center gap-2">
-                    <ThemeToggle />
-                    <Button variant="ghost" className="flex-1 justify-start gap-3 text-muted-foreground hover:text-foreground" onClick={handleLogout} data-testid="admin-logout-btn">
-                        <LogOut size={18} /> Logout
-                    </Button>
+                <div className="p-4 border-t border-border space-y-2">
+                    <InstallButton />
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
+                        <Button variant="ghost" className="flex-1 justify-start gap-3 text-muted-foreground hover:text-foreground" onClick={handleLogout} data-testid="admin-logout-btn">
+                            <LogOut size={18} /> Logout
+                        </Button>
+                    </div>
                 </div>
             </aside>
 
