@@ -1,15 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, Settings } from 'lucide-react';
+import { Save, Settings, Upload, Image } from 'lucide-react';
 
 export default function SiteSettings() {
-    const [settings, setSettings] = useState({ admin_email: '', live_screen_password: '', razorpay_key_id: '', razorpay_key_secret: '' });
+    const [settings, setSettings] = useState({ admin_email: '', live_screen_password: '', razorpay_key_id: '', razorpay_key_secret: '', app_logo: '' });
     const [newPassword, setNewPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileRef = useRef(null);
 
     useEffect(() => {
         API.get('/admin/settings').then(r => setSettings(r.data)).catch(() => {});
@@ -28,20 +30,56 @@ export default function SiteSettings() {
         setLoading(false);
     };
 
+    const uploadLogo = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const r = await API.post('/admin/upload-logo', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setSettings(p => ({ ...p, app_logo: r.data.url }));
+            toast.success('Logo uploaded!');
+        } catch (err) { toast.error('Upload failed'); }
+        setUploading(false);
+        if (fileRef.current) fileRef.current.value = '';
+    };
+
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+
     return (
         <div data-testid="site-settings">
             <h2 className="text-3xl font-bold tracking-tight mb-8" style={{fontFamily:'Outfit'}}>Settings</h2>
 
             <div className="space-y-6 max-w-xl">
                 <div className="glass-card rounded-xl p-6 space-y-4">
+                    <div className="flex items-center gap-2 mb-2"><Image size={18} className="text-primary" /><h3 className="font-semibold">App Logo</h3></div>
+                    <p className="text-xs text-muted-foreground">Upload a custom logo for the app. It will appear on the login page and navigation.</p>
+                    {settings.app_logo && (
+                        <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+                            <img src={`${backendUrl}${settings.app_logo}`} alt="App Logo" className="h-16 w-auto object-contain rounded" />
+                            <span className="text-sm text-muted-foreground">Current logo</span>
+                        </div>
+                    )}
+                    <div>
+                        <input type="file" ref={fileRef} accept="image/*" onChange={uploadLogo} className="hidden" data-testid="logo-file-input" />
+                        <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} data-testid="upload-logo-btn">
+                            <Upload size={16} className="mr-2" />{uploading ? 'Uploading...' : 'Upload Logo'}
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="glass-card rounded-xl p-6 space-y-4">
                     <div className="flex items-center gap-2 mb-2"><Settings size={18} className="text-primary" /><h3 className="font-semibold">Admin Credentials</h3></div>
                     <div>
                         <Label className="text-sm text-muted-foreground">Admin Email</Label>
-                        <Input value={settings.admin_email} onChange={e => setSettings(p => ({ ...p, admin_email: e.target.value }))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="settings-email-input" />
+                        <Input value={settings.admin_email} onChange={e => setSettings(p => ({ ...p, admin_email: e.target.value }))} className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-email-input" />
                     </div>
                     <div>
                         <Label className="text-sm text-muted-foreground">New Password (leave empty to keep current)</Label>
-                        <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="settings-password-input" />
+                        <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password" className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-password-input" />
                     </div>
                 </div>
 
@@ -49,7 +87,7 @@ export default function SiteSettings() {
                     <h3 className="font-semibold">Live Screen</h3>
                     <div>
                         <Label className="text-sm text-muted-foreground">Live Screen Password</Label>
-                        <Input value={settings.live_screen_password} onChange={e => setSettings(p => ({ ...p, live_screen_password: e.target.value }))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="settings-live-password-input" />
+                        <Input value={settings.live_screen_password} onChange={e => setSettings(p => ({ ...p, live_screen_password: e.target.value }))} className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-live-password-input" />
                     </div>
                 </div>
 
@@ -57,7 +95,7 @@ export default function SiteSettings() {
                     <h3 className="font-semibold">Razorpay (Coming Soon)</h3>
                     <div>
                         <Label className="text-sm text-muted-foreground">Razorpay Key ID</Label>
-                        <Input value={settings.razorpay_key_id} onChange={e => setSettings(p => ({ ...p, razorpay_key_id: e.target.value }))} placeholder="rzp_test_..." className="bg-black/30 border-white/10 h-11 mt-1" data-testid="settings-razorpay-input" />
+                        <Input value={settings.razorpay_key_id} onChange={e => setSettings(p => ({ ...p, razorpay_key_id: e.target.value }))} placeholder="rzp_test_..." className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-razorpay-input" />
                     </div>
                 </div>
 

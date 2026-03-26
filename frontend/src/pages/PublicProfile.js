@@ -54,7 +54,7 @@ export default function PublicProfile() {
                 <div className="glass-card rounded-2xl overflow-hidden mb-4">
                     <div className="h-24 bg-gradient-to-br from-primary/30 via-[hsl(var(--cyan))]/10 to-transparent" />
                     <div className="px-6 pb-6 -mt-10">
-                        <div className="w-20 h-20 rounded-2xl bg-[#171717] border-4 border-background flex items-center justify-center text-3xl font-black text-primary" style={{fontFamily:'Outfit'}}>
+                        <div className="w-20 h-20 rounded-2xl bg-muted border-4 border-background flex items-center justify-center text-3xl font-black text-primary" style={{fontFamily:'Outfit'}}>
                             {(user.full_name || '?')[0].toUpperCase()}
                         </div>
                         <h1 className="text-2xl font-bold mt-3" style={{fontFamily:'Outfit'}}>{user.full_name}</h1>
@@ -74,12 +74,12 @@ export default function PublicProfile() {
                 <div className="glass-card rounded-xl p-5 mb-4 space-y-3">
                     <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Contact</h3>
                     {user.phone && (
-                        <a href={`tel:${user.phone}`} className="flex items-center gap-3 p-3 rounded-lg bg-[#171717] hover:bg-white/5 transition-colors" data-testid="contact-phone">
+                        <a href={`tel:${user.phone}`} className="flex items-center gap-3 p-3 rounded-lg bg-muted hover:bg-white/5 transition-colors" data-testid="contact-phone">
                             <Phone size={18} className="text-primary" /><span className="text-sm">{user.phone}</span>
                         </a>
                     )}
                     {user.email && (
-                        <a href={`mailto:${user.email}`} className="flex items-center gap-3 p-3 rounded-lg bg-[#171717] hover:bg-white/5 transition-colors" data-testid="contact-email">
+                        <a href={`mailto:${user.email}`} className="flex items-center gap-3 p-3 rounded-lg bg-muted hover:bg-white/5 transition-colors" data-testid="contact-email">
                             <Mail size={18} className="text-primary" /><span className="text-sm">{user.email}</span>
                         </a>
                     )}
@@ -92,7 +92,7 @@ export default function PublicProfile() {
                         <div className="grid grid-cols-2 gap-2">
                             {socialLinks.map(s => (
                                 <a key={s.key} href={getLink(s)} target="_blank" rel="noopener noreferrer"
-                                    className="flex items-center gap-2 p-3 rounded-lg bg-[#171717] hover:bg-white/5 transition-colors" data-testid={`social-${s.key}`}>
+                                    className="flex items-center gap-2 p-3 rounded-lg bg-muted hover:bg-white/5 transition-colors" data-testid={`social-${s.key}`}>
                                     <s.icon size={16} className={s.color} />
                                     <span className="text-sm truncate">{s.label}</span>
                                 </a>

@@ -24,14 +24,14 @@ function EventForm({ onCreated }) {
     return (
         <form onSubmit={submit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><Label>Event Name *</Label><Input value={form.name} onChange={e => u('name', e.target.value)} placeholder="SBC Speed Networking 2026" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="event-name-input" /></div>
-                <div><Label>Date *</Label><Input type="date" value={form.date} onChange={e => u('date', e.target.value)} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="event-date-input" /></div>
-                <div><Label>Time</Label><Input value={form.time} onChange={e => u('time', e.target.value)} placeholder="9:00 AM" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="event-time-input" /></div>
-                <div><Label>Venue</Label><Input value={form.venue} onChange={e => u('venue', e.target.value)} placeholder="SIECC Sarthana Surat" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="event-venue-input" /></div>
-                <div><Label>Reg. Fee (INR)</Label><Input type="number" value={form.registration_fee} onChange={e => u('registration_fee', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                <div><Label>Event Name *</Label><Input value={form.name} onChange={e => u('name', e.target.value)} placeholder="SBC Speed Networking 2026" className="bg-muted/50 border-border h-11 mt-1" data-testid="event-name-input" /></div>
+                <div><Label>Date *</Label><Input type="date" value={form.date} onChange={e => u('date', e.target.value)} className="bg-muted/50 border-border h-11 mt-1" data-testid="event-date-input" /></div>
+                <div><Label>Time</Label><Input value={form.time} onChange={e => u('time', e.target.value)} placeholder="9:00 AM" className="bg-muted/50 border-border h-11 mt-1" data-testid="event-time-input" /></div>
+                <div><Label>Venue</Label><Input value={form.venue} onChange={e => u('venue', e.target.value)} placeholder="SIECC Sarthana Surat" className="bg-muted/50 border-border h-11 mt-1" data-testid="event-venue-input" /></div>
+                <div><Label>Reg. Fee (INR)</Label><Input type="number" value={form.registration_fee} onChange={e => u('registration_fee', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" /></div>
                 <div><Label>Payment Type</Label>
                     <Select value={form.payment_type} onValueChange={v => u('payment_type', v)}>
-                        <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1"><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="bg-muted/50 border-border h-11 mt-1"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="manual">Manual</SelectItem>
                             <SelectItem value="payment_link">Payment Link</SelectItem>
@@ -39,7 +39,7 @@ function EventForm({ onCreated }) {
                         </SelectContent>
                     </Select>
                 </div>
-                {form.payment_type === 'payment_link' && <div className="sm:col-span-2"><Label>Payment Link</Label><Input value={form.payment_link} onChange={e => u('payment_link', e.target.value)} className="bg-black/30 border-white/10 h-11 mt-1" /></div>}
+                {form.payment_type === 'payment_link' && <div className="sm:col-span-2"><Label>Payment Link</Label><Input value={form.payment_link} onChange={e => u('payment_link', e.target.value)} className="bg-muted/50 border-border h-11 mt-1" /></div>}
             </div>
             <p className="text-xs text-muted-foreground">Table & round configuration can be set after creating the event.</p>
             <Button type="submit" className="w-full h-11" disabled={loading} data-testid="create-event-btn">{loading ? 'Creating...' : 'Create Event'}</Button>
@@ -203,7 +203,7 @@ function EventDetail({ eventId, onBack }) {
             </div>
 
             <Tabs defaultValue="registrations" className="w-full">
-                <TabsList className="bg-[#171717] mb-6 flex-wrap h-auto gap-1 p-1">
+                <TabsList className="bg-muted mb-6 flex-wrap h-auto gap-1 p-1">
                     <TabsTrigger value="registrations">Registrations ({regs.length})</TabsTrigger>
                     <TabsTrigger value="config" data-testid="config-tab">Configuration</TabsTrigger>
                     <TabsTrigger value="captains">Table Captains</TabsTrigger>
@@ -222,7 +222,7 @@ function EventDetail({ eventId, onBack }) {
                     <div className="glass-card rounded-xl overflow-hidden">
                         <div className="overflow-x-auto">
                         <table className="w-full text-sm">
-                            <thead><tr className="border-b border-white/5">
+                            <thead><tr className="border-b border-border">
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase">Name</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden sm:table-cell">Phone</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden md:table-cell">Business</th>
@@ -230,7 +230,7 @@ function EventDetail({ eventId, onBack }) {
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase">Status</th>
                             </tr></thead>
                             <tbody>{regs.map(r => (
-                                <tr key={r.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <tr key={r.id} className="border-b border-border hover:bg-white/5 transition-colors">
                                     <td className="p-3 font-medium">{r.user?.full_name || 'N/A'}</td>
                                     <td className="p-3 text-muted-foreground hidden sm:table-cell">{r.user?.phone}</td>
                                     <td className="p-3 text-muted-foreground hidden md:table-cell">{r.user?.business_name || <span className="text-destructive/60 text-xs">Missing</span>}</td>
@@ -249,12 +249,12 @@ function EventDetail({ eventId, onBack }) {
                         <div className="glass-card rounded-xl p-6 space-y-5" data-testid="event-config-section">
                             <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Table & Round Configuration</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                <div><Label>Tables</Label><Input type="number" min={1} value={config.total_tables} onChange={e => uc('total_tables', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-tables-input" /></div>
-                                <div><Label>Chairs/Table</Label><Input type="number" min={1} value={config.chairs_per_table} onChange={e => uc('chairs_per_table', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-chairs-input" /></div>
-                                <div><Label>Rounds</Label><Input type="number" min={1} value={config.total_rounds} onChange={e => uc('total_rounds', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-rounds-input" /></div>
-                                <div><Label>Total Vacant Seats</Label><Input type="number" min={0} value={config.vacant_seats_per_table} onChange={e => uc('vacant_seats_per_table', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-vacant-input" /></div>
-                                <div><Label>Round Duration (min)</Label><Input type="number" min={1} value={config.round_duration_minutes} onChange={e => uc('round_duration_minutes', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-duration-input" /></div>
-                                <div><Label>Speaker Time (sec)</Label><Input type="number" min={1} value={config.speaker_time_seconds} onChange={e => uc('speaker_time_seconds', Number(e.target.value))} className="bg-black/30 border-white/10 h-11 mt-1" data-testid="config-speaker-input" /></div>
+                                <div><Label>Tables</Label><Input type="number" min={1} value={config.total_tables} onChange={e => uc('total_tables', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-tables-input" /></div>
+                                <div><Label>Chairs/Table</Label><Input type="number" min={1} value={config.chairs_per_table} onChange={e => uc('chairs_per_table', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-chairs-input" /></div>
+                                <div><Label>Rounds</Label><Input type="number" min={1} value={config.total_rounds} onChange={e => uc('total_rounds', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-rounds-input" /></div>
+                                <div><Label>Total Vacant Seats</Label><Input type="number" min={0} value={config.vacant_seats_per_table} onChange={e => uc('vacant_seats_per_table', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-vacant-input" /></div>
+                                <div><Label>Round Duration (min)</Label><Input type="number" min={1} value={config.round_duration_minutes} onChange={e => uc('round_duration_minutes', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-duration-input" /></div>
+                                <div><Label>Speaker Time (sec)</Label><Input type="number" min={1} value={config.speaker_time_seconds} onChange={e => uc('speaker_time_seconds', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-speaker-input" /></div>
                             </div>
                             <Button onClick={saveConfig} disabled={savingConfig} className="bg-primary" data-testid="save-config-btn">
                                 {savingConfig ? 'Saving...' : 'Save Configuration'}
@@ -282,9 +282,9 @@ function EventDetail({ eventId, onBack }) {
                                         <div className="flex gap-3 items-end flex-wrap">
                                             <div className="flex-1 min-w-[200px]">
                                                 <Label className="text-xs">Search & Select User</Label>
-                                                <Input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Type to search..." className="bg-black/30 border-white/10 h-10 mt-1 mb-1" data-testid="captain-user-search" />
+                                                <Input value={userSearch} onChange={e => setUserSearch(e.target.value)} placeholder="Type to search..." className="bg-muted/50 border-border h-10 mt-1 mb-1" data-testid="captain-user-search" />
                                                 <Select value={captainForm.user_id} onValueChange={v => { setCaptainForm(p => ({ ...p, user_id: v })); setUserSearch(''); }}>
-                                                    <SelectTrigger className="bg-black/30 border-white/10 h-10"><SelectValue placeholder={`${availableUsers.length} users available`} /></SelectTrigger>
+                                                    <SelectTrigger className="bg-muted/50 border-border h-10"><SelectValue placeholder={`${availableUsers.length} users available`} /></SelectTrigger>
                                                     <SelectContent>{filteredAvailable.map(r => (
                                                         <SelectItem key={r.user_id} value={r.user_id}>{r.user.full_name} — {r.user.business_name || 'N/A'}</SelectItem>
                                                     ))}
@@ -294,7 +294,7 @@ function EventDetail({ eventId, onBack }) {
                                             </div>
                                             <div className="w-24">
                                                 <Label className="text-xs">Table #</Label>
-                                                <Input type="number" value={captainForm.table_number || ''} readOnly className="bg-black/30 border-white/10 h-10 mt-1 opacity-60" />
+                                                <Input type="number" value={captainForm.table_number || ''} readOnly className="bg-muted/50 border-border h-10 mt-1 opacity-60" />
                                             </div>
                                             <Button onClick={addCaptain} disabled={!captainForm.user_id} data-testid="assign-captain-btn"><Crown size={16} className="mr-2" />Assign</Button>
                                         </div>
@@ -303,7 +303,7 @@ function EventDetail({ eventId, onBack }) {
                                 )}
                             </div>
                             <div className="mb-3">
-                                <Input value={captainSearch} onChange={e => setCaptainSearch(e.target.value)} placeholder="Search assigned captains by name, business, or table #..." className="bg-black/30 border-white/10 h-10" data-testid="captain-list-search" />
+                                <Input value={captainSearch} onChange={e => setCaptainSearch(e.target.value)} placeholder="Search assigned captains by name, business, or table #..." className="bg-muted/50 border-border h-10" data-testid="captain-list-search" />
                             </div>
                             <div className="space-y-2">
                                 {filteredCaptains.sort((a, b) => a.table_number - b.table_number).map(c => (
@@ -340,7 +340,7 @@ function EventDetail({ eventId, onBack }) {
                                                 <span className="text-xs text-muted-foreground">{(a.users?.length || 0) + (a.captain ? 1 : 0)} people</span>
                                             </div>
                                             {a.captain && (
-                                                <div className="mb-2 pb-2 border-b border-white/5">
+                                                <div className="mb-2 pb-2 border-b border-border">
                                                     <div className="flex items-center gap-1.5 text-xs">
                                                         <Crown size={10} className="text-[hsl(var(--gold))]" />
                                                         <span className="font-semibold text-[hsl(var(--gold))]">{a.captain.full_name}</span>
@@ -350,7 +350,7 @@ function EventDetail({ eventId, onBack }) {
                                             )}
                                             <div className="space-y-1.5">{(a.users || []).map(u => (
                                                 <div key={u.id} className="text-xs">
-                                                    <span className="text-white">{u.full_name}</span>
+                                                    <span className="text-foreground">{u.full_name}</span>
                                                     <p className="text-[10px] text-muted-foreground">{u.category_name}{u.subcategory_name ? ` / ${u.subcategory_name}` : ''}</p>
                                                 </div>
                                             ))}</div>
@@ -366,8 +366,8 @@ function EventDetail({ eventId, onBack }) {
                     <div className="glass-card rounded-xl p-6 space-y-4">
                         <h4 className="text-lg font-semibold">Round Controls</h4>
                         <div className="flex items-center gap-4 flex-wrap">
-                            <p className="text-sm text-muted-foreground">Current Round: <span className="text-white font-bold">{event.current_round || 'Not started'}</span></p>
-                            <p className="text-sm text-muted-foreground">Status: <span className="text-white font-bold">{event.status}</span></p>
+                            <p className="text-sm text-muted-foreground">Current Round: <span className="text-foreground font-bold">{event.current_round || 'Not started'}</span></p>
+                            <p className="text-sm text-muted-foreground">Status: <span className="text-foreground font-bold">{event.status}</span></p>
                         </div>
                         <div className="flex gap-3 flex-wrap">
                             {event.status !== 'completed' && (
@@ -378,8 +378,8 @@ function EventDetail({ eventId, onBack }) {
                                 </>
                             )}
                         </div>
-                        <p className="text-xs text-muted-foreground">Live screen URL: <code className="bg-[#171717] px-2 py-1 rounded text-primary">/live/{eventId}</code></p>
-                        <div className="border-t border-white/5 pt-4 mt-4">
+                        <p className="text-xs text-muted-foreground">Live screen URL: <code className="bg-muted px-2 py-1 rounded text-primary">/live/{eventId}</code></p>
+                        <div className="border-t border-border pt-4 mt-4">
                             <Button variant="destructive" onClick={deleteEvent} data-testid="delete-event-btn"><Trash2 size={16} className="mr-2" />Delete Event</Button>
                             <p className="text-xs text-muted-foreground mt-2">This will delete the event, registrations, seating, and references. Users will not be deleted.</p>
                         </div>
@@ -415,7 +415,7 @@ export default function EventManagement() {
                     <DialogTrigger asChild>
                         <Button className="bg-primary" data-testid="new-event-btn"><Plus size={16} className="mr-2" />New Event</Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#121212] border-white/10 max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogContent className="bg-[#121212] border-border max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader><DialogTitle>Create Event</DialogTitle></DialogHeader>
                         <EventForm onCreated={() => { setShowCreate(false); load(); }} />
                     </DialogContent>

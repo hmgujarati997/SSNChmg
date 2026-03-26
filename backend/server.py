@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -12,6 +13,11 @@ from database import db, client
 from auth_utils import hash_password
 
 app = FastAPI(title="SSNC Speed Networking")
+
+# Serve uploaded files
+UPLOADS_DIR = ROOT_DIR / "uploads"
+UPLOADS_DIR.mkdir(exist_ok=True)
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # Import and include routers
 from routes.auth_routes import router as auth_router

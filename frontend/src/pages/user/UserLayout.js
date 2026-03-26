@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Home, User, ArrowRightLeft, LogOut, Zap, AlertCircle, Save } from 'lucide-react';
+import { Home, User, ArrowRightLeft, LogOut, AlertCircle, Save } from 'lucide-react';
+import { ThemeToggle } from '@/components/AppBranding';
 import UserDashboard from './UserDashboard';
 import UserProfile from './UserProfile';
 import PunchReferences from './PunchReferences';
@@ -70,12 +71,12 @@ function ProfileCompletion({ onComplete }) {
                     <div>
                         <Label className="text-sm text-muted-foreground">Business Name <span className="text-destructive">*</span></Label>
                         <Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Your Company Name"
-                            className="bg-black/30 border-white/10 h-11 mt-1" data-testid="complete-business-input" />
+                            className="bg-muted/50 border-border h-11 mt-1" data-testid="complete-business-input" />
                     </div>
                     <div>
                         <Label className="text-sm text-muted-foreground">Business Category <span className="text-destructive">*</span></Label>
                         <Select value={form.category_id} onValueChange={v => { u('category_id', v); u('subcategory_id', ''); }}>
-                            <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1" data-testid="complete-category-trigger">
+                            <SelectTrigger className="bg-muted/50 border-border h-11 mt-1" data-testid="complete-category-trigger">
                                 <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -86,7 +87,7 @@ function ProfileCompletion({ onComplete }) {
                     <div>
                         <Label className="text-sm text-muted-foreground">Sub Category <span className="text-destructive">*</span></Label>
                         <Select value={form.subcategory_id} onValueChange={v => u('subcategory_id', v)}>
-                            <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1" data-testid="complete-subcategory-trigger">
+                            <SelectTrigger className="bg-muted/50 border-border h-11 mt-1" data-testid="complete-subcategory-trigger">
                                 <SelectValue placeholder="Select sub-category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -125,15 +126,13 @@ export default function UserLayout() {
 
     return (
         <div className="min-h-screen bg-background pb-20" data-testid="user-layout">
-            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center justify-between">
+            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-primary" />
-                    </div>
-                    <span className="text-lg font-bold tracking-tighter" style={{fontFamily:'Outfit'}}>SSNC</span>
+                    <img src="/sbc_logo.png" alt="SBC" className="h-8 w-auto object-contain" />
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground hidden sm:block">{user?.full_name}</span>
+                    <ThemeToggle />
                     <Button variant="ghost" size="icon" onClick={() => { logout(); navigate('/login'); }} data-testid="user-logout-btn">
                         <LogOut size={18} />
                     </Button>
@@ -149,7 +148,7 @@ export default function UserLayout() {
                 </Routes>
             </div>
 
-            <nav className="fixed bottom-0 left-0 right-0 bg-[#0A0A0A]/95 backdrop-blur-lg border-t border-white/10 z-50 safe-area-pb" data-testid="user-bottom-nav">
+            <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border z-50 safe-area-pb" data-testid="user-bottom-nav">
                 <div className="flex items-center justify-around max-w-lg mx-auto h-16">
                     {navItems.map(item => {
                         const active = item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path);

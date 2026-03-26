@@ -27,7 +27,7 @@ function SocialIcons({ links }) {
                 if (!s) return null;
                 return (
                     <a key={key} href={s.url(val)} target="_blank" rel="noopener noreferrer"
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white hover:scale-110 transition-transform"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-foreground hover:scale-110 transition-transform"
                         style={{ backgroundColor: s.color }} title={key}>
                         {s.label}
                     </a>
@@ -61,7 +61,7 @@ export default function ViewReferences() {
                         {(person.full_name || '?')[0].toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="font-medium text-white">{person.full_name}</p>
+                        <p className="font-medium text-foreground">{person.full_name}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1"><Building2 size={10} />{person.business_name} - {person.position}</p>
                         <SocialIcons links={person.social_links} />
                         <div className="flex flex-wrap gap-2 mt-2">
@@ -70,9 +70,9 @@ export default function ViewReferences() {
                         </div>
                         {/* Referred contact details */}
                         {(r.contact_name || r.contact_phone || r.contact_email) && (
-                            <div className="mt-2 p-2 rounded-lg bg-black/20 border border-white/5">
+                            <div className="mt-2 p-2 rounded-lg bg-black/20 border border-border">
                                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1 flex items-center gap-1"><User size={9} />Referred Contact</p>
-                                {r.contact_name && <p className="text-xs text-white">{r.contact_name}</p>}
+                                {r.contact_name && <p className="text-xs text-foreground">{r.contact_name}</p>}
                                 <div className="flex gap-3 mt-0.5">
                                     {r.contact_phone && <a href={`tel:${r.contact_phone}`} className="text-[11px] text-primary flex items-center gap-1"><Phone size={9} />{r.contact_phone}</a>}
                                     {r.contact_email && <a href={`mailto:${r.contact_email}`} className="text-[11px] text-primary flex items-center gap-1"><Mail size={9} />{r.contact_email}</a>}
@@ -101,7 +101,7 @@ export default function ViewReferences() {
             </div>
 
             <Tabs defaultValue="received" className="w-full">
-                <TabsList className="bg-[#171717] w-full mb-4">
+                <TabsList className="bg-muted w-full mb-4">
                     <TabsTrigger value="received" className="flex-1 flex items-center gap-1">
                         <ArrowDown size={14} />Received ({references.received.length})
                     </TabsTrigger>

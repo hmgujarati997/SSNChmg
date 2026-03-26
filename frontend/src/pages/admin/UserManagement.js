@@ -97,10 +97,10 @@ export default function UserManagement() {
                         <DialogTrigger asChild>
                             <Button variant="outline" data-testid="upload-users-csv-btn"><Upload size={16} className="mr-2" />Upload CSV</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-white/10">
+                        <DialogContent className="bg-[#121212] border-border">
                             <DialogHeader><DialogTitle>Upload Users CSV</DialogTitle></DialogHeader>
                             <div className="space-y-4">
-                                <div className="text-xs text-muted-foreground bg-[#0A0A0A] rounded-lg p-3">
+                                <div className="text-xs text-muted-foreground bg-card rounded-lg p-3">
                                     <p className="text-white font-medium mb-1">CSV Columns:</p>
                                     <code>full_name, phone, email, business_name, category, subcategory, position</code>
                                     <p className="mt-2">Password defaults to phone number. Category/subcategory matched by name.</p>
@@ -108,7 +108,7 @@ export default function UserManagement() {
                                 <div>
                                     <Label className="text-sm text-muted-foreground">Register for Event (optional)</Label>
                                     <Select value={csvEventId} onValueChange={setCsvEventId}>
-                                        <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1" data-testid="csv-event-select">
+                                        <SelectTrigger className="bg-muted/50 border-border h-11 mt-1" data-testid="csv-event-select">
                                             <SelectValue placeholder="No event (just add users)" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -131,30 +131,30 @@ export default function UserManagement() {
                         <DialogTrigger asChild>
                             <Button className="bg-primary" data-testid="add-user-btn"><Plus size={16} className="mr-2" />Add User</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-white/10 max-w-lg max-h-[85vh] overflow-y-auto">
+                        <DialogContent className="bg-[#121212] border-border max-w-lg max-h-[85vh] overflow-y-auto">
                             <DialogHeader><DialogTitle>Add User</DialogTitle></DialogHeader>
                             <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><Label>Full Name *</Label><Input value={form.full_name} onChange={e => u('full_name', e.target.value)} placeholder="John Doe" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="add-user-name" /></div>
-                                    <div><Label>Phone *</Label><Input value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="9876543210" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="add-user-phone" /></div>
+                                    <div><Label>Full Name *</Label><Input value={form.full_name} onChange={e => u('full_name', e.target.value)} placeholder="John Doe" className="bg-muted/50 border-border h-10 mt-1" data-testid="add-user-name" /></div>
+                                    <div><Label>Phone *</Label><Input value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="9876543210" className="bg-muted/50 border-border h-10 mt-1" data-testid="add-user-phone" /></div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><Label>Email</Label><Input value={form.email} onChange={e => u('email', e.target.value)} placeholder="email@example.com" className="bg-black/30 border-white/10 h-10 mt-1" /></div>
-                                    <div><Label>Position</Label><Input value={form.position} onChange={e => u('position', e.target.value)} placeholder="CEO, Director" className="bg-black/30 border-white/10 h-10 mt-1" /></div>
+                                    <div><Label>Email</Label><Input value={form.email} onChange={e => u('email', e.target.value)} placeholder="email@example.com" className="bg-muted/50 border-border h-10 mt-1" /></div>
+                                    <div><Label>Position</Label><Input value={form.position} onChange={e => u('position', e.target.value)} placeholder="CEO, Director" className="bg-muted/50 border-border h-10 mt-1" /></div>
                                 </div>
-                                <div><Label>Business Name</Label><Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Company Name" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="add-user-business" /></div>
+                                <div><Label>Business Name</Label><Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Company Name" className="bg-muted/50 border-border h-10 mt-1" data-testid="add-user-business" /></div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <Label>Category</Label>
                                         <Select value={form.category_id} onValueChange={v => { u('category_id', v); u('subcategory_id', ''); }}>
-                                            <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1" data-testid="add-user-category"><SelectValue placeholder="Select" /></SelectTrigger>
+                                            <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="add-user-category"><SelectValue placeholder="Select" /></SelectTrigger>
                                             <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
                                     <div>
                                         <Label>Sub Category</Label>
                                         <Select value={form.subcategory_id} onValueChange={v => u('subcategory_id', v)}>
-                                            <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1" data-testid="add-user-subcategory"><SelectValue placeholder="Select" /></SelectTrigger>
+                                            <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="add-user-subcategory"><SelectValue placeholder="Select" /></SelectTrigger>
                                             <SelectContent>{subcategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                         </Select>
                                     </div>
@@ -162,7 +162,7 @@ export default function UserManagement() {
                                 <div>
                                     <Label>Register for Event (optional)</Label>
                                     <Select value={form.event_id} onValueChange={v => u('event_id', v)}>
-                                        <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1" data-testid="add-user-event"><SelectValue placeholder="No event" /></SelectTrigger>
+                                        <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="add-user-event"><SelectValue placeholder="No event" /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">No event</SelectItem>
                                             {events.map(e => <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>)}
@@ -180,7 +180,7 @@ export default function UserManagement() {
             <div className="flex items-center gap-3 mb-6">
                 <div className="relative flex-1">
                     <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                    <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, business, category..." className="bg-black/30 border-white/10 h-11 pl-10" data-testid="user-search-input" />
+                    <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, phone, business, category..." className="bg-muted/50 border-border h-11 pl-10" data-testid="user-search-input" />
                 </div>
                 <Badge variant="outline" className="whitespace-nowrap">{users.length} total</Badge>
             </div>
@@ -188,7 +188,7 @@ export default function UserManagement() {
             <div className="glass-card rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                        <thead><tr className="border-b border-white/5">
+                        <thead><tr className="border-b border-border">
                             <th className="text-left p-3 text-xs text-muted-foreground uppercase font-bold">Name</th>
                             <th className="text-left p-3 text-xs text-muted-foreground uppercase font-bold hidden sm:table-cell">Phone</th>
                             <th className="text-left p-3 text-xs text-muted-foreground uppercase font-bold hidden md:table-cell">Business</th>
@@ -197,7 +197,7 @@ export default function UserManagement() {
                             <th className="text-right p-3 text-xs text-muted-foreground uppercase font-bold w-10"></th>
                         </tr></thead>
                         <tbody>{filtered.map(u => (
-                            <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                            <tr key={u.id} className="border-b border-border hover:bg-white/5 transition-colors">
                                 <td className="p-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">

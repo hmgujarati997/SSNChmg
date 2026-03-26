@@ -89,7 +89,7 @@ export default function UserDashboard() {
                             <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-3">Your Table Assignments</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {myTables.map(t => (
-                                    <div key={t.id} className="bg-[#171717] rounded-lg p-3 text-center">
+                                    <div key={t.id} className="bg-muted rounded-lg p-3 text-center">
                                         <p className="text-xs text-muted-foreground">Round {t.round_number}</p>
                                         <p className="text-2xl font-black text-primary mt-1" style={{fontFamily:'Outfit'}}>{t.table_number}</p>
                                     </div>
@@ -98,7 +98,7 @@ export default function UserDashboard() {
                         </div>
                     )}
 
-                    <Link to="/user/references" className="flex items-center justify-between mt-4 p-3 rounded-lg bg-[#171717] hover:bg-white/5 transition-colors" data-testid="go-to-references">
+                    <Link to="/user/references" className="flex items-center justify-between mt-4 p-3 rounded-lg bg-muted hover:bg-white/5 transition-colors" data-testid="go-to-references">
                         <span className="flex items-center gap-2 text-sm font-medium"><ArrowRightLeft size={16} className="text-primary" />Punch References</span>
                         <ChevronRight size={16} className="text-muted-foreground" />
                     </Link>

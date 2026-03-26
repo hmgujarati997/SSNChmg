@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { QrCode, CheckCircle, AlertCircle, MapPin, LogOut, Zap } from 'lucide-react';
+import { QrCode, CheckCircle, AlertCircle, MapPin, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import QrScanner from '@/components/QrScanner';
 
@@ -61,12 +61,9 @@ export default function VolunteerDashboard() {
 
     return (
         <div className="min-h-screen bg-background" data-testid="volunteer-dashboard">
-            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-white/5 px-4 py-3 flex items-center justify-between">
+            <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-xl border-b border-border px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[hsl(var(--emerald))]/20 flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-[hsl(var(--emerald))]" />
-                    </div>
-                    <span className="text-lg font-bold tracking-tighter" style={{fontFamily:'Outfit'}}>SSNC</span>
+                    <img src="/sbc_logo.png" alt="SBC" className="h-8 w-auto object-contain" />
                     <Badge variant="outline" className="text-xs">Volunteer</Badge>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => { logout(); navigate('/login'); }} data-testid="volunteer-logout-btn"><LogOut size={18} /></Button>
@@ -79,7 +76,7 @@ export default function VolunteerDashboard() {
                     <div>
                         <Label className="text-xs text-muted-foreground">Select Event</Label>
                         <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                            <SelectTrigger className="bg-black/30 border-white/10 h-11 mt-1" data-testid="volunteer-event-select">
+                            <SelectTrigger className="bg-muted/50 border-border h-11 mt-1" data-testid="volunteer-event-select">
                                 <SelectValue placeholder="Choose event" />
                             </SelectTrigger>
                             <SelectContent>
@@ -89,17 +86,17 @@ export default function VolunteerDashboard() {
                     </div>
 
                     {/* Mode Toggle */}
-                    <div className="flex rounded-lg bg-black/30 p-1 gap-1" data-testid="scan-mode-toggle">
+                    <div className="flex rounded-lg bg-muted/50 p-1 gap-1" data-testid="scan-mode-toggle">
                         <button
                             onClick={() => setMode('camera')}
-                            className={`flex-1 h-9 rounded-md text-xs font-medium transition-all ${mode === 'camera' ? 'bg-primary text-white shadow-lg' : 'text-muted-foreground hover:text-white'}`}
+                            className={`flex-1 h-9 rounded-md text-xs font-medium transition-all ${mode === 'camera' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
                             data-testid="mode-camera-btn"
                         >
                             Camera Scan
                         </button>
                         <button
                             onClick={() => setMode('manual')}
-                            className={`flex-1 h-9 rounded-md text-xs font-medium transition-all ${mode === 'manual' ? 'bg-primary text-white shadow-lg' : 'text-muted-foreground hover:text-white'}`}
+                            className={`flex-1 h-9 rounded-md text-xs font-medium transition-all ${mode === 'manual' ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
                             data-testid="mode-manual-btn"
                         >
                             Manual Entry
@@ -116,7 +113,7 @@ export default function VolunteerDashboard() {
                             <Label className="text-xs text-muted-foreground">Enter User ID or QR URL</Label>
                             <div className="flex gap-2 mt-1">
                                 <Input value={manualId} onChange={e => setManualId(e.target.value)} placeholder="Paste QR URL or User ID"
-                                    className="bg-black/30 border-white/10 h-11" data-testid="volunteer-scan-input"
+                                    className="bg-muted/50 border-border h-11" data-testid="volunteer-scan-input"
                                     onKeyDown={e => e.key === 'Enter' && handleManualScan()} />
                                 <Button onClick={handleManualScan} disabled={scanning} className="bg-primary h-11 px-6" data-testid="volunteer-scan-btn">
                                     <QrCode size={16} className="mr-2" />{scanning ? '...' : 'Scan'}
@@ -144,7 +141,7 @@ export default function VolunteerDashboard() {
                         </Badge>
 
                         {scanResult.user.category_name && (
-                            <p className="text-sm text-muted-foreground">Category: <span className="text-white">{scanResult.user.category_name}</span></p>
+                            <p className="text-sm text-muted-foreground">Category: <span className="text-foreground">{scanResult.user.category_name}</span></p>
                         )}
 
                         {scanResult.table_assignments.length > 0 && (
@@ -152,7 +149,7 @@ export default function VolunteerDashboard() {
                                 <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-2 flex items-center gap-1"><MapPin size={12} />Table Assignments</h4>
                                 <div className="grid grid-cols-3 gap-2">
                                     {scanResult.table_assignments.map((t, i) => (
-                                        <div key={i} className="bg-[#171717] rounded-lg p-3 text-center">
+                                        <div key={i} className="bg-muted rounded-lg p-3 text-center">
                                             <p className="text-xs text-muted-foreground">Round {t.round}</p>
                                             <p className="text-xl font-black text-primary" style={{fontFamily:'Outfit'}}>{t.table}</p>
                                         </div>

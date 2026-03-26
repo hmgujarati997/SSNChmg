@@ -35,13 +35,13 @@ export default function VolunteerManagement() {
                     <DialogTrigger asChild>
                         <Button className="bg-primary" data-testid="add-volunteer-btn"><Plus size={16} className="mr-2" />Add Volunteer</Button>
                     </DialogTrigger>
-                    <DialogContent className="bg-[#121212] border-white/10">
+                    <DialogContent className="bg-[#121212] border-border">
                         <DialogHeader><DialogTitle>Add Volunteer</DialogTitle></DialogHeader>
                         <div className="space-y-4">
-                            <div><Label>Name *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="John Doe" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="volunteer-name-input" /></div>
-                            <div><Label>Phone *</Label><Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="9876543210" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="volunteer-phone-input" /></div>
-                            <div><Label>Email</Label><Input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-                            <div><Label>Password *</Label><Input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="Set password" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="volunteer-password-input" /></div>
+                            <div><Label>Name *</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="John Doe" className="bg-muted/50 border-border h-11 mt-1" data-testid="volunteer-name-input" /></div>
+                            <div><Label>Phone *</Label><Input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="9876543210" className="bg-muted/50 border-border h-11 mt-1" data-testid="volunteer-phone-input" /></div>
+                            <div><Label>Email</Label><Input value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="email@example.com" className="bg-muted/50 border-border h-11 mt-1" /></div>
+                            <div><Label>Password *</Label><Input type="password" value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} placeholder="Set password" className="bg-muted/50 border-border h-11 mt-1" data-testid="volunteer-password-input" /></div>
                             <Button onClick={addVolunteer} className="w-full" data-testid="save-volunteer-btn">Save Volunteer</Button>
                         </div>
                     </DialogContent>

@@ -132,10 +132,10 @@ export default function BusinessCategories() {
                         <DialogTrigger asChild>
                             <Button className="bg-primary" data-testid="add-category-btn"><Plus size={16} className="mr-2" />Add Category</Button>
                         </DialogTrigger>
-                        <DialogContent className="bg-[#121212] border-white/10">
+                        <DialogContent className="bg-[#121212] border-border">
                             <DialogHeader><DialogTitle>Add Category</DialogTitle></DialogHeader>
                             <div className="space-y-4">
-                                <div><Label>Category Name</Label><Input value={catName} onChange={e => setCatName(e.target.value)} placeholder="e.g., IT Services" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="category-name-input" onKeyDown={e => e.key === 'Enter' && addCategory()} /></div>
+                                <div><Label>Category Name</Label><Input value={catName} onChange={e => setCatName(e.target.value)} placeholder="e.g., IT Services" className="bg-muted/50 border-border h-11 mt-1" data-testid="category-name-input" onKeyDown={e => e.key === 'Enter' && addCategory()} /></div>
                                 <Button onClick={addCategory} className="w-full" data-testid="save-category-btn">Save Category</Button>
                             </div>
                         </DialogContent>
@@ -150,7 +150,7 @@ export default function BusinessCategories() {
                     <p className="text-muted-foreground">
                         <span className="text-white font-medium">CSV Format:</span> Each column header is a <span className="text-primary">Business Category</span>, rows below are its <span className="text-[hsl(var(--emerald))]">Subcategories</span>. Duplicates are automatically skipped. Everything is sorted A-Z.
                     </p>
-                    <div className="mt-2 bg-[#0A0A0A] rounded-lg p-3 font-mono text-xs overflow-x-auto">
+                    <div className="mt-2 bg-card rounded-lg p-3 font-mono text-xs overflow-x-auto">
                         <table className="text-muted-foreground">
                             <thead><tr className="text-primary">
                                 <th className="pr-6 text-left">IT Services</th>
@@ -188,7 +188,7 @@ export default function BusinessCategories() {
                             </div>
                         </div>
                         {expandedCat === cat.id && (
-                            <div className="border-t border-white/5 p-4 pl-12 space-y-2">
+                            <div className="border-t border-border p-4 pl-12 space-y-2">
                                 {(subcategories[cat.id] || []).map(sub => (
                                     <div key={sub.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-white/5 transition-colors">
                                         <span className="text-sm text-muted-foreground">{sub.name}</span>
@@ -214,10 +214,10 @@ export default function BusinessCategories() {
             </div>
 
             <Dialog open={showAddSub} onOpenChange={setShowAddSub}>
-                <DialogContent className="bg-[#121212] border-white/10">
+                <DialogContent className="bg-[#121212] border-border">
                     <DialogHeader><DialogTitle>Add Subcategory</DialogTitle></DialogHeader>
                     <div className="space-y-4">
-                        <div><Label>Subcategory Name</Label><Input value={subName} onChange={e => setSubName(e.target.value)} placeholder="e.g., Web Development" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="subcategory-name-input" onKeyDown={e => e.key === 'Enter' && addSubcategory()} /></div>
+                        <div><Label>Subcategory Name</Label><Input value={subName} onChange={e => setSubName(e.target.value)} placeholder="e.g., Web Development" className="bg-muted/50 border-border h-11 mt-1" data-testid="subcategory-name-input" onKeyDown={e => e.key === 'Enter' && addSubcategory()} /></div>
                         <Button onClick={addSubcategory} className="w-full" data-testid="save-subcategory-btn">Save Subcategory</Button>
                     </div>
                 </DialogContent>

@@ -662,3 +662,22 @@ async def update_settings(data: SiteSettingsUpdate, admin=Depends(require_admin)
     if update_data:
         await db.site_settings.update_one({"id": "default"}, {"$set": update_data}, upsert=True)
     return {"message": "Settings updated"}
+
+
+@router.post("/upload-logo")
+async def upload_logo(file: UploadFile = File(...), admin=Depends(require_admin)):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(400, "Only image files allowed")
+    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
+    filename = f"app_logo.{ext}"
+    import shutil
+    from pathlib import Path
+    uploads_dir = Path(__file__).parent.parent / "uploads"
+    uploads_dir.mkdir(exist_ok=True)
+    filepath = uploads_dir / filename
+    with open(filepath, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    logo_url = f"/api/uploads/{filename}"
+    await db.site_settings.update_one({"id": "default"}, {"$set": {"app_logo": logo_url}}, upsert=True)
+    return {"message": "Logo uploaded", "url": logo_url}

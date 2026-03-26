@@ -78,3 +78,13 @@ async def get_public_subcategories(category_id: str = None):
 @router.get("/events")
 async def get_public_events():
     return await db.events.find({"registration_open": True}, {"_id": 0}).to_list(50)
+
+
+
+@router.get("/branding")
+async def get_branding():
+    settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+    return {
+        "app_logo": settings.get("app_logo", "") if settings else "",
+        "app_name": settings.get("app_name", "SSNC") if settings else "SSNC",
+    }

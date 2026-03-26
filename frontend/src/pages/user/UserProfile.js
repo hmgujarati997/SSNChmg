@@ -66,23 +66,23 @@ export default function UserProfile() {
             <div className="glass-card rounded-xl p-5 space-y-4">
                 <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Personal Info</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><Label className="text-xs text-muted-foreground">Full Name</Label><Input value={profile.full_name || ''} onChange={e => u('full_name', e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" /></div>
-                    <div><Label className="text-xs text-muted-foreground">Email</Label><Input value={profile.email || ''} onChange={e => u('email', e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" /></div>
-                    <div><Label className="text-xs text-muted-foreground">Position</Label><Input value={profile.position || ''} onChange={e => u('position', e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" /></div>
-                    <div><Label className="text-xs text-muted-foreground">Business Name</Label><Input value={profile.business_name || ''} onChange={e => u('business_name', e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" /></div>
+                    <div><Label className="text-xs text-muted-foreground">Full Name</Label><Input value={profile.full_name || ''} onChange={e => u('full_name', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" /></div>
+                    <div><Label className="text-xs text-muted-foreground">Email</Label><Input value={profile.email || ''} onChange={e => u('email', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" /></div>
+                    <div><Label className="text-xs text-muted-foreground">Position</Label><Input value={profile.position || ''} onChange={e => u('position', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" /></div>
+                    <div><Label className="text-xs text-muted-foreground">Business Name</Label><Input value={profile.business_name || ''} onChange={e => u('business_name', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" /></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <Label className="text-xs text-muted-foreground">Category</Label>
                         <Select value={profile.category_id || ''} onValueChange={v => u('category_id', v)}>
-                            <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectTrigger className="bg-muted/50 border-border h-10 mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
                             <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
                     <div>
                         <Label className="text-xs text-muted-foreground">Sub Category</Label>
                         <Select value={profile.subcategory_id || ''} onValueChange={v => u('subcategory_id', v)}>
-                            <SelectTrigger className="bg-black/30 border-white/10 h-10 mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                            <SelectTrigger className="bg-muted/50 border-border h-10 mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
                             <SelectContent>{subcategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                         </Select>
                     </div>
@@ -97,17 +97,17 @@ export default function UserProfile() {
                             <Label className="text-xs text-muted-foreground capitalize">{f}</Label>
                             {f === 'whatsapp' ? (
                                 <div className="flex mt-1">
-                                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-white/10 bg-black/50 text-muted-foreground text-xs">+</span>
+                                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-border bg-black/50 text-muted-foreground text-xs">+</span>
                                     <Input
                                         value={(profile.social_links || {})[f] || '91'}
                                         onChange={e => uSocial(f, e.target.value.replace(/[^0-9]/g, ''))}
-                                        className="bg-black/30 border-white/10 h-10 rounded-l-none"
+                                        className="bg-muted/50 border-border h-10 rounded-l-none"
                                         placeholder="919876543210"
                                         data-testid="social-whatsapp-input"
                                     />
                                 </div>
                             ) : (
-                                <Input value={(profile.social_links || {})[f] || ''} onChange={e => uSocial(f, e.target.value)} className="bg-black/30 border-white/10 h-10 mt-1" placeholder={f} />
+                                <Input value={(profile.social_links || {})[f] || ''} onChange={e => uSocial(f, e.target.value)} className="bg-muted/50 border-border h-10 mt-1" placeholder={f} />
                             )}
                         </div>
                     ))}

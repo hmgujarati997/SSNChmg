@@ -81,10 +81,10 @@ export default function LiveScreen() {
                     <p className="text-sm text-muted-foreground mb-6">Enter password to access</p>
                     <form onSubmit={(e) => { e.preventDefault(); authenticate(); }}>
                         <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
-                            className="bg-black/30 border-white/10 h-12 mb-4 text-center text-lg" data-testid="live-password-input" />
+                            className="bg-muted/50 border-border h-12 mb-4 text-center text-lg" data-testid="live-password-input" />
                         {!paramEventId && events.length > 0 && (
                             <select value={eventId} onChange={e => setEventId(e.target.value)}
-                                className="w-full bg-black/30 border border-white/10 rounded-lg h-12 mb-4 text-white px-3" data-testid="live-event-select">
+                                className="w-full bg-muted/50 border border-border rounded-lg h-12 mb-4 text-white px-3" data-testid="live-event-select">
                                 <option value="">Select Event</option>
                                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
                             </select>
@@ -186,7 +186,7 @@ export default function LiveScreen() {
                         {leaderboard.table_stats.map((t, i) => (
                             <div key={i} className="flex items-center gap-3">
                                 <div className="table-badge text-sm w-8 h-8">{t.table_number}</div>
-                                <div className="flex-1 bg-[#171717] rounded-full h-3 overflow-hidden">
+                                <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
                                     <div className="h-full bg-gradient-to-r from-primary to-[hsl(var(--cyan))] rounded-full transition-all duration-500" style={{width: `${Math.min(100, (t.count / Math.max(1, leaderboard.table_stats[0]?.count)) * 100)}%`}} />
                                 </div>
                                 <span className="text-sm font-bold text-[hsl(var(--gold))]">{t.count}</span>

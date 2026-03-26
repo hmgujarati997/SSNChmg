@@ -93,21 +93,21 @@ export default function RegisterPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label className="text-sm text-muted-foreground">Full Name <span className="text-destructive">*</span></Label>
-                                <Input value={form.full_name} onChange={e => u('full_name', e.target.value)} placeholder="John Doe" className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.full_name ? 'border-destructive' : ''}`} data-testid="reg-name-input" />
+                                <Input value={form.full_name} onChange={e => u('full_name', e.target.value)} placeholder="John Doe" className={`bg-muted/50 border-border h-11 mt-1 ${errors.full_name ? 'border-destructive' : ''}`} data-testid="reg-name-input" />
                                 <FieldError field="full_name" />
                             </div>
                             <div>
                                 <Label className="text-sm text-muted-foreground">Phone Number <span className="text-destructive">*</span></Label>
-                                <Input value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="9876543210" className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.phone ? 'border-destructive' : ''}`} data-testid="reg-phone-input" />
+                                <Input value={form.phone} onChange={e => u('phone', e.target.value)} placeholder="9876543210" className={`bg-muted/50 border-border h-11 mt-1 ${errors.phone ? 'border-destructive' : ''}`} data-testid="reg-phone-input" />
                                 <FieldError field="phone" />
                             </div>
                             <div>
                                 <Label className="text-sm text-muted-foreground">Email</Label>
-                                <Input value={form.email} onChange={e => u('email', e.target.value)} placeholder="john@example.com" className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-email-input" />
+                                <Input value={form.email} onChange={e => u('email', e.target.value)} placeholder="john@example.com" className="bg-muted/50 border-border h-11 mt-1" data-testid="reg-email-input" />
                             </div>
                             <div>
                                 <Label className="text-sm text-muted-foreground">Position</Label>
-                                <Input value={form.position} onChange={e => u('position', e.target.value)} placeholder="CEO, Director..." className="bg-black/30 border-white/10 h-11 mt-1" data-testid="reg-position-input" />
+                                <Input value={form.position} onChange={e => u('position', e.target.value)} placeholder="CEO, Director..." className="bg-muted/50 border-border h-11 mt-1" data-testid="reg-position-input" />
                             </div>
                         </div>
                     </div>
@@ -116,14 +116,14 @@ export default function RegisterPage() {
                         <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Business Info <span className="text-destructive">*</span></h3>
                         <div>
                             <Label className="text-sm text-muted-foreground">Business Name <span className="text-destructive">*</span></Label>
-                            <Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Your Company" className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.business_name ? 'border-destructive' : ''}`} data-testid="reg-business-input" />
+                            <Input value={form.business_name} onChange={e => u('business_name', e.target.value)} placeholder="Your Company" className={`bg-muted/50 border-border h-11 mt-1 ${errors.business_name ? 'border-destructive' : ''}`} data-testid="reg-business-input" />
                             <FieldError field="business_name" />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <Label className="text-sm text-muted-foreground">Business Category <span className="text-destructive">*</span></Label>
                                 <Select value={form.category_id} onValueChange={v => { u('category_id', v); u('subcategory_id', ''); }}>
-                                    <SelectTrigger className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.category_id ? 'border-destructive' : ''}`} data-testid="reg-category-trigger">
+                                    <SelectTrigger className={`bg-muted/50 border-border h-11 mt-1 ${errors.category_id ? 'border-destructive' : ''}`} data-testid="reg-category-trigger">
                                         <SelectValue placeholder="Select category" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -137,7 +137,7 @@ export default function RegisterPage() {
                             <div>
                                 <Label className="text-sm text-muted-foreground">Sub Category <span className="text-destructive">*</span></Label>
                                 <Select value={form.subcategory_id} onValueChange={v => u('subcategory_id', v)}>
-                                    <SelectTrigger className={`bg-black/30 border-white/10 h-11 mt-1 ${errors.subcategory_id ? 'border-destructive' : ''}`} data-testid="reg-subcategory-trigger">
+                                    <SelectTrigger className={`bg-muted/50 border-border h-11 mt-1 ${errors.subcategory_id ? 'border-destructive' : ''}`} data-testid="reg-subcategory-trigger">
                                         <SelectValue placeholder="Select sub-category" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -154,15 +154,15 @@ export default function RegisterPage() {
                     <div className="glass-card rounded-xl p-6 space-y-4">
                         <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Social Links (Optional)</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div><Label className="text-sm text-muted-foreground">LinkedIn</Label><Input value={form.linkedin} onChange={e => u('linkedin', e.target.value)} placeholder="linkedin.com/in/..." className="bg-black/30 border-white/10 h-11 mt-1" /></div>
-                            <div><Label className="text-sm text-muted-foreground">Website</Label><Input value={form.website} onChange={e => u('website', e.target.value)} placeholder="www.example.com" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">LinkedIn</Label><Input value={form.linkedin} onChange={e => u('linkedin', e.target.value)} placeholder="linkedin.com/in/..." className="bg-muted/50 border-border h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">Website</Label><Input value={form.website} onChange={e => u('website', e.target.value)} placeholder="www.example.com" className="bg-muted/50 border-border h-11 mt-1" /></div>
                             <div><Label className="text-sm text-muted-foreground">WhatsApp</Label>
                                 <div className="flex mt-1">
-                                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-white/10 bg-black/50 text-muted-foreground text-xs">+</span>
-                                    <Input value={form.whatsapp} onChange={e => u('whatsapp', e.target.value.replace(/[^0-9]/g, ''))} placeholder="919876543210" className="bg-black/30 border-white/10 h-11 rounded-l-none" data-testid="register-whatsapp-input" />
+                                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-border bg-black/50 text-muted-foreground text-xs">+</span>
+                                    <Input value={form.whatsapp} onChange={e => u('whatsapp', e.target.value.replace(/[^0-9]/g, ''))} placeholder="919876543210" className="bg-muted/50 border-border h-11 rounded-l-none" data-testid="register-whatsapp-input" />
                                 </div>
                             </div>
-                            <div><Label className="text-sm text-muted-foreground">Instagram</Label><Input value={form.instagram} onChange={e => u('instagram', e.target.value)} placeholder="@username" className="bg-black/30 border-white/10 h-11 mt-1" /></div>
+                            <div><Label className="text-sm text-muted-foreground">Instagram</Label><Input value={form.instagram} onChange={e => u('instagram', e.target.value)} placeholder="@username" className="bg-muted/50 border-border h-11 mt-1" /></div>
                         </div>
                     </div>
 

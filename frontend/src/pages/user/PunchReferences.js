@@ -32,7 +32,7 @@ function SocialIcons({ links }) {
                 if (!s) return null;
                 return (
                     <a key={key} href={s.url(val)} target="_blank" rel="noopener noreferrer"
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white hover:scale-110 transition-transform"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-foreground hover:scale-110 transition-transform"
                         style={{ backgroundColor: s.color }} title={key} data-testid={`social-${key}`}>
                         {s.label}
                     </a>
@@ -162,7 +162,7 @@ export default function PunchReferences() {
                                                 {(p.full_name || '?')[0].toUpperCase()}
                                             </div>
                                             <div>
-                                                <p className="font-medium text-white">{p.full_name}</p>
+                                                <p className="font-medium text-foreground">{p.full_name}</p>
                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                                     <Building2 size={10} />{p.business_name}
                                                     {p.category_name && <Badge variant="outline" className="text-[10px] px-1.5">{p.category_name}</Badge>}
@@ -191,7 +191,7 @@ export default function PunchReferences() {
 
             {/* Pass Reference Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="bg-[#1a1a1a] border-white/10 max-w-md" data-testid="pass-ref-dialog">
+                <DialogContent className="bg-card border-border max-w-md" data-testid="pass-ref-dialog">
                     <DialogHeader>
                         <DialogTitle className="text-lg" style={{fontFamily:'Outfit'}}>
                             Pass Reference to {selectedPerson?.full_name}
@@ -204,23 +204,23 @@ export default function PunchReferences() {
                             <div>
                                 <Label className="text-xs">Contact Name</Label>
                                 <Input value={refForm.contact_name} onChange={e => setRefForm(p => ({ ...p, contact_name: e.target.value }))}
-                                    placeholder="Person's name" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="ref-contact-name" />
+                                    placeholder="Person's name" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-name" />
                             </div>
                             <div>
                                 <Label className="text-xs">Contact Phone</Label>
                                 <Input value={refForm.contact_phone} onChange={e => setRefForm(p => ({ ...p, contact_phone: e.target.value }))}
-                                    placeholder="Phone number" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="ref-contact-phone" />
+                                    placeholder="Phone number" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-phone" />
                             </div>
                             <div>
                                 <Label className="text-xs">Contact Email</Label>
                                 <Input value={refForm.contact_email} onChange={e => setRefForm(p => ({ ...p, contact_email: e.target.value }))}
-                                    placeholder="Email address" className="bg-black/30 border-white/10 h-10 mt-1" data-testid="ref-contact-email" />
+                                    placeholder="Email address" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-email" />
                             </div>
                             <div>
                                 <Label className="text-xs">Note</Label>
                                 <Textarea value={refForm.notes} onChange={e => setRefForm(p => ({ ...p, notes: e.target.value }))}
                                     placeholder="E.g., Looking for web development services, budget ~50k"
-                                    className="bg-black/30 border-white/10 mt-1 min-h-[80px] text-sm" data-testid="ref-notes" />
+                                    className="bg-muted/50 border-border mt-1 min-h-[80px] text-sm" data-testid="ref-notes" />
                             </div>
                         </div>
 
