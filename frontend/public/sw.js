@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ssnc-v1';
+const CACHE_NAME = 'sbc-v2';
 const PRECACHE_URLS = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {
