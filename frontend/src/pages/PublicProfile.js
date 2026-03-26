@@ -29,7 +29,7 @@ export default function PublicProfile() {
     const socialLinks = [
         { key: 'linkedin', icon: Linkedin, label: 'LinkedIn', url: social.linkedin, color: 'text-blue-400' },
         { key: 'instagram', icon: Instagram, label: 'Instagram', url: social.instagram, color: 'text-pink-400' },
-        { key: 'twitter', icon: Twitter, label: 'X (Twitter)', url: social.twitter, color: 'text-white' },
+        { key: 'twitter', icon: Twitter, label: 'X (Twitter)', url: social.twitter, color: 'text-foreground' },
         { key: 'youtube', icon: Youtube, label: 'YouTube', url: social.youtube, color: 'text-red-400' },
         { key: 'facebook', icon: Facebook, label: 'Facebook', url: social.facebook, color: 'text-blue-500' },
         { key: 'whatsapp', icon: MessageCircle, label: 'WhatsApp', url: social.whatsapp, color: 'text-[hsl(var(--emerald))]' },

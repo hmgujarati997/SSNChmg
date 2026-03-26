@@ -187,6 +187,14 @@ async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
     regular_users = [u for u in users if u['id'] not in captain_user_ids]
     assignments = assign_tables(regular_users, event, captains, categories)
     await db.table_assignments.delete_many({"event_id": event_id})
+
+    # Validate: every regular user must appear in at least one round
+    assigned_user_ids = set()
+    for round_num, tables in assignments.items():
+        for table_num, user_ids_list in tables.items():
+            assigned_user_ids.update(user_ids_list)
+    missed_users = [u for u in regular_users if u['id'] not in assigned_user_ids]
+
     for round_num, tables in assignments.items():
         for table_num, user_ids_list in tables.items():
             captain_id = None
@@ -203,7 +211,11 @@ async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
                 "captain_id": captain_id,
                 "created_at": datetime.now(timezone.utc).isoformat()
             })
-    return {"message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users)}
+    result = {"message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users)}
+    if missed_users:
+        result["warning"] = f"{len(missed_users)} user(s) could not be assigned. Consider adding more tables or seats."
+        result["missed_users"] = [{"id": u['id'], "full_name": u.get('full_name', 'Unknown')} for u in missed_users]
+    return result
 
 
 @router.get("/events/{event_id}/assignments")
@@ -609,6 +621,14 @@ async def delete_volunteer(vol_id: str, admin=Depends(require_admin)):
 # ========== TABLE CAPTAINS ==========
 @router.post("/table-captains")
 async def assign_table_captain(data: TableCaptainAssign, admin=Depends(require_admin)):
+    # Check if user is already captain for another table in this event
+    existing = await db.table_captains.find_one({
+        "event_id": data.event_id,
+        "user_id": data.user_id,
+        "table_number": {"$ne": data.table_number}
+    })
+    if existing:
+        raise HTTPException(400, f"This user is already captain of Table {existing['table_number']}. Remove them first.")
     await db.table_captains.delete_one({"event_id": data.event_id, "table_number": data.table_number})
     doc = {"id": str(uuid.uuid4()), **data.model_dump(), "created_at": datetime.now(timezone.utc).isoformat()}
     await db.table_captains.insert_one(doc)

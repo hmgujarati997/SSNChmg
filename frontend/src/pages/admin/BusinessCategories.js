@@ -148,7 +148,7 @@ export default function BusinessCategories() {
                 <FileSpreadsheet size={20} className="text-primary flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
                     <p className="text-muted-foreground">
-                        <span className="text-white font-medium">CSV Format:</span> Each column header is a <span className="text-primary">Business Category</span>, rows below are its <span className="text-[hsl(var(--emerald))]">Subcategories</span>. Duplicates are automatically skipped. Everything is sorted A-Z.
+                        <span className="text-foreground font-medium">CSV Format:</span> Each column header is a <span className="text-primary">Business Category</span>, rows below are its <span className="text-[hsl(var(--emerald))]">Subcategories</span>. Duplicates are automatically skipped. Everything is sorted A-Z.
                     </p>
                     <div className="mt-2 bg-card rounded-lg p-3 font-mono text-xs overflow-x-auto">
                         <table className="text-muted-foreground">

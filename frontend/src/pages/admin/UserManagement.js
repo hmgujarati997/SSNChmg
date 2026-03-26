@@ -101,7 +101,7 @@ export default function UserManagement() {
                             <DialogHeader><DialogTitle>Upload Users CSV</DialogTitle></DialogHeader>
                             <div className="space-y-4">
                                 <div className="text-xs text-muted-foreground bg-card rounded-lg p-3">
-                                    <p className="text-white font-medium mb-1">CSV Columns:</p>
+                                    <p className="text-foreground font-medium mb-1">CSV Columns:</p>
                                     <code>full_name, phone, email, business_name, category, subcategory, position</code>
                                     <p className="mt-2">Password defaults to phone number. Category/subcategory matched by name.</p>
                                 </div>
@@ -204,7 +204,7 @@ export default function UserManagement() {
                                             {(u.full_name || '?')[0].toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-white">{u.full_name}</p>
+                                            <p className="font-medium text-foreground">{u.full_name}</p>
                                             <p className="text-xs text-muted-foreground sm:hidden">{u.phone}</p>
                                             <p className="text-xs text-muted-foreground md:hidden">{u.business_name}</p>
                                         </div>

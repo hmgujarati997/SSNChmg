@@ -106,7 +106,12 @@ function EventDetail({ eventId, onBack }) {
 
     const assignTables = async () => {
         try { const r = await API.post(`/admin/events/${eventId}/assign-tables`);
-            toast.success(`Tables assigned! ${r.data.total_users} users across ${r.data.rounds} rounds`); load();
+            if (r.data.warning) {
+                toast.warning(r.data.warning);
+            } else {
+                toast.success(`Tables assigned! ${r.data.total_users} users across ${r.data.rounds} rounds — all users covered.`);
+            }
+            load();
         } catch (err) { toast.error(err.response?.data?.detail || 'Assignment failed'); }
     };
 
@@ -322,12 +327,37 @@ function EventDetail({ eventId, onBack }) {
                 </TabsContent>
 
                 <TabsContent value="seating">
-                    <div className="flex gap-3 mb-6">
+                    <div className="flex gap-3 mb-4">
                         <Button onClick={assignTables} className="bg-primary" data-testid="assign-tables-btn"><TableProperties size={16} className="mr-2" />Assign Tables</Button>
                         {assignments.length > 0 && (
                             <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
                         )}
                     </div>
+                    {assignments.length > 0 && (() => {
+                        const allUserIdsInSeating = new Set();
+                        const round1 = assignments.filter(a => a.round_number === 1);
+                        round1.forEach(a => {
+                            (a.users || []).forEach(u => allUserIdsInSeating.add(u.id));
+                            if (a.captain) allUserIdsInSeating.add(a.captain.id);
+                        });
+                        const regCount = regs.length;
+                        const seatedCount = allUserIdsInSeating.size;
+                        const missedCount = regCount - seatedCount;
+                        return (
+                            <div className={`glass-card rounded-xl p-4 mb-4 flex items-center justify-between ${missedCount > 0 ? 'border-destructive/50' : 'border-[hsl(var(--emerald))]/30'}`} data-testid="seating-verification">
+                                <div className="flex items-center gap-6 text-sm">
+                                    <span>Registered: <strong>{regCount}</strong></span>
+                                    <span>Seated (Round 1): <strong>{seatedCount}</strong></span>
+                                    <span>Captains: <strong>{captains.length}</strong></span>
+                                </div>
+                                {missedCount > 0 ? (
+                                    <Badge variant="destructive" className="text-xs" data-testid="missed-users-badge">{missedCount} user(s) not assigned</Badge>
+                                ) : (
+                                    <Badge className="bg-[hsl(var(--emerald))] text-xs" data-testid="all-assigned-badge">All users assigned</Badge>
+                                )}
+                            </div>
+                        );
+                    })()}
                     {assignments.length > 0 ? (
                         <div className="space-y-6">{[...new Set(assignments.map(a => a.round_number))].sort().map(round => (
                             <div key={round}>

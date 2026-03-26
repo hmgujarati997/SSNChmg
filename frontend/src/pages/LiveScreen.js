@@ -84,7 +84,7 @@ export default function LiveScreen() {
                             className="bg-muted/50 border-border h-12 mb-4 text-center text-lg" data-testid="live-password-input" />
                         {!paramEventId && events.length > 0 && (
                             <select value={eventId} onChange={e => setEventId(e.target.value)}
-                                className="w-full bg-muted/50 border border-border rounded-lg h-12 mb-4 text-white px-3" data-testid="live-event-select">
+                                className="w-full bg-muted/50 border border-border rounded-lg h-12 mb-4 text-foreground px-3" data-testid="live-event-select">
                                 <option value="">Select Event</option>
                                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
                             </select>
@@ -149,7 +149,7 @@ export default function LiveScreen() {
                     <div className="space-y-3">
                         {leaderboard.top_givers.map((g, i) => (
                             <div key={i} className="flex items-center gap-3">
-                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : i === 1 ? 'bg-white/10 text-white' : i === 2 ? 'bg-[hsl(var(--cyan))]/20 text-[hsl(var(--cyan))]' : 'bg-white/5 text-muted-foreground'}`}>{i + 1}</span>
+                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : i === 1 ? 'bg-white/10 text-foreground' : i === 2 ? 'bg-[hsl(var(--cyan))]/20 text-[hsl(var(--cyan))]' : 'bg-white/5 text-muted-foreground'}`}>{i + 1}</span>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{g.user.full_name}</p>
                                     <p className="text-xs text-muted-foreground truncate">{g.user.business_name}</p>
@@ -167,7 +167,7 @@ export default function LiveScreen() {
                     <div className="space-y-3">
                         {leaderboard.top_receivers.map((r, i) => (
                             <div key={i} className="flex items-center gap-3">
-                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : i === 1 ? 'bg-white/10 text-white' : i === 2 ? 'bg-[hsl(var(--cyan))]/20 text-[hsl(var(--cyan))]' : 'bg-white/5 text-muted-foreground'}`}>{i + 1}</span>
+                                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : i === 1 ? 'bg-white/10 text-foreground' : i === 2 ? 'bg-[hsl(var(--cyan))]/20 text-[hsl(var(--cyan))]' : 'bg-white/5 text-muted-foreground'}`}>{i + 1}</span>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{r.user.full_name}</p>
                                     <p className="text-xs text-muted-foreground truncate">{r.user.business_name}</p>

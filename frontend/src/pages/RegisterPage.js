@@ -75,7 +75,7 @@ export default function RegisterPage() {
     return (
         <div className="min-h-screen bg-background p-6 pb-20" data-testid="register-page">
             <div className="max-w-lg mx-auto animate-fade-in">
-                <Link to="/login" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors mb-6" data-testid="back-to-login">
+                <Link to="/login" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-6" data-testid="back-to-login">
                     <ArrowLeft size={18} /> Back to Login
                 </Link>
 
@@ -83,7 +83,7 @@ export default function RegisterPage() {
                     <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
                         <Zap className="w-5 h-5 text-primary" />
                     </div>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight" style={{fontFamily:'Outfit'}}>Create Account</h1>
+                    <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight" style={{fontFamily:'Outfit'}}>Create Account</h1>
                 </div>
                 <p className="text-muted-foreground mb-8 ml-[52px]">Join the SSNC Speed Networking community</p>
 

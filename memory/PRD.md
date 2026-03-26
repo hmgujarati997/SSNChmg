@@ -73,6 +73,12 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
   - Upload endpoint (POST /api/admin/upload-logo) saves to /app/backend/uploads/
   - Public branding endpoint (GET /api/public/branding) for retrieving logo without auth
   - StaticFiles mount serves uploaded logos via /api/uploads/
+- **Light Theme Text Fix**: Fixed all remaining `text-white` hardcoded colors across Users, Volunteers, Categories, Live Screen, Public Profile, Register pages
+- **Duplicate Captain Prevention**: Backend now rejects assigning the same user as captain on two tables (returns error with current table number)
+- **Seating Verification**: 
+  - Backend returns warning if any registered users were missed during seating assignment
+  - Frontend shows verification summary (Registered / Seated / Captains count) with green "All users assigned" or red warning badge
+  - Toast notification warns admin if users were missed
   - This eliminates all PWA crash issues related to the Contact Picker API
 
 ## P0 Features Remaining

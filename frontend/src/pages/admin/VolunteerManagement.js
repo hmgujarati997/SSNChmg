@@ -56,7 +56,7 @@ export default function VolunteerManagement() {
                                 <UserCheck size={18} className="text-[hsl(var(--emerald))]" />
                             </div>
                             <div>
-                                <p className="font-medium text-white">{v.name}</p>
+                                <p className="font-medium text-foreground">{v.name}</p>
                                 <div className="flex gap-4 text-xs text-muted-foreground mt-0.5">
                                     <span className="flex items-center gap-1"><Phone size={10} />{v.phone}</span>
                                     {v.email && <span className="flex items-center gap-1"><Mail size={10} />{v.email}</span>}
