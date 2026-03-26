@@ -688,16 +688,38 @@ async def update_settings(data: SiteSettingsUpdate, admin=Depends(require_admin)
 async def upload_logo(file: UploadFile = File(...), admin=Depends(require_admin)):
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(400, "Only image files allowed")
-    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
-    filename = f"app_logo.{ext}"
-    import shutil
     from pathlib import Path
+    from PIL import Image
+    import io
     uploads_dir = Path(__file__).parent.parent / "uploads"
     uploads_dir.mkdir(exist_ok=True)
-    filepath = uploads_dir / filename
-    with open(filepath, "wb") as f:
-        content = await file.read()
+    content = await file.read()
+    # Save original
+    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
+    orig_path = uploads_dir / f"app_logo.{ext}"
+    with open(orig_path, "wb") as f:
         f.write(content)
-    logo_url = f"/api/uploads/{filename}"
+    logo_url = f"/api/uploads/app_logo.{ext}"
+    # Generate PWA icons from uploaded logo
+    try:
+        img = Image.open(io.BytesIO(content)).convert("RGBA")
+        for size, name in [(192, "icon-192.png"), (512, "icon-512.png"), (32, "favicon-32.png"), (180, "apple-touch-icon.png")]:
+            icon = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+            pad = int(size * 0.1)
+            inner = size - 2 * pad
+            ratio = min(inner / img.width, inner / img.height)
+            nw, nh = int(img.width * ratio), int(img.height * ratio)
+            resized = img.resize((nw, nh), Image.LANCZOS)
+            icon.paste(resized, ((size - nw) // 2, (size - nh) // 2), resized)
+            icon.save(str(uploads_dir / name), "PNG")
+        # Favicon ICO
+        fav = Image.new("RGBA", (32, 32), (255, 255, 255, 0))
+        ratio = min(32 / img.width, 32 / img.height)
+        nw, nh = int(img.width * ratio), int(img.height * ratio)
+        resized = img.resize((nw, nh), Image.LANCZOS)
+        fav.paste(resized, ((32 - nw) // 2, (32 - nh) // 2), resized)
+        fav.save(str(uploads_dir / "favicon.ico"), format="ICO", sizes=[(32, 32)])
+    except Exception:
+        pass  # Icons generation failed, but logo is still saved
     await db.site_settings.update_one({"id": "default"}, {"$set": {"app_logo": logo_url}}, upsert=True)
     return {"message": "Logo uploaded", "url": logo_url}

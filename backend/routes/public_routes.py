@@ -88,3 +88,25 @@ async def get_branding():
         "app_logo": settings.get("app_logo", "") if settings else "",
         "app_name": settings.get("app_name", "SSNC") if settings else "SSNC",
     }
+
+
+@router.get("/dynamic-manifest.json")
+async def dynamic_manifest():
+    from fastapi.responses import JSONResponse
+    settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+    has_custom = settings and settings.get("app_logo")
+    icon_base = "/api/uploads" if has_custom else ""
+    return JSONResponse({
+        "short_name": "SBC",
+        "name": "SGCCI Business Connect - Speed Networking",
+        "icons": [
+            {"src": f"{icon_base}/favicon-32.png", "sizes": "32x32", "type": "image/png"},
+            {"src": f"{icon_base}/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+            {"src": f"{icon_base}/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+        ],
+        "start_url": "/",
+        "display": "standalone",
+        "theme_color": "#32329A",
+        "background_color": "#ffffff",
+        "orientation": "portrait"
+    })
