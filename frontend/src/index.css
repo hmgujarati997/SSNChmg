@@ -127,8 +127,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Glass card utility */
-[data-theme="dark"] .glass-card,
-:root .glass-card {
+[data-theme="dark"] .glass-card {
+    background: hsla(230, 12%, 11%, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+:root:not([data-theme="light"]) .glass-card {
     background: hsla(230, 12%, 11%, 0.8);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -153,13 +158,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Table badge */
-[data-theme="dark"] .table-badge,
-:root .table-badge {
+.table-badge {
     background: hsl(var(--primary));
     color: white;
-}
-
-[data-theme="light"] .table-badge {
-    background: hsl(var(--primary));
-    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
 }
