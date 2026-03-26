@@ -56,6 +56,23 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - Removed "Import from Phone Book" (Contact Picker API) feature from Pass Reference flow
   - The native Contact Picker API could not handle 5000+ contacts and crashed the PWA
   - Users now manually type contact details (name, phone, email) in the Pass Reference dialog
+- WhatsApp social link default country code 91 (India) on Profile and Registration pages
+- CSV download for Seating data in admin Events (all rounds with names, phone, email, position, business, category)
+- Removed "Made with Emergent" branding badge
+
+## What's Been Implemented (2026-03-26)
+- **SGCCI & SBC Branding**: Added SGCCI and SBC logos to login page, admin sidebar, user header, volunteer header
+- **Color Theme Update**: Changed primary color from violet to SGCCI blue (#32329A)
+- **Dark/Light Theme Toggle**: 
+  - Created ThemeContext with localStorage persistence
+  - Theme toggle button (sun/moon) available on login page, admin sidebar, user header
+  - Updated all CSS variables for both dark and light modes
+  - Replaced all hardcoded dark-mode colors (bg-black/30, border-white/10, text-white, etc.) with theme-aware Tailwind classes
+- **Admin Logo Upload**: 
+  - New "App Logo" section in admin Settings page
+  - Upload endpoint (POST /api/admin/upload-logo) saves to /app/backend/uploads/
+  - Public branding endpoint (GET /api/public/branding) for retrieving logo without auth
+  - StaticFiles mount serves uploaded logos via /api/uploads/
   - This eliminates all PWA crash issues related to the Contact Picker API
 
 ## P0 Features Remaining
