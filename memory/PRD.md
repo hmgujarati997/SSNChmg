@@ -75,6 +75,15 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - **Seating Validation**: Backend returns warning if users missed, frontend shows verification badge
 - **Duplicate Captain Prevention**: Backend rejects same user as captain on 2 tables
 - **PWA name**: Changed to "SSNC" as default
+- **WhatsApp Integration (flexiwaba API)**:
+  - Admin Settings: API Key, Username, Source Phone, 3 Template Names (Welcome, Assignment, Reference)
+  - WhatsApp tab in Event Management with Send Welcome, Send Assignments, Delivery Status
+  - Welcome messages: once per user per event, skip already sent
+  - Table assignment messages: includes user's table for each round, with QR code
+  - Reference notification: auto-triggered when user passes a reference
+  - Phone normalization: auto-adds 91 prefix if missing
+  - Delivery status tracking: sent/failed counts, per-user status, retry failed button
+  - Created: whatsapp_service.py, whatsapp_routes.py, BrandingContext.js
   - This eliminates all PWA crash issues related to the Contact Picker API
 
 ## P0 Features Remaining

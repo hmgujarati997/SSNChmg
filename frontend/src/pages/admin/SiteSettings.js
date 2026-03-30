@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, Settings, Upload, Image, Globe, Smartphone, Star } from 'lucide-react';
+import { Save, Settings, Upload, Image, Globe, Smartphone, Star, MessageCircle } from 'lucide-react';
 
 const LOGO_TYPES = [
     { key: 'favicon', label: 'Favicon', desc: 'Browser tab icon (auto-generates 16px, 32px, ICO)', icon: Globe },
@@ -129,6 +129,40 @@ export default function SiteSettings() {
                     <div>
                         <Label className="text-sm text-muted-foreground">Razorpay Key ID</Label>
                         <Input value={settings.razorpay_key_id} onChange={e => setSettings(p => ({ ...p, razorpay_key_id: e.target.value }))} placeholder="rzp_test_..." className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-razorpay-input" />
+                    </div>
+                </div>
+
+                <div className="glass-card rounded-xl p-6 space-y-4">
+                    <div className="flex items-center gap-2 mb-2"><MessageCircle size={18} className="text-green-500" /><h3 className="font-semibold">WhatsApp Configuration</h3></div>
+                    <p className="text-xs text-muted-foreground">Configure WhatsApp API for sending event notifications.</p>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">API Key</Label>
+                        <Input value={settings.wa_api_key || ''} onChange={e => setSettings(p => ({ ...p, wa_api_key: e.target.value }))} placeholder="Your API key" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-api-key-input" />
+                    </div>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">Username</Label>
+                        <Input value={settings.wa_username || ''} onChange={e => setSettings(p => ({ ...p, wa_username: e.target.value }))} placeholder="sm@sgcci.in" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-username-input" />
+                    </div>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">Source Phone</Label>
+                        <Input value={settings.wa_source || ''} onChange={e => setSettings(p => ({ ...p, wa_source: e.target.value }))} placeholder="+919979791940" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-source-input" />
+                    </div>
+                    <hr className="border-border" />
+                    <p className="text-xs text-muted-foreground font-medium">Template Names (as registered on your WhatsApp provider)</p>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">Welcome Template</Label>
+                        <Input value={settings.wa_template_welcome || ''} onChange={e => setSettings(p => ({ ...p, wa_template_welcome: e.target.value }))} placeholder="welcome_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-welcome-input" />
+                        <p className="text-xs text-muted-foreground mt-1">Params: {'{1}'} = User Name</p>
+                    </div>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">Table Assignment Template</Label>
+                        <Input value={settings.wa_template_assignment || ''} onChange={e => setSettings(p => ({ ...p, wa_template_assignment: e.target.value }))} placeholder="table_assignment_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-assignment-input" />
+                        <p className="text-xs text-muted-foreground mt-1">Params: {'{1}'} = Name, {'{2}'} = Table R1, {'{3}'} = Table R2, {'{4}'} = Table R3</p>
+                    </div>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">Reference Notification Template</Label>
+                        <Input value={settings.wa_template_reference || ''} onChange={e => setSettings(p => ({ ...p, wa_template_reference: e.target.value }))} placeholder="reference_notify_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-reference-input" />
+                        <p className="text-xs text-muted-foreground mt-1">Params: {'{1}'} = Your Name, {'{2}'} = Referrer Name, {'{3}'} = Contact Name, {'{4}'} = Contact Phone</p>
                     </div>
                 </div>
 

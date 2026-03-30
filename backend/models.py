@@ -140,6 +140,12 @@ class SiteSettingsUpdate(BaseModel):
     live_screen_password: Optional[str] = None
     razorpay_key_id: Optional[str] = None
     razorpay_key_secret: Optional[str] = None
+    wa_api_key: Optional[str] = None
+    wa_username: Optional[str] = None
+    wa_source: Optional[str] = None
+    wa_template_welcome: Optional[str] = None
+    wa_template_assignment: Optional[str] = None
+    wa_template_reference: Optional[str] = None
 
 
 class LiveAuthRequest(BaseModel):

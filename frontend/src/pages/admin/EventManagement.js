@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download } from 'lucide-react';
+import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
 
 function EventForm({ onCreated }) {
     const [form, setForm] = useState({ name: '', date: '', time: '', venue: '', registration_fee: 500, payment_type: 'manual', payment_link: '' });
@@ -59,6 +59,8 @@ function EventDetail({ eventId, onBack }) {
     const [captainSearch, setCaptainSearch] = useState('');
     const [userSearch, setUserSearch] = useState('');
     const fileRef = useRef(null);
+    const [waStatus, setWaStatus] = useState(null);
+    const [waSending, setWaSending] = useState(false);
 
     const load = async () => {
         try {
@@ -68,6 +70,7 @@ function EventDetail({ eventId, onBack }) {
                 API.get('/admin/users')
             ]);
             setEvent(ev.data); setRegs(rg.data); setAssignments(as.data); setCaptains(cp.data); setUsers(us.data);
+            API.get(`/admin/whatsapp/status/${eventId}`).then(r => setWaStatus(r.data)).catch(() => {});
             // Find first available table number (fills gaps)
             const usedTables = new Set(cp.data.map(c => c.table_number));
             let nextTable = null;
@@ -214,6 +217,7 @@ function EventDetail({ eventId, onBack }) {
                     <TabsTrigger value="captains">Table Captains</TabsTrigger>
                     <TabsTrigger value="seating">Seating</TabsTrigger>
                     <TabsTrigger value="controls">Controls</TabsTrigger>
+                    <TabsTrigger value="whatsapp" data-testid="whatsapp-tab"><MessageCircle size={14} className="mr-1" />WhatsApp</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="registrations">
@@ -413,6 +417,106 @@ function EventDetail({ eventId, onBack }) {
                             <Button variant="destructive" onClick={deleteEvent} data-testid="delete-event-btn"><Trash2 size={16} className="mr-2" />Delete Event</Button>
                             <p className="text-xs text-muted-foreground mt-2">This will delete the event, registrations, seating, and references. Users will not be deleted.</p>
                         </div>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="whatsapp">
+                    <div className="space-y-6">
+                        {/* Send Welcome */}
+                        <div className="glass-card rounded-xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <h3 className="font-semibold">Welcome Messages</h3>
+                                    <p className="text-xs text-muted-foreground">Send welcome message to registered users (once per user)</p>
+                                </div>
+                                <Button onClick={async () => {
+                                    setWaSending(true);
+                                    try {
+                                        const settings = await API.get('/admin/settings');
+                                        const tmpl = settings.data.wa_template_welcome;
+                                        if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSending(false); return; }
+                                        const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}`);
+                                        toast.success(`Sent: ${r.data.sent}, Skipped: ${r.data.skipped}, Failed: ${r.data.failed}`);
+                                        API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
+                                    setWaSending(false);
+                                }} disabled={waSending} className="bg-green-600 hover:bg-green-700" data-testid="send-welcome-btn">
+                                    <MessageCircle size={16} className="mr-2" />{waSending ? 'Sending...' : 'Send Welcome'}
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Send Table Assignments */}
+                        <div className="glass-card rounded-xl p-5">
+                            <div className="flex items-center justify-between mb-3">
+                                <div>
+                                    <h3 className="font-semibold">Table Assignment Messages</h3>
+                                    <p className="text-xs text-muted-foreground">Send table assignments with QR codes to all assigned users</p>
+                                </div>
+                                <Button onClick={async () => {
+                                    setWaSending(true);
+                                    try {
+                                        const settings = await API.get('/admin/settings');
+                                        const tmpl = settings.data.wa_template_assignment;
+                                        if (!tmpl) { toast.error('Set assignment template in Settings first'); setWaSending(false); return; }
+                                        const r = await API.post(`/admin/whatsapp/send-assignments/${eventId}?template_name=${tmpl}`);
+                                        toast.success(`Sent: ${r.data.sent}, Failed: ${r.data.failed}`);
+                                        API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
+                                    setWaSending(false);
+                                }} disabled={waSending || assignments.length === 0} className="bg-green-600 hover:bg-green-700" data-testid="send-assignments-btn">
+                                    <MessageCircle size={16} className="mr-2" />{waSending ? 'Sending...' : 'Send Assignments'}
+                                </Button>
+                            </div>
+                            {assignments.length === 0 && <p className="text-xs text-destructive">Assign tables first before sending assignment messages.</p>}
+                        </div>
+
+                        {/* Message Status */}
+                        {waStatus && (
+                            <div className="glass-card rounded-xl p-5">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="font-semibold">Delivery Status</h3>
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" onClick={async () => {
+                                            try {
+                                                const settings = await API.get('/admin/settings');
+                                                const tmpl = settings.data.wa_template_welcome || 'welcome';
+                                                const r = await API.post(`/admin/whatsapp/retry-failed/${eventId}?message_type=welcome&template_name=${tmpl}`);
+                                                toast.success(`Retried: ${r.data.retried}, Sent: ${r.data.sent}`);
+                                                API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
+                                            } catch (err) { toast.error('Retry failed'); }
+                                        }} data-testid="retry-failed-btn">
+                                            <RefreshCw size={14} className="mr-1" />Retry Failed
+                                        </Button>
+                                        <Button variant="ghost" size="sm" onClick={() => API.get(`/admin/whatsapp/status/${eventId}`).then(r => setWaStatus(r.data))} data-testid="refresh-status-btn">
+                                            <RefreshCw size={14} />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="flex gap-4 mb-4 text-sm">
+                                    <span>Total: <strong>{waStatus.total}</strong></span>
+                                    <span className="text-green-500">Sent: <strong>{waStatus.sent}</strong></span>
+                                    <span className="text-destructive">Failed: <strong>{waStatus.failed}</strong></span>
+                                </div>
+                                {waStatus.messages.length > 0 && (
+                                    <div className="max-h-80 overflow-y-auto space-y-1">
+                                        {waStatus.messages.map((m, i) => (
+                                            <div key={m.id || i} className="flex items-center justify-between text-xs py-1.5 px-3 rounded bg-muted/30" data-testid={`wa-msg-${i}`}>
+                                                <div className="flex items-center gap-2">
+                                                    {m.status === 'sent' ? <CheckCircle size={12} className="text-green-500" /> : <XCircle size={12} className="text-destructive" />}
+                                                    <span className="font-medium">{m.user_name}</span>
+                                                    <span className="text-muted-foreground">{m.user_phone}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={m.message_type === 'welcome' ? 'default' : 'secondary'} className="text-[10px] px-1.5">{m.message_type}</Badge>
+                                                    <Badge variant={m.status === 'sent' ? 'default' : 'destructive'} className="text-[10px] px-1.5">{m.status}</Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>

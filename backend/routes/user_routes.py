@@ -127,7 +127,40 @@ async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.references.insert_one(ref_doc)
+
+    # Auto-send WhatsApp notification to the reference recipient (fire-and-forget)
+    import asyncio
+    asyncio.create_task(_send_reference_notification(user['sub'], data.to_user_id, data))
+
     return {"message": "Reference passed", "id": ref_doc['id']}
+
+
+async def _send_reference_notification(from_user_id: str, to_user_id: str, data):
+    """Background task: send WhatsApp to to_user about the reference."""
+    try:
+        from whatsapp_service import send_whatsapp
+        settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+        template = settings.get("wa_template_reference", "") if settings else ""
+        if not template:
+            return
+        from_user = await db.users.find_one({"id": from_user_id}, {"_id": 0, "password_hash": 0})
+        to_user = await db.users.find_one({"id": to_user_id}, {"_id": 0, "password_hash": 0})
+        if not from_user or not to_user or not to_user.get('phone'):
+            return
+        params = [
+            to_user.get('full_name', 'User'),
+            from_user.get('full_name', 'Someone'),
+            data.contact_name or '',
+            data.contact_phone or '',
+        ]
+        await send_whatsapp(
+            destination=to_user['phone'],
+            template_name=template,
+            template_params=params,
+            campaign_name="reference_notify"
+        )
+    except Exception:
+        pass  # Don't fail the reference creation
 
 
 @router.get("/references/{event_id}")
