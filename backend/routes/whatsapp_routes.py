@@ -1,41 +1,31 @@
 """WhatsApp messaging endpoints for admin."""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from database import db
 from auth_utils import require_admin
 from whatsapp_service import send_whatsapp, normalize_phone
 from db_helpers import bulk_fetch_users
 import uuid
+import asyncio
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/admin/whatsapp", tags=["WhatsApp"])
 
+# In-memory job tracker
+_jobs = {}
 
-@router.post("/send-welcome/{event_id}")
-async def send_welcome_messages(event_id: str, template_name: str = "welcome", template_params_template: str = "{full_name}", admin=Depends(require_admin)):
-    """Send welcome message to all registered users who haven't received one yet for this event."""
-    event = await db.events.find_one({"id": event_id}, {"_id": 0})
-    if not event:
-        raise HTTPException(404, "Event not found")
 
-    regs = await db.event_registrations.find({"event_id": event_id}, {"_id": 0}).to_list(2000)
-    user_ids = [r['user_id'] for r in regs]
-    user_map = await bulk_fetch_users(user_ids, enrich=False)
-
-    # Get already sent welcome messages for this event
-    already_sent = set()
-    sent_docs = await db.whatsapp_messages.find(
-        {"event_id": event_id, "message_type": "welcome", "status": "sent"},
-        {"_id": 0, "user_id": 1}
-    ).to_list(2000)
-    already_sent = {d['user_id'] for d in sent_docs}
-
-    results = {"sent": 0, "skipped": 0, "failed": 0, "errors": []}
+async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template_name: str, user_ids: list, user_map: dict, already_done: set):
+    """Background: send welcome messages."""
+    _jobs[job_id] = {"status": "running", "total": len(user_ids), "sent": 0, "skipped": 0, "failed": 0, "processed": 0}
     for uid in user_ids:
         user = user_map.get(uid)
         if not user or not user.get('phone'):
+            _jobs[job_id]['skipped'] += 1
+            _jobs[job_id]['processed'] += 1
             continue
-        if uid in already_sent:
-            results['skipped'] += 1
+        if uid in already_done:
+            _jobs[job_id]['skipped'] += 1
+            _jobs[job_id]['processed'] += 1
             continue
 
         params = [user.get('full_name', 'User')]
@@ -44,30 +34,90 @@ async def send_welcome_messages(event_id: str, template_name: str = "welcome", t
             template_name=template_name,
             template_params=params,
             campaign_name=f"welcome_{event_id[:8]}",
-            attributes={"event": event.get('name', '')}
+            attributes={"event": event_name}
         )
         status = "sent" if success else "failed"
-        await db.whatsapp_messages.insert_one({
-            "id": str(uuid.uuid4()),
-            "event_id": event_id,
-            "user_id": uid,
-            "message_type": "welcome",
-            "status": status,
-            "response": resp[:200] if resp else "",
-            "phone": normalize_phone(user['phone']),
-            "created_at": datetime.now(timezone.utc).isoformat()
-        })
+        await db.whatsapp_messages.update_one(
+            {"event_id": event_id, "user_id": uid, "message_type": "welcome"},
+            {"$set": {"status": status, "response": resp[:200] if resp else "", "phone": normalize_phone(user['phone']), "updated_at": datetime.now(timezone.utc).isoformat()},
+             "$setOnInsert": {"id": str(uuid.uuid4()), "event_id": event_id, "user_id": uid, "message_type": "welcome", "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
         if success:
-            results['sent'] += 1
+            _jobs[job_id]['sent'] += 1
         else:
-            results['failed'] += 1
-            results['errors'].append({"user": user.get('full_name', ''), "error": resp[:100]})
-    return results
+            _jobs[job_id]['failed'] += 1
+        _jobs[job_id]['processed'] += 1
+    _jobs[job_id]['status'] = 'completed'
+
+
+async def _run_assignment_job(job_id: str, event_id: str, event_name: str, template_name: str, user_tables: dict, user_map: dict, base_url: str):
+    """Background: send assignment messages."""
+    total = len(user_tables)
+    _jobs[job_id] = {"status": "running", "total": total, "sent": 0, "failed": 0, "processed": 0}
+    for uid, rounds in user_tables.items():
+        user = user_map.get(uid)
+        if not user or not user.get('phone'):
+            _jobs[job_id]['processed'] += 1
+            continue
+
+        sorted_rounds = sorted(rounds.items())
+        table_params = [user.get('full_name', 'User')]
+        for rn, tn in sorted_rounds:
+            table_params.append(f"Table {tn}")
+        while len(table_params) < 4:
+            table_params.append("-")
+
+        qr_url = f"{base_url}/api/user/qr/{uid}" if base_url else None
+        success, resp = await send_whatsapp(
+            destination=user['phone'],
+            template_name=template_name,
+            template_params=table_params,
+            campaign_name=f"assignment_{event_id[:8]}",
+            attributes={"event": event_name},
+            media_url=qr_url
+        )
+        status = "sent" if success else "failed"
+        await db.whatsapp_messages.update_one(
+            {"event_id": event_id, "user_id": uid, "message_type": "assignment"},
+            {"$set": {"status": status, "response": resp[:200] if resp else "", "phone": normalize_phone(user['phone']), "tables": dict(sorted_rounds), "updated_at": datetime.now(timezone.utc).isoformat()},
+             "$setOnInsert": {"id": str(uuid.uuid4()), "event_id": event_id, "user_id": uid, "message_type": "assignment", "created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True
+        )
+        if success:
+            _jobs[job_id]['sent'] += 1
+        else:
+            _jobs[job_id]['failed'] += 1
+        _jobs[job_id]['processed'] += 1
+    _jobs[job_id]['status'] = 'completed'
+
+
+@router.post("/send-welcome/{event_id}")
+async def send_welcome_messages(event_id: str, template_name: str = "welcome", admin=Depends(require_admin)):
+    """Kick off background job to send welcome messages."""
+    event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    regs = await db.event_registrations.find({"event_id": event_id}, {"_id": 0}).to_list(5000)
+    user_ids = [r['user_id'] for r in regs]
+    user_map = await bulk_fetch_users(user_ids, enrich=False)
+
+    # Skip users who already got a successful welcome
+    sent_docs = await db.whatsapp_messages.find(
+        {"event_id": event_id, "message_type": "welcome", "status": "sent"},
+        {"_id": 0, "user_id": 1}
+    ).to_list(5000)
+    already_done = {d['user_id'] for d in sent_docs}
+
+    job_id = str(uuid.uuid4())[:8]
+    asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', ''), template_name, user_ids, user_map, already_done))
+    return {"message": "Welcome messages started", "job_id": job_id, "total": len(user_ids), "already_sent": len(already_done)}
 
 
 @router.post("/send-assignments/{event_id}")
 async def send_assignment_messages(event_id: str, template_name: str = "table_assignment", admin=Depends(require_admin)):
-    """Send table assignment messages with QR codes to all assigned users."""
+    """Kick off background job to send assignment messages."""
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
         raise HTTPException(404, "Event not found")
@@ -76,92 +126,41 @@ async def send_assignment_messages(event_id: str, template_name: str = "table_as
     if not assignments:
         raise HTTPException(400, "No table assignments found. Assign tables first.")
 
-    # Build user -> rounds mapping
-    user_tables = {}  # user_id -> {round_number: table_number}
+    user_tables = {}
     for a in assignments:
         rn = a['round_number']
         tn = a['table_number']
         for uid in a.get('user_ids', []):
-            if uid not in user_tables:
-                user_tables[uid] = {}
-            user_tables[uid][rn] = tn
+            user_tables.setdefault(uid, {})[rn] = tn
         if a.get('captain_id'):
-            cid = a['captain_id']
-            if cid not in user_tables:
-                user_tables[cid] = {}
-            user_tables[cid][rn] = tn
+            user_tables.setdefault(a['captain_id'], {})[rn] = tn
 
-    all_user_ids = list(user_tables.keys())
-    user_map = await bulk_fetch_users(all_user_ids, enrich=False)
-
-    # Get the app's base URL for QR code links
+    user_map = await bulk_fetch_users(list(user_tables.keys()), enrich=False)
     import os
     base_url = os.environ.get("BASE_URL", "")
 
-    results = {"sent": 0, "failed": 0, "errors": []}
-    for uid, rounds in user_tables.items():
-        user = user_map.get(uid)
-        if not user or not user.get('phone'):
-            continue
+    job_id = str(uuid.uuid4())[:8]
+    asyncio.create_task(_run_assignment_job(job_id, event_id, event.get('name', ''), template_name, user_tables, user_map, base_url))
+    return {"message": "Assignment messages started", "job_id": job_id, "total": len(user_tables)}
 
-        sorted_rounds = sorted(rounds.items())
-        table_params = [user.get('full_name', 'User')]
-        for rn, tn in sorted_rounds:
-            table_params.append(f"Table {tn}")
 
-        # Pad to ensure we have enough params (at least 4: name + 3 rounds)
-        while len(table_params) < 4:
-            table_params.append("-")
-
-        # Generate QR code URL for user's profile
-        qr_url = ""
-        if base_url:
-            qr_url = f"{base_url}/api/user/qr/{uid}"
-
-        success, resp = await send_whatsapp(
-            destination=user['phone'],
-            template_name=template_name,
-            template_params=table_params,
-            campaign_name=f"assignment_{event_id[:8]}",
-            attributes={"event": event.get('name', '')},
-            media_url=qr_url if qr_url else None
-        )
-        status = "sent" if success else "failed"
-        await db.whatsapp_messages.update_one(
-            {"event_id": event_id, "user_id": uid, "message_type": "assignment"},
-            {"$set": {
-                "status": status,
-                "response": resp[:200] if resp else "",
-                "phone": normalize_phone(user['phone']),
-                "tables": dict(sorted_rounds),
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            },
-            "$setOnInsert": {
-                "id": str(uuid.uuid4()),
-                "event_id": event_id,
-                "user_id": uid,
-                "message_type": "assignment",
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }},
-            upsert=True
-        )
-        if success:
-            results['sent'] += 1
-        else:
-            results['failed'] += 1
-            results['errors'].append({"user": user.get('full_name', ''), "error": resp[:100]})
-    return results
+@router.get("/job/{job_id}")
+async def get_job_status(job_id: str, admin=Depends(require_admin)):
+    """Poll a background job's progress."""
+    job = _jobs.get(job_id)
+    if not job:
+        return {"status": "not_found"}
+    return job
 
 
 @router.get("/status/{event_id}")
 async def get_message_status(event_id: str, message_type: str = "all", admin=Depends(require_admin)):
-    """Get WhatsApp message delivery status for an event."""
+    """Get WhatsApp message delivery status for an event, split by type."""
     query = {"event_id": event_id}
     if message_type != "all":
         query["message_type"] = message_type
     messages = await db.whatsapp_messages.find(query, {"_id": 0}).sort("created_at", -1).to_list(5000)
 
-    # Enrich with user names
     user_ids = list({m['user_id'] for m in messages})
     user_map = await bulk_fetch_users(user_ids, enrich=False)
     for m in messages:
@@ -169,50 +168,43 @@ async def get_message_status(event_id: str, message_type: str = "all", admin=Dep
         m['user_name'] = u.get('full_name', 'Unknown') if u else 'Unknown'
         m['user_phone'] = u.get('phone', '') if u else ''
 
-    sent = sum(1 for m in messages if m['status'] == 'sent')
-    failed = sum(1 for m in messages if m['status'] == 'failed')
-    return {"total": len(messages), "sent": sent, "failed": failed, "messages": messages}
+    welcome_msgs = [m for m in messages if m.get('message_type') == 'welcome']
+    assignment_msgs = [m for m in messages if m.get('message_type') == 'assignment']
+
+    def summarize(msgs):
+        return {
+            "total": len(msgs),
+            "sent": sum(1 for m in msgs if m['status'] == 'sent'),
+            "failed": sum(1 for m in msgs if m['status'] == 'failed'),
+            "messages": msgs,
+        }
+
+    return {
+        "total": len(messages),
+        "sent": sum(1 for m in messages if m['status'] == 'sent'),
+        "failed": sum(1 for m in messages if m['status'] == 'failed'),
+        "messages": messages,
+        "welcome": summarize(welcome_msgs),
+        "assignment": summarize(assignment_msgs),
+    }
 
 
 @router.post("/retry-failed/{event_id}")
 async def retry_failed_messages(event_id: str, message_type: str = "welcome", template_name: str = "welcome", admin=Depends(require_admin)):
-    """Retry sending failed messages."""
+    """Retry failed messages as a background job."""
     failed = await db.whatsapp_messages.find(
         {"event_id": event_id, "message_type": message_type, "status": "failed"},
         {"_id": 0}
-    ).to_list(2000)
+    ).to_list(5000)
     if not failed:
         return {"message": "No failed messages to retry", "retried": 0}
 
     user_ids = [m['user_id'] for m in failed]
     user_map = await bulk_fetch_users(user_ids, enrich=False)
+    event = await db.events.find_one({"id": event_id}, {"_id": 0})
 
-    results = {"retried": 0, "sent": 0, "failed": 0}
-    for m in failed:
-        user = user_map.get(m['user_id'])
-        if not user or not user.get('phone'):
-            continue
-
-        params = [user.get('full_name', 'User')]
-        if message_type == "assignment" and m.get('tables'):
-            for rn in sorted(m['tables'].keys()):
-                params.append(f"Table {m['tables'][rn]}")
-            while len(params) < 4:
-                params.append("-")
-
-        success, resp = await send_whatsapp(
-            destination=user['phone'],
-            template_name=template_name,
-            template_params=params,
-            campaign_name=f"retry_{event_id[:8]}"
-        )
-        results['retried'] += 1
-        if success:
-            results['sent'] += 1
-            await db.whatsapp_messages.update_one(
-                {"event_id": event_id, "user_id": m['user_id'], "message_type": message_type},
-                {"$set": {"status": "sent", "response": resp[:200], "updated_at": datetime.now(timezone.utc).isoformat()}}
-            )
-        else:
-            results['failed'] += 1
-    return results
+    # Re-use the welcome job for retries
+    already_done = set()  # Don't skip any — these are all failed
+    job_id = str(uuid.uuid4())[:8]
+    asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', '') if event else '', template_name, user_ids, user_map, already_done))
+    return {"message": "Retry started", "job_id": job_id, "total": len(failed)}

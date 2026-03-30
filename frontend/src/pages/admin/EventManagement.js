@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 function EventForm({ onCreated }) {
     const [form, setForm] = useState({ name: '', date: '', time: '', venue: '', registration_fee: 500, payment_type: 'manual', payment_link: '' });
@@ -62,6 +63,10 @@ function EventDetail({ eventId, onBack }) {
     const [waStatus, setWaStatus] = useState(null);
     const [waSendingWelcome, setWaSendingWelcome] = useState(false);
     const [waSendingAssign, setWaSendingAssign] = useState(false);
+    const [welcomeJob, setWelcomeJob] = useState(null);
+    const [assignJob, setAssignJob] = useState(null);
+    const welcomePollingRef = useRef(null);
+    const assignPollingRef = useRef(null);
 
     const load = async () => {
         try {
@@ -90,6 +95,38 @@ function EventDetail({ eventId, onBack }) {
         } catch {}
     };
     useEffect(() => { load(); }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Cleanup polling on unmount
+    useEffect(() => {
+        return () => {
+            if (welcomePollingRef.current) clearInterval(welcomePollingRef.current);
+            if (assignPollingRef.current) clearInterval(assignPollingRef.current);
+        };
+    }, []);
+
+    const startPolling = (jobId, type) => {
+        const ref = type === 'welcome' ? welcomePollingRef : assignPollingRef;
+        const setJob = type === 'welcome' ? setWelcomeJob : setAssignJob;
+        const setSending = type === 'welcome' ? setWaSendingWelcome : setWaSendingAssign;
+        if (ref.current) clearInterval(ref.current);
+        ref.current = setInterval(async () => {
+            try {
+                const r = await API.get(`/admin/whatsapp/job/${jobId}`);
+                setJob(r.data);
+                if (r.data.status === 'completed' || r.data.status === 'not_found') {
+                    clearInterval(ref.current);
+                    ref.current = null;
+                    setSending(false);
+                    // Refresh delivery status
+                    API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data)).catch(() => {});
+                }
+            } catch {
+                clearInterval(ref.current);
+                ref.current = null;
+                setSending(false);
+            }
+        }, 1500);
+    };
 
     const uploadCSV = async (e) => {
         const file = e.target.files[0]; if (!file) return;
@@ -432,19 +469,73 @@ function EventDetail({ eventId, onBack }) {
                                 </div>
                                 <Button onClick={async () => {
                                     setWaSendingWelcome(true);
+                                    setWelcomeJob(null);
                                     try {
                                         const settings = await API.get('/admin/settings');
                                         const tmpl = settings.data.wa_template_welcome;
                                         if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSendingWelcome(false); return; }
                                         const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}`);
-                                        toast.success(`Sent: ${r.data.sent}, Skipped: ${r.data.skipped}, Failed: ${r.data.failed}`);
-                                        API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
-                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
-                                    setWaSendingWelcome(false);
+                                        toast.success(`Broadcasting to ${r.data.total} users (${r.data.already_sent} already sent)`);
+                                        setWelcomeJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0, skipped: r.data.already_sent || 0 });
+                                        startPolling(r.data.job_id, 'welcome');
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); setWaSendingWelcome(false); }
                                 }} disabled={waSendingWelcome} className="bg-green-600 hover:bg-green-700" data-testid="send-welcome-btn">
-                                    <MessageCircle size={16} className="mr-2" />{waSendingWelcome ? 'Sending...' : 'Send Welcome'}
+                                    {waSendingWelcome ? <Loader2 size={16} className="mr-2 animate-spin" /> : <MessageCircle size={16} className="mr-2" />}
+                                    {waSendingWelcome ? 'Sending...' : 'Send Welcome'}
                                 </Button>
                             </div>
+                            {/* Welcome Progress Bar */}
+                            {welcomeJob && welcomeJob.status === 'running' && (
+                                <div className="mt-3 space-y-2" data-testid="welcome-progress">
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>Processing: {welcomeJob.processed} / {welcomeJob.total}</span>
+                                        <span>{welcomeJob.total > 0 ? Math.round((welcomeJob.processed / welcomeJob.total) * 100) : 0}%</span>
+                                    </div>
+                                    <Progress value={welcomeJob.total > 0 ? (welcomeJob.processed / welcomeJob.total) * 100 : 0} className="h-2.5" />
+                                    <div className="flex gap-4 text-xs">
+                                        <span className="text-green-500">Sent: {welcomeJob.sent}</span>
+                                        <span className="text-yellow-500">Skipped: {welcomeJob.skipped || 0}</span>
+                                        <span className="text-destructive">Failed: {welcomeJob.failed}</span>
+                                    </div>
+                                </div>
+                            )}
+                            {welcomeJob && welcomeJob.status === 'completed' && (
+                                <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20" data-testid="welcome-completed">
+                                    <div className="flex items-center gap-2 text-sm text-green-500 font-medium mb-1">
+                                        <CheckCircle size={14} /> Broadcast Complete
+                                    </div>
+                                    <div className="flex gap-4 text-xs text-muted-foreground">
+                                        <span>Total: {welcomeJob.total}</span>
+                                        <span className="text-green-500">Sent: {welcomeJob.sent}</span>
+                                        <span className="text-yellow-500">Skipped: {welcomeJob.skipped || 0}</span>
+                                        <span className="text-destructive">Failed: {welcomeJob.failed}</span>
+                                    </div>
+                                </div>
+                            )}
+                            {/* Welcome Delivery List */}
+                            {waStatus?.welcome && waStatus.welcome.total > 0 && (
+                                <div className="mt-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Delivery Log ({waStatus.welcome.total})</h4>
+                                        <div className="flex gap-3 text-xs">
+                                            <span className="text-green-500">Sent: {waStatus.welcome.sent}</span>
+                                            <span className="text-destructive">Failed: {waStatus.welcome.failed}</span>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-60 overflow-y-auto space-y-1">
+                                        {waStatus.welcome.messages.map((m, i) => (
+                                            <div key={m.id || i} className="flex items-center justify-between text-xs py-1.5 px-3 rounded bg-muted/30" data-testid={`wa-welcome-msg-${i}`}>
+                                                <div className="flex items-center gap-2">
+                                                    {m.status === 'sent' ? <CheckCircle size={12} className="text-green-500" /> : <XCircle size={12} className="text-destructive" />}
+                                                    <span className="font-medium">{m.user_name}</span>
+                                                    <span className="text-muted-foreground">{m.user_phone}</span>
+                                                </div>
+                                                <Badge variant={m.status === 'sent' ? 'default' : 'destructive'} className="text-[10px] px-1.5">{m.status}</Badge>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Send Table Assignments */}
@@ -456,68 +547,95 @@ function EventDetail({ eventId, onBack }) {
                                 </div>
                                 <Button onClick={async () => {
                                     setWaSendingAssign(true);
+                                    setAssignJob(null);
                                     try {
                                         const settings = await API.get('/admin/settings');
                                         const tmpl = settings.data.wa_template_assignment;
                                         if (!tmpl) { toast.error('Set assignment template in Settings first'); setWaSendingAssign(false); return; }
                                         const r = await API.post(`/admin/whatsapp/send-assignments/${eventId}?template_name=${tmpl}`);
-                                        toast.success(`Sent: ${r.data.sent}, Failed: ${r.data.failed}`);
-                                        API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
-                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
-                                    setWaSendingAssign(false);
+                                        toast.success(`Broadcasting assignments to ${r.data.total} users`);
+                                        setAssignJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0 });
+                                        startPolling(r.data.job_id, 'assignment');
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); setWaSendingAssign(false); }
                                 }} disabled={waSendingAssign || assignments.length === 0} className="bg-green-600 hover:bg-green-700" data-testid="send-assignments-btn">
-                                    <MessageCircle size={16} className="mr-2" />{waSendingAssign ? 'Sending...' : 'Send Assignments'}
+                                    {waSendingAssign ? <Loader2 size={16} className="mr-2 animate-spin" /> : <MessageCircle size={16} className="mr-2" />}
+                                    {waSendingAssign ? 'Sending...' : 'Send Assignments'}
                                 </Button>
                             </div>
                             {assignments.length === 0 && <p className="text-xs text-destructive">Assign tables first before sending assignment messages.</p>}
-                        </div>
-
-                        {/* Message Status */}
-                        {waStatus && (
-                            <div className="glass-card rounded-xl p-5">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-semibold">Delivery Status</h3>
-                                    <div className="flex gap-2">
-                                        <Button variant="outline" size="sm" onClick={async () => {
-                                            try {
-                                                const settings = await API.get('/admin/settings');
-                                                const tmpl = settings.data.wa_template_welcome || 'welcome';
-                                                const r = await API.post(`/admin/whatsapp/retry-failed/${eventId}?message_type=welcome&template_name=${tmpl}`);
-                                                toast.success(`Retried: ${r.data.retried}, Sent: ${r.data.sent}`);
-                                                API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
-                                            } catch (err) { toast.error('Retry failed'); }
-                                        }} data-testid="retry-failed-btn">
-                                            <RefreshCw size={14} className="mr-1" />Retry Failed
-                                        </Button>
-                                        <Button variant="ghost" size="sm" onClick={() => API.get(`/admin/whatsapp/status/${eventId}`).then(r => setWaStatus(r.data))} data-testid="refresh-status-btn">
-                                            <RefreshCw size={14} />
-                                        </Button>
+                            {/* Assignment Progress Bar */}
+                            {assignJob && assignJob.status === 'running' && (
+                                <div className="mt-3 space-y-2" data-testid="assign-progress">
+                                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                        <span>Processing: {assignJob.processed} / {assignJob.total}</span>
+                                        <span>{assignJob.total > 0 ? Math.round((assignJob.processed / assignJob.total) * 100) : 0}%</span>
+                                    </div>
+                                    <Progress value={assignJob.total > 0 ? (assignJob.processed / assignJob.total) * 100 : 0} className="h-2.5" />
+                                    <div className="flex gap-4 text-xs">
+                                        <span className="text-green-500">Sent: {assignJob.sent}</span>
+                                        <span className="text-destructive">Failed: {assignJob.failed}</span>
                                     </div>
                                 </div>
-                                <div className="flex gap-4 mb-4 text-sm">
-                                    <span>Total: <strong>{waStatus.total}</strong></span>
-                                    <span className="text-green-500">Sent: <strong>{waStatus.sent}</strong></span>
-                                    <span className="text-destructive">Failed: <strong>{waStatus.failed}</strong></span>
+                            )}
+                            {assignJob && assignJob.status === 'completed' && (
+                                <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20" data-testid="assign-completed">
+                                    <div className="flex items-center gap-2 text-sm text-green-500 font-medium mb-1">
+                                        <CheckCircle size={14} /> Broadcast Complete
+                                    </div>
+                                    <div className="flex gap-4 text-xs text-muted-foreground">
+                                        <span>Total: {assignJob.total}</span>
+                                        <span className="text-green-500">Sent: {assignJob.sent}</span>
+                                        <span className="text-destructive">Failed: {assignJob.failed}</span>
+                                    </div>
                                 </div>
-                                {waStatus.messages.length > 0 && (
-                                    <div className="max-h-80 overflow-y-auto space-y-1">
-                                        {waStatus.messages.map((m, i) => (
-                                            <div key={m.id || i} className="flex items-center justify-between text-xs py-1.5 px-3 rounded bg-muted/30" data-testid={`wa-msg-${i}`}>
+                            )}
+                            {/* Assignment Delivery List */}
+                            {waStatus?.assignment && waStatus.assignment.total > 0 && (
+                                <div className="mt-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <h4 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Delivery Log ({waStatus.assignment.total})</h4>
+                                        <div className="flex gap-3 text-xs">
+                                            <span className="text-green-500">Sent: {waStatus.assignment.sent}</span>
+                                            <span className="text-destructive">Failed: {waStatus.assignment.failed}</span>
+                                        </div>
+                                    </div>
+                                    <div className="max-h-60 overflow-y-auto space-y-1">
+                                        {waStatus.assignment.messages.map((m, i) => (
+                                            <div key={m.id || i} className="flex items-center justify-between text-xs py-1.5 px-3 rounded bg-muted/30" data-testid={`wa-assign-msg-${i}`}>
                                                 <div className="flex items-center gap-2">
                                                     {m.status === 'sent' ? <CheckCircle size={12} className="text-green-500" /> : <XCircle size={12} className="text-destructive" />}
                                                     <span className="font-medium">{m.user_name}</span>
                                                     <span className="text-muted-foreground">{m.user_phone}</span>
                                                 </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant={m.message_type === 'welcome' ? 'default' : 'secondary'} className="text-[10px] px-1.5">{m.message_type}</Badge>
-                                                    <Badge variant={m.status === 'sent' ? 'default' : 'destructive'} className="text-[10px] px-1.5">{m.status}</Badge>
-                                                </div>
+                                                <Badge variant={m.status === 'sent' ? 'default' : 'destructive'} className="text-[10px] px-1.5">{m.status}</Badge>
                                             </div>
                                         ))}
                                     </div>
-                                )}
-                            </div>
-                        )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Retry & Refresh Controls */}
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="outline" size="sm" onClick={async () => {
+                                try {
+                                    const settings = await API.get('/admin/settings');
+                                    const tmpl = settings.data.wa_template_welcome || 'welcome';
+                                    const r = await API.post(`/admin/whatsapp/retry-failed/${eventId}?message_type=welcome&template_name=${tmpl}`);
+                                    toast.success(`Retry started: ${r.data.total} failed messages`);
+                                    if (r.data.job_id) {
+                                        setWaSendingWelcome(true);
+                                        setWelcomeJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0, skipped: 0 });
+                                        startPolling(r.data.job_id, 'welcome');
+                                    }
+                                } catch (err) { toast.error('Retry failed'); }
+                            }} data-testid="retry-failed-btn">
+                                <RefreshCw size={14} className="mr-1" />Retry Failed
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => API.get(`/admin/whatsapp/status/${eventId}`).then(r => setWaStatus(r.data))} data-testid="refresh-status-btn">
+                                <RefreshCw size={14} className="mr-1" />Refresh
+                            </Button>
+                        </div>
                     </div>
                 </TabsContent>
             </Tabs>
