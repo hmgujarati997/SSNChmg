@@ -7,7 +7,7 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - **Backend**: FastAPI + MongoDB (modular routes in /app/backend/routes/)
 - **Frontend**: React + Shadcn UI + Tailwind CSS (dark theme, CSS variables for easy color changes)
 - **Auth**: JWT-based (admin email/password, user phone/password, volunteer phone/password)
-- **Database Collections**: admins, users, volunteers, events, categories, subcategories, event_registrations, table_assignments, table_captains, references, attendance, site_settings
+- **Database Collections**: admins, users, volunteers, events, categories, subcategories, event_registrations, table_assignments, table_captains, references, attendance, site_settings, whatsapp_messages
 
 ## User Personas
 1. **Admin**: Event organizer - creates events, manages categories, uploads users, assigns tables, controls rounds
@@ -37,61 +37,39 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - Default live screen password: ssnc2026
 
 ## What's Been Implemented (2026-03-24)
-- Download Sample CSV buttons added to all 3 admin CSV upload locations:
-  - User Management (inside Upload CSV dialog)
-  - Business Categories (in top action bar)
-  - Event Management (in registrations tab)
-- PWA Support: manifest.json, service worker (sw.js), app icons (192x192, 512x512), install prompt popup
-  - Apple meta tags for iOS home screen support
-  - InstallPrompt component shows "Install SSNC App" banner when browser supports it
-- Camera-based QR Scanner for Volunteers:
-  - Uses html5-qrcode library for real camera scanning
-  - Toggle between Camera Scan and Manual Entry modes
-  - Auto-extracts user ID from profile URLs
-  - Stops camera after successful scan
-- Moved Table & Round Configuration from "Create Event" form into a dedicated "Configuration" tab inside event detail
-  - Admins can now adjust tables, chairs, rounds, etc. anytime as registrations grow
+- Download Sample CSV buttons added to all 3 admin CSV upload locations
+- PWA Support: manifest.json, service worker, app icons, install prompt
+- Camera-based QR Scanner for Volunteers
+- Moved Table & Round Configuration from "Create Event" form into dedicated "Configuration" tab
 
 ## What's Been Implemented (2026-03-25)
-- Removed "Import from Phone Book" (Contact Picker API) feature from Pass Reference flow
-  - The native Contact Picker API could not handle 5000+ contacts and crashed the PWA
-  - Users now manually type contact details (name, phone, email) in the Pass Reference dialog
-- WhatsApp social link default country code 91 (India) on Profile and Registration pages
-- CSV download for Seating data in admin Events (all rounds with names, phone, email, position, business, category)
+- Removed "Import from Phone Book" (Contact Picker API) feature
+- WhatsApp social link default country code 91 (India)
+- CSV download for Seating data in admin Events
 - Removed "Made with Emergent" branding badge
 
 ## What's Been Implemented (2026-03-26)
-- **SGCCI & SBC Branding**: Added SGCCI and SBC logos to login page, admin sidebar, user header, volunteer header
-- **Color Theme Update**: Changed primary color from violet to SGCCI blue (#32329A)
-- **Dark/Light Theme Toggle**: ThemeContext with localStorage, toggle on all pages, all hardcoded dark colors replaced
-- **Dynamic Logo System (5 separate uploads)**:
-  - Favicon (auto-generates 16px, 32px, ICO)
-  - PWA App Icon (auto-generates 192px, 512px, apple-touch-icon)
-  - Website Header Logo (sidebar/header across all layouts)
-  - Login Logo 1 (left) and Login Logo 2 (right)
-  - Dynamic manifest.json served from backend, references uploaded icons
-  - Favicon dynamically updated on page load from admin settings
-- **N+1 Query Optimization**: Fixed all 8 N+1 database patterns across admin_routes, user_routes, live_routes using bulk queries and aggregation pipelines
-- **Seating Validation**: Backend returns warning if users missed, frontend shows verification badge
-- **Duplicate Captain Prevention**: Backend rejects same user as captain on 2 tables
-- **PWA name**: Changed to "SSNC" as default
-- **WhatsApp Integration (flexiwaba API)**:
-  - Admin Settings: API Key, Username, Source Phone, 3 Template Names (Welcome, Assignment, Reference)
-  - WhatsApp tab in Event Management with Send Welcome, Send Assignments, Delivery Status
-  - Welcome messages: once per user per event, skip already sent
-  - Table assignment messages: includes user's table for each round, with QR code
-  - Reference notification: auto-triggered when user passes a reference
-  - Phone normalization: auto-adds 91 prefix if missing
-  - Delivery status tracking: sent/failed counts, per-user status, retry failed button
-  - Created: whatsapp_service.py, whatsapp_routes.py, BrandingContext.js
-  - This eliminates all PWA crash issues related to the Contact Picker API
+- SGCCI & SBC Branding with dynamic logo system (5 separate uploads)
+- Color Theme Update: SGCCI blue (#32329A)
+- Dark/Light Theme Toggle with localStorage persistence
+- N+1 Query Optimization: Fixed all 8 patterns via db_helpers.py
+- Seating Validation with verification badges
+- Duplicate Captain Prevention
+- WhatsApp Integration (flexiwaba API): Admin Settings config, Send Welcome/Assignments, Delivery Status
+
+## What's Been Implemented (2026-03-27)
+- **WhatsApp Broadcast Timeout Fix**: Replaced synchronous HTTP-blocking broadcast with FastAPI BackgroundTasks using asyncio.create_task. Now processes 496+ users without HTTP timeout.
+- **Real-time Progress Bar**: Frontend polls GET /api/admin/whatsapp/job/{job_id} every 1.5s showing processing count, percentage, sent/skipped/failed stats
+- **Separate Welcome & Assignment Lists**: Delivery logs split into Welcome Messages section and Table Assignment Messages section with independent progress bars, counters, and delivery logs
+- **Broadcast Complete Summary**: Green banner appears when job finishes with final stats
+- **Status API Enhancement**: GET /api/admin/whatsapp/status/{event_id} now returns 'welcome' and 'assignment' sub-objects
+- **Retry with Progress**: Retry Failed button now also returns job_id and shows progress bar
 
 ## P0 Features Remaining
-- WhatsApp API integration (user to provide docs later)
 - Razorpay payment integration
 
 ## P1 Features Remaining
-- File upload for profile pictures and company logos (currently URL-based)
+- File upload for profile pictures and company logos
 - Collaboration category tagging in category management UI
 - Email/SMS notifications
 
@@ -103,8 +81,6 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - Spot registration workflow
 
 ## Next Tasks
-1. Add WhatsApp API integration when documentation is provided
-2. Integrate Razorpay payment gateway
-3. Add camera QR scanner for volunteer dashboard
-4. File upload for profile pictures
-5. PWA manifest.json and service worker
+1. Integrate Razorpay payment gateway
+2. File upload for profile pictures
+3. Admin analytics dashboard
