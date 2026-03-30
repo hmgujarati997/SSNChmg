@@ -60,7 +60,8 @@ function EventDetail({ eventId, onBack }) {
     const [userSearch, setUserSearch] = useState('');
     const fileRef = useRef(null);
     const [waStatus, setWaStatus] = useState(null);
-    const [waSending, setWaSending] = useState(false);
+    const [waSendingWelcome, setWaSendingWelcome] = useState(false);
+    const [waSendingAssign, setWaSendingAssign] = useState(false);
 
     const load = async () => {
         try {
@@ -430,18 +431,18 @@ function EventDetail({ eventId, onBack }) {
                                     <p className="text-xs text-muted-foreground">Send welcome message to registered users (once per user)</p>
                                 </div>
                                 <Button onClick={async () => {
-                                    setWaSending(true);
+                                    setWaSendingWelcome(true);
                                     try {
                                         const settings = await API.get('/admin/settings');
                                         const tmpl = settings.data.wa_template_welcome;
-                                        if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSending(false); return; }
+                                        if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSendingWelcome(false); return; }
                                         const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}`);
                                         toast.success(`Sent: ${r.data.sent}, Skipped: ${r.data.skipped}, Failed: ${r.data.failed}`);
                                         API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
                                     } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
-                                    setWaSending(false);
-                                }} disabled={waSending} className="bg-green-600 hover:bg-green-700" data-testid="send-welcome-btn">
-                                    <MessageCircle size={16} className="mr-2" />{waSending ? 'Sending...' : 'Send Welcome'}
+                                    setWaSendingWelcome(false);
+                                }} disabled={waSendingWelcome} className="bg-green-600 hover:bg-green-700" data-testid="send-welcome-btn">
+                                    <MessageCircle size={16} className="mr-2" />{waSendingWelcome ? 'Sending...' : 'Send Welcome'}
                                 </Button>
                             </div>
                         </div>
@@ -454,18 +455,18 @@ function EventDetail({ eventId, onBack }) {
                                     <p className="text-xs text-muted-foreground">Send table assignments with QR codes to all assigned users</p>
                                 </div>
                                 <Button onClick={async () => {
-                                    setWaSending(true);
+                                    setWaSendingAssign(true);
                                     try {
                                         const settings = await API.get('/admin/settings');
                                         const tmpl = settings.data.wa_template_assignment;
-                                        if (!tmpl) { toast.error('Set assignment template in Settings first'); setWaSending(false); return; }
+                                        if (!tmpl) { toast.error('Set assignment template in Settings first'); setWaSendingAssign(false); return; }
                                         const r = await API.post(`/admin/whatsapp/send-assignments/${eventId}?template_name=${tmpl}`);
                                         toast.success(`Sent: ${r.data.sent}, Failed: ${r.data.failed}`);
                                         API.get(`/admin/whatsapp/status/${eventId}`).then(r2 => setWaStatus(r2.data));
                                     } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
-                                    setWaSending(false);
-                                }} disabled={waSending || assignments.length === 0} className="bg-green-600 hover:bg-green-700" data-testid="send-assignments-btn">
-                                    <MessageCircle size={16} className="mr-2" />{waSending ? 'Sending...' : 'Send Assignments'}
+                                    setWaSendingAssign(false);
+                                }} disabled={waSendingAssign || assignments.length === 0} className="bg-green-600 hover:bg-green-700" data-testid="send-assignments-btn">
+                                    <MessageCircle size={16} className="mr-2" />{waSendingAssign ? 'Sending...' : 'Send Assignments'}
                                 </Button>
                             </div>
                             {assignments.length === 0 && <p className="text-xs text-destructive">Assign tables first before sending assignment messages.</p>}
