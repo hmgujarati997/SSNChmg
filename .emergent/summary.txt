@@ -1,182 +1,166 @@
-<analysis>**original_problem_statement**:
+<analysis>**original_problem_statement**: 
 The user wants to build a Progressive Web App (PWA) for a speed networking event called SSNC.
-
 **PRODUCT REQUIREMENTS**:
-- **Admin Role**:
-    - Manage events: creation (details like name, date, time, venue, fees), configuration of tables and rounds.
-    - Manage users: Upload users via CSV, manually add users, and view all user data.
-    - Seating Algorithm: Automatically assign attendees to tables across multiple rounds, preventing rematches and placing competitors on separate tables. Keep seats vacant for spot registrations.
-    - Manage Business Categories: Add/manage business categories and sub-categories.
-    - Manage Volunteers: Create logins for volunteers.
-    - Site Settings: Configure admin credentials, payment gateway keys, etc.
-- **User Role**:
-    - Account management: Register, login (phone number is username/password for users added by admin).
-    - Profile management: Update details which serve as a vCard (name, contact, business info, social links).
-    - Event Interaction: Pass references (previously punch), with contact details and notes.
-- **Volunteer Role**:
-    - Scan attendee QR codes for venue entry and validation using the device camera.
-- **Live Screen**:
-    - A public, password-protected page displaying real-time data.
-- **Key User-Requested Features (added during session)**:
-    - PWA functionality to allow the app to be installed on a device's home screen.
-    - A robust seating algorithm with hard constraints: no two people meet twice, no main/sub-category duplicates on the same table.
-    - An improved Pass Reference flow in the user dashboard, including a popup dialog, fields for the referred person's contact details, notes, and a non-crashing phone book import feature.
+- **Admin Role**: Manage events, users, business categories, spot registrations, seating reallocation, and live screen settings. Execute strict seating algorithms (no rematches, competitors separated).
+- **User Role**: Register/login, update profile (vCard), pass references.
+- **Live Screen**: Banquet-hall friendly, large-font dashboard with a speaker/conclusion timer, leaderboards, attendance, and dynamic sponsor logos.
+- **Integrations**: Flexiwaba WhatsApp API for broadcast notifications (Welcome, Table Assignments, References). Future: Razorpay for event fees.
 
 **User's preferred language**: English
+*(INSTRUCTION: ALWAYS respond in English)*
 
-**what currently exists?**
-The SSNC PWA is a feature-rich full-stack application.
--   **Backend (FastAPI)**: Features role-based JWT authentication, comprehensive CRUD APIs for all entities, and a highly optimized seating algorithm that enforces strict constraints (no remeets, no category/subcategory conflicts). The API supports CSV uploads, PWA requirements, and the revamped Pass Reference data model.
--   **Frontend (React/Shadcn)**: A mobile-first, dark-themed UI. It is now a fully installable PWA with a service worker and manifest. The admin panel includes refined event management (config moved inside events, delete functionality, improved table captain assignment UI). The volunteer dashboard features a camera-based QR code scanner. The user dashboard has a revamped Pass Reference workflow with a stable contact import mechanism.
+**what currently exists?** 
+A mature full-stack PWA (React + FastAPI + MongoDB). Features include a highly complex seating algorithm (which excludes spot registrations), dynamic multi-logo branding, background task processing for bulk WhatsApp broadcasts, and a Day Of Event module that handles spot registrations and vacant seat reallocation. The Live Screen has been redesigned for large banquet hall visibility with speaker/conclusion timers.
 
-**Last working item**:
--   **Last item agent was working**: The user reported a new bug: i got the issue, i need to wait for a while before i search, its not able to handle the load i assume, what can we do to fix it?. The agent has acknowledged the message but has not started investigating or fixing it. The issue is most likely related to the search/filter functionality on a large list of users, probably in the Table Captains assignment UI.
--   **Status**: NOT STARTED
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: manual testing by curl
--   **User Testing Done**: N
+**Last working item**: 
+- **Last item agent was working**: The agent just started the session and immediately called  to confirm the plan to continue adding the Sponsor UI (, , and logos) to the Admin Settings and Live Screen. The frontend file  was left partially updated in the previous fork.
+- **Status**: BLOCKED (Waiting for user response to )
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: Frontend testing agent / screenshot tool (to verify the new sponsor inputs in admin settings and their appearance on the Live Screen).
+- **User Testing Done**: N
 
-**All Pending/In progress Issue list**:
--   **Issue 1**: (P0) Performance lag on search input.
+**All Pending/In progress Issue list**: 
+Issue 1: Complete Sponsor UI in Admin Settings (P0)
+Issue 2: Display Sponsors on Live Screen (P0)
+Issue 3: WhatsApp Table Assignment Media Delivery on Production (P2)
 
-**Issues Detail**:
--   **Issue 1**:
-    -   **Description**: The user experiences a significant lag when using a search feature, forcing them to wait before typing. This points to an unoptimized filtering operation on a large dataset, likely the user list (~500 users) in the Assign Table Captain dropdown in .
-    -   **Attempted fixes**: None.
-    -   **Next debug checklist**:
-        1.  Confirm the lag occurs in  when filtering users to assign a table captain.
-        2.  The root cause is likely the filter function running on every keystroke, causing expensive re-renders on a large list.
-        3.  Implement a debounce mechanism on the search input to delay the filtering function until the user stops typing for ~300ms. A  custom hook would be a clean solution.
-        4.  Verify the fix by testing the search functionality with a large user list to ensure it is smooth and responsive.
-    -   **Why fix this issue and what will be achieved with the fix?**: A laggy UI provides a poor user experience and can make the application feel broken. Fixing this will make admin tasks smoother and more efficient, especially for large events.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Frontend
-    -   **Blocked on other issue**: None.
+Issues Detail:
+- Issue 1: Complete Sponsor UI in Admin Settings
+   - Attempted fixes: Backend model  already has  and . The previous agent was in the middle of a  to add the text inputs to .
+   - Next debug checklist: 
+     1. Open .
+     2. Ensure  and  are correctly added to the state, the  payload, and the JSX form.
+     3. Ensure the sponsor logos are added to the  array if not already.
+   - Why fix this issue and what will be achieved with the fix?: Allows admins to manage sponsors dynamically.
+   - Status: IN PROGRESS
+   - Is recurring issue? N
+   - Should Test frontend/backend/both after fix?: Frontend
+   - Blocked on other issue: None
 
-**In progress Task List**:
--   None.
+- Issue 2: Display Sponsors on Live Screen
+   - Attempted fixes: Not started.
+   - Next debug checklist: Update  to fetch public branding/settings and render the sponsor logos and names prominently.
+   - Why fix this issue and what will be achieved with the fix?: Gives visibility to event sponsors during the live event.
+   - Status: NOT STARTED
+   - Is recurring issue? N
+   - Should Test frontend/backend/both after fix?: Frontend
+   - Blocked on other issue: Issue 1
+
+- Issue 3: WhatsApp Table Assignment Media Delivery on Production
+   - Attempted fixes: Switched from dynamic API endpoints to serving pre-generated static PNG QR codes.
+   - Next debug checklist: No code changes required currently. Flexiwaba/Meta restricts media fetches from non-production preview domains. Verify once deployed to the live domain.
+   - Why fix this issue and what will be achieved with the fix?: Ensures QR codes are delivered in WA table assignments.
+   - Status: USER VERIFICATION PENDING (Awaiting production deployment)
+   - Is recurring issue? N
+   - Should Test frontend/backend/both after fix?: NA
+   - Blocked on other issue: None
+
+**In progress Task List**: 
+Task 1: Default Light Theme and Sponsor Additions (P0)
+
+ Task Detail:
+  - Task 1: 
+     - Where to resume: Modify  to complete the sponsor inputs, then update .
+     - What will be achieved with this?: App defaults to a white background (already started), and sponsors become manageable/visible.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on something: Waiting for user reply to .
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks**:
-  - (P0) Razorpay payment gateway integration for event fees.
-  - (P1) WhatsApp API integration for sending notifications.
-- **Future Tasks**:
-  - File upload for user profile pictures.
-  - An analytics dashboard for admins.
-  - Export functionality for reports (CSV/PDF).
+Upcoming Tasks:
+- Razorpay payment gateway integration for event fees (P0)
+
+Future Tasks:
+- File upload for user profile pictures (P1)
+- Admin analytics dashboard (P2)
+- Export functionality for reports (CSV/PDF) (P2)
 
 **Completed work in this session**
-- **Download Sample CSV Feature**: Added download links for sample CSV files on the User, Category, and Event management pages.
-- **PWA Functionality**: Implemented , a service worker, app icons, and an install prompt, making the app installable.
-- **Camera QR Scanner**: Integrated a camera-based QR code scanner into the volunteer dashboard using .
-- **Event Management Refactor**: Moved table/round configuration from the event creation form into a dedicated Configuration tab within the event details.
-- **Delete Event Feature**: Added functionality for admins to delete events, which correctly preserves user accounts.
-- **Table Captain Assignment UI/UX**:
-    - Implemented a search bar for assigned captains.
-    - Added a searchable dropdown for selecting users.
-    - Capped assignments to the total number of tables.
-    - Improved logic to fill gaps from deleted captains instead of only using max+1.
-- **Seating Algorithm Overhaul**:
-    - Fixed logic for distributing vacant seats.
-    - Rewrote the algorithm to enforce hard constraints: no sub-category duplicates on a table, and no two people meeting more than once across all rounds.
-- **UI Enhancement**: Updated the seating display to show the category and sub-category for both captains and regular users.
-- **Pass Reference Feature Revamp**:
-    - Renamed from Punch Reference.
-    - Created a popup dialog for submitting a reference with fields for the referred person's contact info and notes.
-    - Updated backend to allow multiple references to the same user and store the new contact details.
-- **Bug Fix (Critical)**: Resolved a persistent PWA crash on Android caused by the Contact Picker API. The final, stable solution involves invoking the API *before* opening any UI dialogs.
+- None in this specific brief session (Agent only invoked  and paused).
+- *Recently completed (Previous Fork)*:
+  - Day Of Event Module (Spot registration, absent marking, reallocation) (DONE)
+  - Live Screen Redesign with massive fonts & timers (DONE)
+  - Static QR Generation for WhatsApp attachments (DONE)
+  - WhatsApp Broadcasts via BackgroundTasks with UI polling (DONE)
 
 **Earlier issues found/mentioned but not fixed**
--   None. The agent has addressed all issues raised by the user in this session, with the latest performance issue being the next item to tackle.
+- None.
 
 **Known issue recurrence from previous fork**
-- **Issue recurrence in previous fork**: The Contact Picker API () caused the PWA to crash on Android devices.
-- **Recurrence count**: 3. The agent attempted several fixes: (1) adding a simple feature check, (2) removing the  call, (3) replacing it with a VCF file import. None fully resolved the user's issue.
-- **Status**: RESOLVED. The final fix was to change the UX flow: the contact is now picked *before* any dialog is opened, preventing a context-loss crash in the browser. The next agent should be aware of this pattern if similar native APIs are used.
+- Issue recurrence in previous fork: None
+- Recurrence count: 0
+- Status: RESOLVED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Frontend**: React, , Shadcn/UI, Tailwind CSS, 
--   **Backend**: FastAPI, Pydantic, Motor (async MongoDB driver)
--   **Database**: MongoDB
--   **Authentication**: JSON Web Tokens (JWT)
--   **PWA**: Service Workers, Web App Manifest () for installability.
--   **Native Web APIs**:  (Contact Picker API). Its implementation required careful handling to avoid browser crashes, specifically by not calling it from within a modal/dialog portal.
+- React, TailwindCSS, Shadcn UI
+- FastAPI, MongoDB (Motor Async), Pydantic
+- FastAPI BackgroundTasks
+- Static File Serving (for WhatsApp media attachments)
 
 **key DB schema**
--   **references**: Updated to include , , . The unique constraint on  was removed to allow multiple references.
--   Other collections remain the same.
+- : 
+- : 
 
 **changes in tech stack**
--    library was added to the frontend for camera-based QR code scanning.
+- Leveraged  heavily to serve generated  QR codes so external APIs (Flexiwaba) can fetch them as static media.
 
 **All files of reference**
--   : Completely rewritten to implement a complex, constraint-based seating algorithm. **Critical file.**
--   : Heavily modified to refactor event configuration and dramatically improve the Table Captains assignment UI.
--   : Completely rewritten to implement the new Pass Reference workflow, including the fix for the Contact Picker API crash.
--   : Rewritten to integrate a camera-based QR scanner.
--   : Modified to pass full user data to the new seating algorithm.
--   :  model updated with new fields.
--   : Logic updated to support the new reference model.
--   , : New files for PWA functionality.
--   , : New reusable components.
+-  (Target for Issue 1)
+-  (Target for Issue 2)
+-  (Contains  with sponsor fields)
 
-**Areas that need refactoring**:
--   The search input in  that is causing the performance lag needs to be refactored to use a debounce mechanism.
+**Areas that need refactoring**: 
+- None. Code logic is currently optimal.
 
 **key api endpoints**
--   : Now used to update table/round configuration.
--   : New endpoint to delete an event and its related data (but not users).
--   : The payload model was updated, and the backend logic was changed to allow multiple references from one user to another.
--   : Backend logic updated to enrich captain and user data with category/subcategory names.
+- 
+- 
+-  (Used for fetching logos and site settings on frontend)
 
 **Critical Info for New Agent**
--   **Admin Password**: The admin password is . The email is .
--   **Seating Algorithm**: The current algorithm in  is highly optimized and complex. It successfully generates seating plans with zero violations for the user's specific scenario (400+ users, 62 tables, 3 rounds). Avoid making changes to it unless absolutely necessary.
--   **Contact Picker API**: This native API is unstable and platform-dependent. The established working pattern is to call it *outside* of any dialog/modal to prevent crashes. Do not change this flow.
--   **Debouncing**: The user's latest complaint about search lag strongly suggests the need for debouncing. This should be the first priority.
+- **Immediate State**: The agent in this session did exactly one thing: called . You will wake up with the user's response. Proceed immediately to edit  to finish the sponsor inputs as that file was left mid-edit in an older fork.
+- **Spot Registrations**: Spot users are explicitly excluded from the main seating algorithm. They only get seated via the Reallocate button.
+- **WhatsApp Delivery**: WhatsApp assignment messages failing to deliver *media* is a Meta/Flexiwaba restriction on preview domains. Do not attempt to fix the QR delivery logic further; it is waiting for production deployment.
 
 **documents and test reports created in this job**
--   
--   
--    (updated multiple times)
+- 
+- 
+*(No new iteration reports generated in this short session)*
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **Request**: when i click import from phone book the pwa is crashing - **Status**: Completed. The agent identified the root cause and implemented a stable fix.
-2.  **Request**: i was doing it on my android phone - **Status**: Completed. User clarified the crash was on a supported device, leading the agent to find the true root cause.
-3.  **Request**: the app is still crashing - **Status**: Completed. User confirmed a previous fix didn't work.
-4.  **Request**: but i cant download individual vcf file and then upload the vcf file every time, it should pickup from phone book - **Status**: Completed. User rejected the VCF file workaround.
-5.  **User Info**: Provided browser version and OS for debugging the crash. - **Status**: Completed.
-6.  **Request**: i got the issue, i need to wait for a while before i search, its not able to handle the load i assume, waht can we do to fix it? - **Status**: **PENDING**. This is the current highest-priority task.
+1. **User**: spot registration needs all fields mentioned, and mark status as paid -> **Resolved**
+2. **User**: when i reloate table the abset person is not showing up -> **Resolved**
+3. **User**: make live screen url a bit more bigger... clock should be in the center... Configuration add speaker time and conclusion time -> **Resolved**
+4. **User**: can we switch the page and whole app to white background theme by default and add 2 dashboard sponsors name and logo -> **IN PROGRESS**
+5. **User**: Continue -> **Agent called ask_human with a plan**
+6. **User**: [PENDING RESPONSE TO ASK_HUMAN]
 
 **Project Health Check:**
--   **Broken**: Search functionality in the admin panel is performant-challenged and provides a poor UX.
--   **Mocked**: Razorpay and WhatsApp integrations are placeholders.
+- **Broken**: Sponsor settings UI (Component is partially written and needs completion).
+- **Mocked**: Razorpay integration.
 
 **3rd Party Integrations**
--   **Active**:
-    -    (backend)
-    -    (frontend)
-    -    (frontend, for camera scanning)
--   **Planned**:
-    -   Razorpay (Payment Gateway)
-    -   A WhatsApp API Provider
+- Flexiwaba (WhatsApp API) — requires User API Key.
+- Razorpay (Payments) — requires User API Key (Planned).
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. It was used after the Download CSV feature and after the PWA/QR scanner implementation, with all tests passing.
--   **Troubleshoot agent used after agent stuck in loop**: NO.
--   **Test files created**: None in this session, but previous test files were used by the testing agent.
--   **Known regressions**: None.
+- Testing agent used after significant changes: NO (Session was too short)
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: None
+- Known regressions: None
 
 **Credentials to test flow:**
--   **Admin Login**:
-    -   **URL**:  (select the Admin tab)
-    -   **Email**: 
-    -   **Password**: 
--   **User Login**: Find a user from the admin panel (e.g., Shaurya Goel, phone ). The password is the user's phone number.
+Admin Login:
+URL:  (select Admin tab)
+Email: 
+Password: 
+
+Test User Login:
+Phone: 
+Password: 
 
 **What agent forgot to execute**
--   The agent has been diligent in following user requests. No tasks appear to have been overlooked. The next step is to address the newly reported performance bug.</analysis>
+- The agent successfully paused to ask the user for confirmation via . The next agent simply needs to read the user's reply in the immediate next prompt and execute the pending frontend changes for  and . Ensure you do not overwrite existing working code in  while adding  and .</analysis>

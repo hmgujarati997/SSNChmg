@@ -161,6 +161,8 @@ class SiteSettingsUpdate(BaseModel):
     wa_campaign_welcome: Optional[str] = None
     wa_campaign_assignment: Optional[str] = None
     wa_campaign_reference: Optional[str] = None
+    sponsor_name_1: Optional[str] = None
+    sponsor_name_2: Optional[str] = None
 
 
 class LiveAuthRequest(BaseModel):
