@@ -9,7 +9,7 @@ class AdminLogin(BaseModel):
 
 class UserLogin(BaseModel):
     phone: str
-    password: str
+    password: str = ""
 
 
 class VolunteerLogin(BaseModel):

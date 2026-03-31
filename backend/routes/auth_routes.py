@@ -20,8 +20,8 @@ async def admin_login(data: AdminLogin):
 @router.post("/user/login")
 async def user_login(data: UserLogin):
     user = await db.users.find_one({"phone": data.phone}, {"_id": 0})
-    if not user or not verify_password(data.password, user['password_hash']):
-        raise HTTPException(400, "Invalid credentials")
+    if not user:
+        raise HTTPException(400, "User not found")
     token = create_token(user['id'], "user", {"phone": user['phone'], "name": user['full_name']})
     return {"token": token, "role": "user", "user": {k: v for k, v in user.items() if k != 'password_hash'}}
 

@@ -6,6 +6,7 @@ import { PWAProvider } from "@/contexts/PWAContext";
 import { BrandingProvider } from "@/contexts/BrandingContext";
 import { Toaster } from "@/components/ui/sonner";
 import LoginPage from "@/pages/LoginPage";
+import AdminLoginPage from "@/pages/AdminLoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import UserLayout from "@/pages/user/UserLayout";
@@ -15,8 +16,8 @@ import PublicProfile from "@/pages/PublicProfile";
 
 function ProtectedRoute({ children, requiredRole }) {
     const { user, role } = useAuth();
-    if (!user) return <Navigate to="/login" replace />;
-    if (requiredRole && role !== requiredRole) return <Navigate to="/login" replace />;
+    if (!user) return <Navigate to={requiredRole === 'admin' ? '/admin/login' : '/login'} replace />;
+    if (requiredRole && role !== requiredRole) return <Navigate to={requiredRole === 'admin' ? '/admin/login' : '/login'} replace />;
     return children;
 }
 
@@ -25,6 +26,7 @@ function AppRoutes() {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin/*" element={
                 <ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>
