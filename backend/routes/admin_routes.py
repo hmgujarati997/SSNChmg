@@ -180,7 +180,9 @@ async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
         raise HTTPException(404, "Event not found")
-    registrations = await db.event_registrations.find({"event_id": event_id}, {"_id": 0}).to_list(2000)
+    registrations = await db.event_registrations.find(
+        {"event_id": event_id, "is_spot": {"$ne": True}}, {"_id": 0}
+    ).to_list(2000)
     user_ids = [r['user_id'] for r in registrations]
     users = await db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "password_hash": 0}).to_list(2000)
     if not users:

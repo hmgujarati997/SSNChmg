@@ -134,6 +134,56 @@ async def spot_register(event_id: str, data: SpotRegister, admin=Depends(require
     return {"message": f"Spot registered: {data.full_name}", "user_id": user_id}
 
 
+@router.put("/{event_id}/spot-register/{user_id}")
+async def edit_spot_registration(event_id: str, user_id: str, data: SpotRegister, admin=Depends(require_admin)):
+    """Edit a spot-registered user's details."""
+    reg = await db.event_registrations.find_one({"event_id": event_id, "user_id": user_id, "is_spot": True})
+    if not reg:
+        raise HTTPException(404, "Spot registration not found")
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
+    update = {}
+    if data.full_name:
+        update["full_name"] = data.full_name
+    if data.phone:
+        existing = await db.users.find_one({"phone": data.phone, "id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(400, "Phone number already in use")
+        update["phone"] = data.phone
+    if data.business_name is not None:
+        update["business_name"] = data.business_name
+    if data.category_id is not None:
+        update["category_id"] = data.category_id
+    if data.subcategory_id is not None:
+        update["subcategory_id"] = data.subcategory_id
+    if data.position is not None:
+        update["position"] = data.position
+    if data.email is not None:
+        update["email"] = data.email
+    if update:
+        await db.users.update_one({"id": user_id}, {"$set": update})
+    return {"message": f"Spot registration updated: {data.full_name or user['full_name']}"}
+
+
+@router.delete("/{event_id}/spot-register/{user_id}")
+async def delete_spot_registration(event_id: str, user_id: str, admin=Depends(require_admin)):
+    """Remove a spot registration and clean up all related data."""
+    reg = await db.event_registrations.find_one({"event_id": event_id, "user_id": user_id, "is_spot": True})
+    if not reg:
+        raise HTTPException(404, "Spot registration not found")
+    # Remove registration
+    await db.event_registrations.delete_one({"event_id": event_id, "user_id": user_id, "is_spot": True})
+    # Remove attendance
+    await db.attendance.delete_many({"event_id": event_id, "user_id": user_id})
+    # Remove from table assignments
+    await db.table_assignments.update_many(
+        {"event_id": event_id, "user_ids": user_id},
+        {"$pull": {"user_ids": user_id}}
+    )
+    return {"message": "Spot registration removed"}
+
+
 @router.post("/{event_id}/close-entry")
 async def close_entry(event_id: str, admin=Depends(require_admin)):
     """Close entry — after this, absent users are identified for reallocation."""

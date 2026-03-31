@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2, UserPlus, Lock, Unlock, Shuffle } from 'lucide-react';
+import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2, UserPlus, Lock, Unlock, Shuffle, Pencil } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 function EventForm({ onCreated }) {
@@ -75,6 +75,10 @@ function EventDetail({ eventId, onBack }) {
     const [spotLoading, setSpotLoading] = useState(false);
     const [reallocating, setReallocating] = useState(false);
     const [categories, setCategories] = useState([]);
+    const [editSpot, setEditSpot] = useState(null);
+    const [editSpotForm, setEditSpotForm] = useState({});
+    const [editSpotSubcats, setEditSpotSubcats] = useState([]);
+    const [savingSpot, setSavingSpot] = useState(false);
 
     const load = async () => {
         try {
@@ -120,6 +124,13 @@ function EventDetail({ eventId, onBack }) {
             API.get(`/admin/subcategories?category_id=${spotForm.category_id}`).then(r => setSpotSubcats(r.data)).catch(() => {});
         } else { setSpotSubcats([]); }
     }, [spotForm.category_id]);
+
+    // Edit spot subcategory loading
+    useEffect(() => {
+        if (editSpotForm.category_id) {
+            API.get(`/admin/subcategories?category_id=${editSpotForm.category_id}`).then(r => setEditSpotSubcats(r.data)).catch(() => {});
+        } else { setEditSpotSubcats([]); }
+    }, [editSpotForm.category_id]);
 
     const startPolling = (jobId, type) => {
         const ref = type === 'welcome' ? welcomePollingRef : assignPollingRef;
@@ -614,13 +625,73 @@ function EventDetail({ eventId, onBack }) {
                                                 <UserPlus size={12} className="text-yellow-500" />
                                                 <span className="font-medium">{u.full_name}</span>
                                                 <span className="text-muted-foreground">{u.phone}</span>
+                                                <span className="text-muted-foreground">{u.business_name}</span>
                                             </div>
-                                            <span className="text-muted-foreground">{u.business_name}</span>
+                                            <div className="flex gap-1">
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                                    setEditSpot(u);
+                                                    setEditSpotForm({ full_name: u.full_name, phone: u.phone, business_name: u.business_name || '', category_id: '', subcategory_id: '', position: '' });
+                                                }} data-testid={`edit-spot-${u.id}`}><Pencil size={12} className="text-primary" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={async () => {
+                                                    if (!window.confirm(`Remove spot registration for ${u.full_name}? This will also remove them from any assigned tables.`)) return;
+                                                    try {
+                                                        await API.delete(`/admin/events/${eventId}/spot-register/${u.id}`);
+                                                        toast.success(`${u.full_name} removed`);
+                                                        API.get(`/admin/events/${eventId}/day-of-status`).then(r => setDayOfStatus(r.data));
+                                                        load();
+                                                    } catch { toast.error('Remove failed'); }
+                                                }} data-testid={`delete-spot-${u.id}`}><Trash2 size={12} className="text-destructive" /></Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         )}
+
+                        {/* Edit Spot Registration Dialog */}
+                        <Dialog open={!!editSpot} onOpenChange={(open) => { if (!open) setEditSpot(null); }}>
+                            <DialogContent className="bg-background border-border max-w-lg">
+                                <DialogHeader><DialogTitle>Edit Spot Registration</DialogTitle></DialogHeader>
+                                {editSpot && (
+                                    <div className="space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><Label className="text-xs">Full Name</Label><Input value={editSpotForm.full_name} onChange={e => setEditSpotForm(p => ({...p, full_name: e.target.value}))} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-spot-name" /></div>
+                                            <div><Label className="text-xs">Phone</Label><Input value={editSpotForm.phone} onChange={e => setEditSpotForm(p => ({...p, phone: e.target.value}))} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-spot-phone" /></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div><Label className="text-xs">Business Name</Label><Input value={editSpotForm.business_name} onChange={e => setEditSpotForm(p => ({...p, business_name: e.target.value}))} className="bg-muted/50 border-border h-10 mt-1" /></div>
+                                            <div><Label className="text-xs">Position</Label><Input value={editSpotForm.position} onChange={e => setEditSpotForm(p => ({...p, position: e.target.value}))} className="bg-muted/50 border-border h-10 mt-1" /></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <Label className="text-xs">Category</Label>
+                                                <Select value={editSpotForm.category_id} onValueChange={v => setEditSpotForm(p => ({...p, category_id: v, subcategory_id: ''}))}>
+                                                    <SelectTrigger className="bg-muted/50 border-border h-10 mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                    <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs">Sub Category</Label>
+                                                <Select value={editSpotForm.subcategory_id} onValueChange={v => setEditSpotForm(p => ({...p, subcategory_id: v}))}>
+                                                    <SelectTrigger className="bg-muted/50 border-border h-10 mt-1"><SelectValue placeholder="Select" /></SelectTrigger>
+                                                    <SelectContent>{editSpotSubcats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        <Button className="w-full" disabled={savingSpot} onClick={async () => {
+                                            setSavingSpot(true);
+                                            try {
+                                                await API.put(`/admin/events/${eventId}/spot-register/${editSpot.id}`, editSpotForm);
+                                                toast.success('Spot registration updated');
+                                                setEditSpot(null);
+                                                API.get(`/admin/events/${eventId}/day-of-status`).then(r => setDayOfStatus(r.data));
+                                            } catch (err) { toast.error(err.response?.data?.detail || 'Update failed'); }
+                                            setSavingSpot(false);
+                                        }} data-testid="save-edit-spot-btn">{savingSpot ? 'Saving...' : 'Save Changes'}</Button>
+                                    </div>
+                                )}
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </TabsContent>
 
