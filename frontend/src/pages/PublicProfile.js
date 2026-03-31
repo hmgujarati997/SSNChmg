@@ -178,12 +178,12 @@ export default function PublicProfile() {
                 </Button>
 
                 <div className="text-center mt-6 pb-4">
-                    <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+                    <a href="https://wa.me/918200663263?text=Hi%2C%20I%20would%20like%20to%20connect%20with%20you!" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
                         {branding.sponsor_logo_1 && (
                             <img src={`${BACKEND_URL}${branding.sponsor_logo_1}`} alt="" className="h-5 w-auto object-contain" />
                         )}
                         Developed by Rapid Express Technologies
-                    </div>
+                    </a>
                 </div>
             </div>
         </div>
