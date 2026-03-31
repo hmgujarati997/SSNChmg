@@ -156,22 +156,24 @@ export default function PunchReferences() {
                             const count = refCounts[key] || 0;
                             return (
                                 <div key={p.id} className="glass-card rounded-xl p-4" data-testid={`person-${p.id}`}>
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="flex items-start gap-3 min-w-0 flex-1">
+                                            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
                                                 {(p.full_name || '?')[0].toUpperCase()}
                                             </div>
-                                            <div>
-                                                <p className="font-medium text-foreground">{p.full_name}</p>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                                                    <Building2 size={10} />{p.business_name}
-                                                    {p.category_name && <Badge variant="outline" className="text-[10px] px-1.5">{p.category_name}</Badge>}
-                                                    {p.subcategory_name && <Badge variant="outline" className="text-[10px] px-1.5">{p.subcategory_name}</Badge>}
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-foreground truncate">{p.full_name}</p>
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                                                    <Building2 size={10} className="shrink-0" /><span className="truncate">{p.business_name}</span>
+                                                </p>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {p.category_name && <Badge variant="outline" className="text-[10px] px-1.5 whitespace-nowrap">{p.category_name}</Badge>}
+                                                    {p.subcategory_name && <Badge variant="outline" className="text-[10px] px-1.5 whitespace-nowrap">{p.subcategory_name}</Badge>}
                                                 </div>
                                                 <SocialIcons links={p.social_links} />
                                             </div>
                                         </div>
-                                        <div className="flex flex-col items-end gap-1.5">
+                                        <div className="flex flex-col items-end gap-1.5 shrink-0">
                                             <Button size="sm" onClick={() => openRefDialog(p)} className="bg-primary" data-testid={`pass-ref-${p.id}`}>
                                                 <Send size={14} className="mr-1" />Pass Ref
                                             </Button>
