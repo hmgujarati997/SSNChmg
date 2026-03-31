@@ -62,10 +62,13 @@ async def send_whatsapp(destination: str, template_name: str, template_params: l
     if media_url:
         payload["media"] = {"url": media_url, "filename": "qr_code.png"}
 
+    logger.info(f"WA payload to {phone}: template={template_name}, campaign={campaign_name}, params={template_params}, media={media_url or 'none'}")
+
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.post(WHATSAPP_API_URL, json=payload)
             if resp.status_code == 200:
+                logger.info(f"WA success for {phone}: {resp.text[:200]}")
                 return True, resp.text
             else:
                 logger.error(f"WhatsApp API error {resp.status_code}: {resp.text}")

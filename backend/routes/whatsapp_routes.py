@@ -68,7 +68,7 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
         while len(table_params) < 4:
             table_params.append("-")
 
-        qr_url = f"{base_url}/api/user/qr/{uid}" if base_url else None
+        qr_url = f"{base_url}/api/public/qr/{uid}" if base_url else None
         success, resp = await send_whatsapp(
             destination=user['phone'],
             template_name=template_name,
