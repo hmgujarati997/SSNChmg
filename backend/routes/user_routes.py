@@ -141,7 +141,8 @@ async def _send_reference_notification(from_user_id: str, to_user_id: str, data)
         from whatsapp_service import send_whatsapp
         settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
         template = settings.get("wa_template_reference", "") if settings else ""
-        if not template:
+        campaign = settings.get("wa_campaign_reference", "") if settings else ""
+        if not template or not campaign:
             return
         from_user = await db.users.find_one({"id": from_user_id}, {"_id": 0, "password_hash": 0})
         to_user = await db.users.find_one({"id": to_user_id}, {"_id": 0, "password_hash": 0})
@@ -157,7 +158,7 @@ async def _send_reference_notification(from_user_id: str, to_user_id: str, data)
             destination=to_user['phone'],
             template_name=template,
             template_params=params,
-            campaign_name="reference_notify"
+            campaign_name=campaign
         )
     except Exception:
         pass  # Don't fail the reference creation
