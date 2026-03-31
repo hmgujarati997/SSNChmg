@@ -6,9 +6,16 @@ from whatsapp_service import send_whatsapp, normalize_phone
 from db_helpers import bulk_fetch_users
 import uuid
 import asyncio
+import qrcode
+import os
+from pathlib import Path
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/admin/whatsapp", tags=["WhatsApp"])
+
+UPLOADS_DIR = Path(__file__).parent.parent / "uploads"
+QR_DIR = UPLOADS_DIR / "qr"
+QR_DIR.mkdir(parents=True, exist_ok=True)
 
 # In-memory job tracker
 _jobs = {}
@@ -68,7 +75,15 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
         while len(table_params) < 4:
             table_params.append("-")
 
-        qr_url = f"{base_url}/api/public/qr/{uid}" if base_url else None
+        qr_file = QR_DIR / f"{uid}.png"
+        if not qr_file.exists():
+            qr_data = f"{base_url}/profile/{uid}" if base_url else uid
+            qr_img = qrcode.QRCode(version=1, box_size=10, border=4)
+            qr_img.add_data(qr_data)
+            qr_img.make(fit=True)
+            img = qr_img.make_image(fill_color="black", back_color="white")
+            img.save(str(qr_file))
+        qr_url = f"{base_url}/api/uploads/qr/{uid}.png" if base_url else None
         success, resp = await send_whatsapp(
             destination=user['phone'],
             template_name=template_name,
