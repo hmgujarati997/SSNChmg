@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/admin/whatsapp", tags=["WhatsApp"])
 _jobs = {}
 
 
-async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template_name: str, user_ids: list, user_map: dict, already_done: set):
+async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template_name: str, campaign_name: str, user_ids: list, user_map: dict, already_done: set):
     """Background: send welcome messages."""
     _jobs[job_id] = {"status": "running", "total": len(user_ids), "sent": 0, "skipped": 0, "failed": 0, "processed": 0}
     for uid in user_ids:
@@ -33,7 +33,7 @@ async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template
             destination=user['phone'],
             template_name=template_name,
             template_params=params,
-            campaign_name=f"welcome_{event_id[:8]}",
+            campaign_name=campaign_name,
             attributes={"event": event_name}
         )
         status = "sent" if success else "failed"
@@ -51,7 +51,7 @@ async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template
     _jobs[job_id]['status'] = 'completed'
 
 
-async def _run_assignment_job(job_id: str, event_id: str, event_name: str, template_name: str, user_tables: dict, user_map: dict, base_url: str):
+async def _run_assignment_job(job_id: str, event_id: str, event_name: str, template_name: str, campaign_name: str, user_tables: dict, user_map: dict, base_url: str):
     """Background: send assignment messages."""
     total = len(user_tables)
     _jobs[job_id] = {"status": "running", "total": total, "sent": 0, "failed": 0, "processed": 0}
@@ -73,7 +73,7 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
             destination=user['phone'],
             template_name=template_name,
             template_params=table_params,
-            campaign_name=f"assignment_{event_id[:8]}",
+            campaign_name=campaign_name,
             attributes={"event": event_name},
             media_url=qr_url
         )
@@ -93,7 +93,7 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
 
 
 @router.post("/send-welcome/{event_id}")
-async def send_welcome_messages(event_id: str, template_name: str = "welcome", admin=Depends(require_admin)):
+async def send_welcome_messages(event_id: str, template_name: str = "welcome", campaign_name: str = "ssnc", admin=Depends(require_admin)):
     """Kick off background job to send welcome messages."""
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
@@ -111,12 +111,12 @@ async def send_welcome_messages(event_id: str, template_name: str = "welcome", a
     already_done = {d['user_id'] for d in sent_docs}
 
     job_id = str(uuid.uuid4())[:8]
-    asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', ''), template_name, user_ids, user_map, already_done))
+    asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', ''), template_name, campaign_name, user_ids, user_map, already_done))
     return {"message": "Welcome messages started", "job_id": job_id, "total": len(user_ids), "already_sent": len(already_done)}
 
 
 @router.post("/send-assignments/{event_id}")
-async def send_assignment_messages(event_id: str, request: Request, template_name: str = "table_assignment", admin=Depends(require_admin)):
+async def send_assignment_messages(event_id: str, request: Request, template_name: str = "table_assignment", campaign_name: str = "ssnc", admin=Depends(require_admin)):
     """Kick off background job to send assignment messages."""
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
@@ -142,7 +142,7 @@ async def send_assignment_messages(event_id: str, request: Request, template_nam
     base_url = f"{scheme}://{forwarded_host}" if forwarded_host else str(request.base_url).rstrip('/')
 
     job_id = str(uuid.uuid4())[:8]
-    asyncio.create_task(_run_assignment_job(job_id, event_id, event.get('name', ''), template_name, user_tables, user_map, base_url))
+    asyncio.create_task(_run_assignment_job(job_id, event_id, event.get('name', ''), template_name, campaign_name, user_tables, user_map, base_url))
     return {"message": "Assignment messages started", "job_id": job_id, "total": len(user_tables)}
 
 
@@ -192,7 +192,7 @@ async def get_message_status(event_id: str, message_type: str = "all", admin=Dep
 
 
 @router.post("/retry-failed/{event_id}")
-async def retry_failed_messages(event_id: str, message_type: str = "welcome", template_name: str = "welcome", admin=Depends(require_admin)):
+async def retry_failed_messages(event_id: str, message_type: str = "welcome", template_name: str = "welcome", campaign_name: str = "ssnc", admin=Depends(require_admin)):
     """Retry failed messages as a background job."""
     failed = await db.whatsapp_messages.find(
         {"event_id": event_id, "message_type": message_type, "status": "failed"},
@@ -208,5 +208,5 @@ async def retry_failed_messages(event_id: str, message_type: str = "welcome", te
     # Re-use the welcome job for retries
     already_done = set()  # Don't skip any — these are all failed
     job_id = str(uuid.uuid4())[:8]
-    asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', '') if event else '', template_name, user_ids, user_map, already_done))
+    asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', '') if event else '', template_name, campaign_name, user_ids, user_map, already_done))
     return {"message": "Retry started", "job_id": job_id, "total": len(failed)}

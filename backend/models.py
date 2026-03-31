@@ -156,6 +156,9 @@ class SiteSettingsUpdate(BaseModel):
     wa_template_welcome: Optional[str] = None
     wa_template_assignment: Optional[str] = None
     wa_template_reference: Optional[str] = None
+    wa_campaign_welcome: Optional[str] = None
+    wa_campaign_assignment: Optional[str] = None
+    wa_campaign_reference: Optional[str] = None
 
 
 class LiveAuthRequest(BaseModel):

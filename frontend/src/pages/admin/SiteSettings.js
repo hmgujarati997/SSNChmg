@@ -41,6 +41,9 @@ export default function SiteSettings() {
             data.wa_template_welcome = settings.wa_template_welcome || '';
             data.wa_template_assignment = settings.wa_template_assignment || '';
             data.wa_template_reference = settings.wa_template_reference || '';
+            data.wa_campaign_welcome = settings.wa_campaign_welcome || '';
+            data.wa_campaign_assignment = settings.wa_campaign_assignment || '';
+            data.wa_campaign_reference = settings.wa_campaign_reference || '';
             await API.put('/admin/settings', data);
             toast.success('Settings saved'); setNewPassword('');
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
@@ -155,22 +158,40 @@ export default function SiteSettings() {
                         <Input value={settings.wa_source || ''} onChange={e => setSettings(p => ({ ...p, wa_source: e.target.value }))} placeholder="+919979791940" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-source-input" />
                     </div>
                     <hr className="border-border" />
-                    <p className="text-xs text-muted-foreground font-medium">Template Names (as registered on your WhatsApp provider)</p>
-                    <div>
-                        <Label className="text-sm text-muted-foreground">Welcome Template</Label>
-                        <Input value={settings.wa_template_welcome || ''} onChange={e => setSettings(p => ({ ...p, wa_template_welcome: e.target.value }))} placeholder="welcome_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-welcome-input" />
-                        <p className="text-xs text-muted-foreground mt-1">Params: {'{1}'} = User Name</p>
+                    <p className="text-xs text-muted-foreground font-medium">Template & Campaign Names (as registered on your WhatsApp provider)</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Welcome Template</Label>
+                            <Input value={settings.wa_template_welcome || ''} onChange={e => setSettings(p => ({ ...p, wa_template_welcome: e.target.value }))} placeholder="welcome_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-welcome-input" />
+                        </div>
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Welcome Campaign</Label>
+                            <Input value={settings.wa_campaign_welcome || ''} onChange={e => setSettings(p => ({ ...p, wa_campaign_welcome: e.target.value }))} placeholder="welcome_campaign" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-campaign-welcome-input" />
+                        </div>
                     </div>
-                    <div>
-                        <Label className="text-sm text-muted-foreground">Table Assignment Template</Label>
-                        <Input value={settings.wa_template_assignment || ''} onChange={e => setSettings(p => ({ ...p, wa_template_assignment: e.target.value }))} placeholder="table_assignment_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-assignment-input" />
-                        <p className="text-xs text-muted-foreground mt-1">Params: {'{1}'} = Name, {'{2}'} = Table R1, {'{3}'} = Table R2, {'{4}'} = Table R3</p>
+                    <p className="text-xs text-muted-foreground -mt-2">Params: {'{1}'} = User Name</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Table Assignment Template</Label>
+                            <Input value={settings.wa_template_assignment || ''} onChange={e => setSettings(p => ({ ...p, wa_template_assignment: e.target.value }))} placeholder="table_assignment_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-assignment-input" />
+                        </div>
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Table Assignment Campaign</Label>
+                            <Input value={settings.wa_campaign_assignment || ''} onChange={e => setSettings(p => ({ ...p, wa_campaign_assignment: e.target.value }))} placeholder="assignment_campaign" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-campaign-assignment-input" />
+                        </div>
                     </div>
-                    <div>
-                        <Label className="text-sm text-muted-foreground">Reference Notification Template</Label>
-                        <Input value={settings.wa_template_reference || ''} onChange={e => setSettings(p => ({ ...p, wa_template_reference: e.target.value }))} placeholder="reference_notify_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-reference-input" />
-                        <p className="text-xs text-muted-foreground mt-1">Params: {'{1}'} = Your Name, {'{2}'} = Referrer Name, {'{3}'} = Contact Name, {'{4}'} = Contact Phone</p>
+                    <p className="text-xs text-muted-foreground -mt-2">Params: {'{1}'} = Name, {'{2}'} = Table R1, {'{3}'} = Table R2, {'{4}'} = Table R3</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Reference Notification Template</Label>
+                            <Input value={settings.wa_template_reference || ''} onChange={e => setSettings(p => ({ ...p, wa_template_reference: e.target.value }))} placeholder="reference_notify_template" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-template-reference-input" />
+                        </div>
+                        <div>
+                            <Label className="text-sm text-muted-foreground">Reference Campaign</Label>
+                            <Input value={settings.wa_campaign_reference || ''} onChange={e => setSettings(p => ({ ...p, wa_campaign_reference: e.target.value }))} placeholder="reference_campaign" className="bg-muted/50 border-border h-11 mt-1" data-testid="wa-campaign-reference-input" />
+                        </div>
                     </div>
+                    <p className="text-xs text-muted-foreground -mt-2">Params: {'{1}'} = Your Name, {'{2}'} = Referrer Name, {'{3}'} = Contact Name, {'{4}'} = Contact Phone</p>
                 </div>
 
                 <Button onClick={save} className="w-full h-11 bg-primary" disabled={loading} data-testid="save-settings-btn">

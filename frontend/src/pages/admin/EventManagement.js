@@ -473,8 +473,10 @@ function EventDetail({ eventId, onBack }) {
                                     try {
                                         const settings = await API.get('/admin/settings');
                                         const tmpl = settings.data.wa_template_welcome;
+                                        const camp = settings.data.wa_campaign_welcome;
                                         if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSendingWelcome(false); return; }
-                                        const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}`);
+                                        if (!camp) { toast.error('Set welcome campaign name in Settings first'); setWaSendingWelcome(false); return; }
+                                        const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}&campaign_name=${camp}`);
                                         toast.success(`Broadcasting to ${r.data.total} users (${r.data.already_sent} already sent)`);
                                         setWelcomeJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0, skipped: r.data.already_sent || 0 });
                                         startPolling(r.data.job_id, 'welcome');
@@ -551,8 +553,10 @@ function EventDetail({ eventId, onBack }) {
                                     try {
                                         const settings = await API.get('/admin/settings');
                                         const tmpl = settings.data.wa_template_assignment;
+                                        const camp = settings.data.wa_campaign_assignment;
                                         if (!tmpl) { toast.error('Set assignment template in Settings first'); setWaSendingAssign(false); return; }
-                                        const r = await API.post(`/admin/whatsapp/send-assignments/${eventId}?template_name=${tmpl}`);
+                                        if (!camp) { toast.error('Set assignment campaign name in Settings first'); setWaSendingAssign(false); return; }
+                                        const r = await API.post(`/admin/whatsapp/send-assignments/${eventId}?template_name=${tmpl}&campaign_name=${camp}`);
                                         toast.success(`Broadcasting assignments to ${r.data.total} users`);
                                         setAssignJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0 });
                                         startPolling(r.data.job_id, 'assignment');
@@ -621,7 +625,8 @@ function EventDetail({ eventId, onBack }) {
                                 try {
                                     const settings = await API.get('/admin/settings');
                                     const tmpl = settings.data.wa_template_welcome || 'welcome';
-                                    const r = await API.post(`/admin/whatsapp/retry-failed/${eventId}?message_type=welcome&template_name=${tmpl}`);
+                                    const camp = settings.data.wa_campaign_welcome || 'ssnc';
+                                    const r = await API.post(`/admin/whatsapp/retry-failed/${eventId}?message_type=welcome&template_name=${tmpl}&campaign_name=${camp}`);
                                     toast.success(`Retry started: ${r.data.total} failed messages`);
                                     if (r.data.job_id) {
                                         setWaSendingWelcome(true);
