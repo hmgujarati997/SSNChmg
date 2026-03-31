@@ -186,19 +186,21 @@ export default function LiveScreen() {
     return (
         <div className="min-h-screen bg-gray-50 p-4 overflow-hidden flex flex-col" data-testid="live-screen">
             {/* Header: Logo+Event | DASHBOARD SPONSORS | LIVE+ROUND */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center mb-3">
+                <div className="flex items-center gap-3 min-w-0">
                     {branding.header_logo ? (
-                        <img src={`${backendUrl}${branding.header_logo}`} alt="Logo" className="h-9 w-auto object-contain" data-testid="live-header-logo" />
+                        <img src={`${backendUrl}${branding.header_logo}`} alt="Logo" className="h-9 w-auto object-contain shrink-0" data-testid="live-header-logo" />
                     ) : (
-                        <Zap className="w-6 h-6 text-primary" />
+                        <Zap className="w-6 h-6 text-primary shrink-0" />
                     )}
-                    <h1 className="text-xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}}>{event?.name || 'SSNC'}</h1>
+                    <h1 className="text-xl font-black tracking-tight text-gray-900 leading-tight" style={{fontFamily:'Outfit'}}>{event?.name || 'SSNC'}</h1>
                 </div>
-                {hasSponsors && (
-                    <span className="text-2xl font-black uppercase tracking-widest text-gray-700" style={{fontFamily:'Outfit'}}>Dashboard Sponsors</span>
-                )}
-                <div className="flex items-center gap-4">
+                <div className="text-center">
+                    {hasSponsors && (
+                        <span className="text-2xl font-black uppercase tracking-widest text-gray-700" style={{fontFamily:'Outfit'}}>Dashboard Sponsors</span>
+                    )}
+                </div>
+                <div className="flex items-center gap-4 justify-end">
                     {event?.status === 'live' && (
                         <span className="bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-1 rounded-full text-sm font-bold animate-pulse">LIVE</span>
                     )}
