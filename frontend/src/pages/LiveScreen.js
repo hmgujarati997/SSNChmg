@@ -149,19 +149,21 @@ export default function LiveScreen() {
         return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
     };
 
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+
     if (!authenticated) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6" data-testid="live-auth">
-                <div className="w-full max-w-sm glass-card rounded-xl p-8 text-center animate-fade-in">
+            <div className="min-h-screen bg-white flex items-center justify-center p-6" data-testid="live-auth">
+                <div className="w-full max-w-sm rounded-xl p-8 text-center animate-fade-in border border-gray-200 shadow-lg bg-white">
                     <Lock size={40} className="mx-auto mb-4 text-primary" />
-                    <h1 className="text-2xl font-bold mb-2" style={{fontFamily:'Outfit'}}>SSNC Live Screen</h1>
-                    <p className="text-sm text-muted-foreground mb-6">Enter password to access</p>
+                    <h1 className="text-2xl font-bold mb-2 text-gray-900" style={{fontFamily:'Outfit'}}>SSNC Live Screen</h1>
+                    <p className="text-sm text-gray-500 mb-6">Enter password to access</p>
                     <form onSubmit={(e) => { e.preventDefault(); authenticate(); }}>
                         <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password"
-                            className="bg-muted/50 border-border h-12 mb-4 text-center text-lg" data-testid="live-password-input" />
+                            className="bg-gray-50 border-gray-300 h-12 mb-4 text-center text-lg text-gray-900" data-testid="live-password-input" />
                         {!paramEventId && events.length > 0 && (
                             <select value={eventId} onChange={e => setEventId(e.target.value)}
-                                className="w-full bg-muted/50 border border-border rounded-lg h-12 mb-4 text-foreground px-3" data-testid="live-event-select">
+                                className="w-full bg-gray-50 border border-gray-300 rounded-lg h-12 mb-4 text-gray-900 px-3" data-testid="live-event-select">
                                 <option value="">Select Event</option>
                                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
                             </select>
@@ -173,26 +175,29 @@ export default function LiveScreen() {
         );
     }
 
-    if (!stats || !leaderboard) return <div className="min-h-screen bg-[#050505] flex items-center justify-center text-muted-foreground text-3xl">Loading...</div>;
+    if (!stats || !leaderboard) return <div className="min-h-screen bg-white flex items-center justify-center text-gray-400 text-3xl">Loading...</div>;
 
-    const timerColor = timerPhase === 'concluding' ? 'text-orange-400' : timerPhase === 'done' ? 'text-destructive' : 'text-[hsl(var(--gold))]';
-    const timerBg = timerPhase === 'concluding' ? 'border-orange-400/30 bg-orange-400/5' : timerPhase === 'done' ? 'border-destructive/30 bg-destructive/5' : 'border-[hsl(var(--gold))]/20';
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+    const timerColor = timerPhase === 'concluding' ? 'text-orange-500' : timerPhase === 'done' ? 'text-red-600' : 'text-amber-600';
+    const timerBg = timerPhase === 'concluding' ? 'border-orange-300 bg-orange-50' : timerPhase === 'done' ? 'border-red-300 bg-red-50' : 'border-amber-200 bg-amber-50';
     const hasSponsor1 = branding.sponsor_name_1 || branding.sponsor_logo_1;
     const hasSponsor2 = branding.sponsor_name_2 || branding.sponsor_logo_2;
     const hasSponsors = hasSponsor1 || hasSponsor2;
 
     return (
-        <div className="min-h-screen bg-[#050505] p-4 overflow-hidden flex flex-col" data-testid="live-screen">
-            {/* Top Bar: Round + Event Name */}
+        <div className="min-h-screen bg-gray-50 p-4 overflow-hidden flex flex-col" data-testid="live-screen">
+            {/* Top Bar: Logo + Event Name + Round */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                    <Zap className="w-6 h-6 text-primary" />
-                    <h1 className="text-xl font-black tracking-tight" style={{fontFamily:'Outfit'}}>{event?.name || 'SSNC'}</h1>
+                    {branding.header_logo ? (
+                        <img src={`${backendUrl}${branding.header_logo}`} alt="Logo" className="h-9 w-auto object-contain" data-testid="live-header-logo" />
+                    ) : (
+                        <Zap className="w-6 h-6 text-primary" />
+                    )}
+                    <h1 className="text-xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}}>{event?.name || 'SSNC'}</h1>
                 </div>
                 <div className="flex items-center gap-4">
                     {event?.status === 'live' && (
-                        <span className="bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))] border-0 px-4 py-1 rounded-full text-sm font-bold animate-pulse">LIVE</span>
+                        <span className="bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-1 rounded-full text-sm font-bold animate-pulse">LIVE</span>
                     )}
                     {event?.current_round > 0 && (
                         <span className="text-3xl font-black text-primary px-5 py-1 rounded-xl bg-primary/10 border border-primary/20" style={{fontFamily:'Outfit'}} data-testid="current-round">
@@ -205,17 +210,17 @@ export default function LiveScreen() {
             {/* Main Layout: Timer center, Stats sides */}
             <div className="grid grid-cols-[1fr_2fr_1fr] gap-4 mb-4">
                 {/* Left: Total References */}
-                <div className="glass-card rounded-2xl p-5 flex flex-col items-center justify-center border border-primary/20">
+                <div className="rounded-2xl p-5 flex flex-col items-center justify-center border border-primary/20 bg-white shadow-sm">
                     <ArrowUp size={28} className="mb-2 text-primary" />
                     <p className="text-7xl font-black text-primary" style={{fontFamily:'Outfit'}} data-testid="total-references">{stats.total_references}</p>
-                    <p className="text-lg text-muted-foreground mt-1 font-medium">Total References</p>
+                    <p className="text-lg text-gray-500 mt-1 font-medium">Total References</p>
                 </div>
 
                 {/* Center: Speaker Timer */}
-                <div className={`glass-card rounded-2xl p-6 flex flex-col items-center justify-center border ${timerBg}`}>
+                <div className={`rounded-2xl p-6 flex flex-col items-center justify-center border bg-white shadow-sm ${timerBg}`}>
                     <div className="flex items-center gap-2 mb-2">
                         <Volume2 size={20} className={timerColor} />
-                        <p className="text-lg font-bold text-muted-foreground uppercase tracking-widest">
+                        <p className="text-lg font-bold text-gray-500 uppercase tracking-widest">
                             {timerPhase === 'idle' ? 'Waiting...' :
                              timerPhase === 'speaking' ? `Speaker ${speakerNum}` :
                              timerPhase === 'concluding' ? `Speaker ${speakerNum} — CONCLUDE` :
@@ -226,106 +231,106 @@ export default function LiveScreen() {
                         {formatSec(speakerTimeLeft)}
                     </p>
                     {timerPhase === 'concluding' && (
-                        <p className="text-xl font-bold text-orange-400 mt-2 animate-pulse">Please wrap up!</p>
+                        <p className="text-xl font-bold text-orange-500 mt-2 animate-pulse">Please wrap up!</p>
                     )}
                     {timerPhase === 'done' && (
-                        <p className="text-xl font-bold text-destructive mt-2">Time&apos;s up! Switch speakers.</p>
+                        <p className="text-xl font-bold text-red-600 mt-2">Time&apos;s up! Switch speakers.</p>
                     )}
                     {timerPhase === 'speaking' && event?.speaker_time_seconds && (
-                        <div className="w-full mt-3 bg-muted rounded-full h-2 overflow-hidden">
-                            <div className="h-full bg-[hsl(var(--gold))] rounded-full transition-all duration-500"
+                        <div className="w-full mt-3 bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div className="h-full bg-amber-500 rounded-full transition-all duration-500"
                                  style={{width: `${Math.max(0, (speakerTimeLeft / event.speaker_time_seconds) * 100)}%`}} />
                         </div>
                     )}
                 </div>
 
                 {/* Right: Attendance */}
-                <div className="glass-card rounded-2xl p-5 flex flex-col items-center justify-center border border-[hsl(var(--emerald))]/20">
-                    <Users size={28} className="mb-2 text-[hsl(var(--emerald))]" />
-                    <p className="text-7xl font-black text-[hsl(var(--emerald))]" style={{fontFamily:'Outfit'}} data-testid="attendance-count">{stats.attendance_count}</p>
-                    <p className="text-lg text-muted-foreground mt-1 font-medium">Attendance</p>
+                <div className="rounded-2xl p-5 flex flex-col items-center justify-center border border-emerald-200 bg-white shadow-sm">
+                    <Users size={28} className="mb-2 text-emerald-600" />
+                    <p className="text-7xl font-black text-emerald-600" style={{fontFamily:'Outfit'}} data-testid="attendance-count">{stats.attendance_count}</p>
+                    <p className="text-lg text-gray-500 mt-1 font-medium">Attendance</p>
                 </div>
             </div>
 
             {/* Leaderboards - Full Width */}
             <div className="grid grid-cols-3 gap-4 flex-1 min-h-0">
                 {/* Top Givers */}
-                <div className="glass-card rounded-2xl p-5 overflow-hidden border border-primary/10">
-                    <h3 className="text-sm uppercase tracking-widest text-muted-foreground font-bold mb-4 flex items-center gap-2"><ArrowUp size={16} className="text-primary" />Max References Given</h3>
+                <div className="rounded-2xl p-5 overflow-hidden border border-primary/10 bg-white shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest text-gray-500 font-bold mb-4 flex items-center gap-2"><ArrowUp size={16} className="text-primary" />Max References Given</h3>
                     <div className="space-y-3 overflow-y-auto" style={{maxHeight: 'calc(100vh - 420px)'}}>
                         {leaderboard.top_givers.map((g, i) => (
                             <div key={i} className="flex items-center gap-3">
-                                <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${i === 0 ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : i === 1 ? 'bg-white/10 text-foreground' : i === 2 ? 'bg-[hsl(var(--cyan))]/20 text-[hsl(var(--cyan))]' : 'bg-white/5 text-muted-foreground'}`}>{i + 1}</span>
+                                <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-100 text-gray-700' : i === 2 ? 'bg-sky-100 text-sky-700' : 'bg-gray-50 text-gray-400'}`}>{i + 1}</span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-lg font-bold truncate">{g.user.full_name}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{g.user.business_name}</p>
+                                    <p className="text-lg font-bold truncate text-gray-900">{g.user.full_name}</p>
+                                    <p className="text-sm text-gray-500 truncate">{g.user.business_name}</p>
                                 </div>
                                 <span className="text-2xl font-black text-primary" style={{fontFamily:'Outfit'}}>{g.count}</span>
                             </div>
                         ))}
-                        {leaderboard.top_givers.length === 0 && <p className="text-lg text-muted-foreground text-center py-6">No data yet</p>}
+                        {leaderboard.top_givers.length === 0 && <p className="text-lg text-gray-400 text-center py-6">No data yet</p>}
                     </div>
                 </div>
 
                 {/* Top Receivers */}
-                <div className="glass-card rounded-2xl p-5 overflow-hidden border border-[hsl(var(--emerald))]/10">
-                    <h3 className="text-sm uppercase tracking-widest text-muted-foreground font-bold mb-4 flex items-center gap-2"><ArrowDown size={16} className="text-[hsl(var(--emerald))]" />Max References Received</h3>
+                <div className="rounded-2xl p-5 overflow-hidden border border-emerald-100 bg-white shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest text-gray-500 font-bold mb-4 flex items-center gap-2"><ArrowDown size={16} className="text-emerald-600" />Max References Received</h3>
                     <div className="space-y-3 overflow-y-auto" style={{maxHeight: 'calc(100vh - 420px)'}}>
                         {leaderboard.top_receivers.map((r, i) => (
                             <div key={i} className="flex items-center gap-3">
-                                <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${i === 0 ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : i === 1 ? 'bg-white/10 text-foreground' : i === 2 ? 'bg-[hsl(var(--cyan))]/20 text-[hsl(var(--cyan))]' : 'bg-white/5 text-muted-foreground'}`}>{i + 1}</span>
+                                <span className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black ${i === 0 ? 'bg-amber-100 text-amber-700' : i === 1 ? 'bg-gray-100 text-gray-700' : i === 2 ? 'bg-sky-100 text-sky-700' : 'bg-gray-50 text-gray-400'}`}>{i + 1}</span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-lg font-bold truncate">{r.user.full_name}</p>
-                                    <p className="text-sm text-muted-foreground truncate">{r.user.business_name}</p>
+                                    <p className="text-lg font-bold truncate text-gray-900">{r.user.full_name}</p>
+                                    <p className="text-sm text-gray-500 truncate">{r.user.business_name}</p>
                                 </div>
-                                <span className="text-2xl font-black text-[hsl(var(--emerald))]" style={{fontFamily:'Outfit'}}>{r.count}</span>
+                                <span className="text-2xl font-black text-emerald-600" style={{fontFamily:'Outfit'}}>{r.count}</span>
                             </div>
                         ))}
-                        {leaderboard.top_receivers.length === 0 && <p className="text-lg text-muted-foreground text-center py-6">No data yet</p>}
+                        {leaderboard.top_receivers.length === 0 && <p className="text-lg text-gray-400 text-center py-6">No data yet</p>}
                     </div>
                 </div>
 
                 {/* Table Leaderboard */}
-                <div className="glass-card rounded-2xl p-5 overflow-hidden border border-[hsl(var(--gold))]/10">
-                    <h3 className="text-sm uppercase tracking-widest text-muted-foreground font-bold mb-4 flex items-center gap-2"><Trophy size={16} className="text-[hsl(var(--gold))]" />Table Leaderboard</h3>
+                <div className="rounded-2xl p-5 overflow-hidden border border-amber-100 bg-white shadow-sm">
+                    <h3 className="text-sm uppercase tracking-widest text-gray-500 font-bold mb-4 flex items-center gap-2"><Trophy size={16} className="text-amber-600" />Table Leaderboard</h3>
                     <div className="space-y-3 overflow-y-auto" style={{maxHeight: 'calc(100vh - 420px)'}}>
                         {leaderboard.table_stats.map((t, i) => (
                             <div key={i} className="flex items-center gap-3">
                                 <div className="table-badge text-lg w-10 h-10 font-black">{t.table_number}</div>
-                                <div className="flex-1 bg-muted rounded-full h-4 overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-primary to-[hsl(var(--cyan))] rounded-full transition-all duration-500" style={{width: `${Math.min(100, (t.count / Math.max(1, leaderboard.table_stats[0]?.count)) * 100)}%`}} />
+                                <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-primary to-sky-500 rounded-full transition-all duration-500" style={{width: `${Math.min(100, (t.count / Math.max(1, leaderboard.table_stats[0]?.count)) * 100)}%`}} />
                                 </div>
-                                <span className="text-xl font-black text-[hsl(var(--gold))]" style={{fontFamily:'Outfit'}}>{t.count}</span>
+                                <span className="text-xl font-black text-amber-600" style={{fontFamily:'Outfit'}}>{t.count}</span>
                             </div>
                         ))}
-                        {leaderboard.table_stats.length === 0 && <p className="text-lg text-muted-foreground text-center py-6">No data yet</p>}
+                        {leaderboard.table_stats.length === 0 && <p className="text-lg text-gray-400 text-center py-6">No data yet</p>}
                     </div>
                 </div>
             </div>
 
             {/* Sponsor Banner */}
             {hasSponsors && (
-                <div className="mt-4 glass-card rounded-2xl border border-primary/20 px-6 py-3 flex items-center justify-center gap-12" data-testid="sponsor-banner">
+                <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm px-6 py-3 flex items-center justify-center gap-12" data-testid="sponsor-banner">
                     {hasSponsor1 && (
                         <div className="flex items-center gap-4" data-testid="sponsor-1-display">
                             {branding.sponsor_logo_1 && (
-                                <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-14 w-auto object-contain rounded bg-white/10 p-1" />
+                                <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-14 w-auto object-contain rounded bg-gray-50 p-1" />
                             )}
                             {branding.sponsor_name_1 && (
-                                <span className="text-2xl font-black tracking-tight" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
+                                <span className="text-2xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
                             )}
                         </div>
                     )}
                     {hasSponsor1 && hasSponsor2 && (
-                        <div className="w-px h-10 bg-border/50" />
+                        <div className="w-px h-10 bg-gray-200" />
                     )}
                     {hasSponsor2 && (
                         <div className="flex items-center gap-4" data-testid="sponsor-2-display">
                             {branding.sponsor_logo_2 && (
-                                <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-14 w-auto object-contain rounded bg-white/10 p-1" />
+                                <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-14 w-auto object-contain rounded bg-gray-50 p-1" />
                             )}
                             {branding.sponsor_name_2 && (
-                                <span className="text-2xl font-black tracking-tight" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
+                                <span className="text-2xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
                             )}
                         </div>
                     )}
