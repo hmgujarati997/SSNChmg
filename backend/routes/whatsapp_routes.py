@@ -1,5 +1,5 @@
 """WhatsApp messaging endpoints for admin."""
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Request
 from database import db
 from auth_utils import require_admin
 from whatsapp_service import send_whatsapp, normalize_phone
@@ -80,7 +80,7 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
         status = "sent" if success else "failed"
         await db.whatsapp_messages.update_one(
             {"event_id": event_id, "user_id": uid, "message_type": "assignment"},
-            {"$set": {"status": status, "response": resp[:200] if resp else "", "phone": normalize_phone(user['phone']), "tables": dict(sorted_rounds), "updated_at": datetime.now(timezone.utc).isoformat()},
+            {"$set": {"status": status, "response": resp[:200] if resp else "", "phone": normalize_phone(user['phone']), "tables": {str(k): v for k, v in sorted_rounds}, "updated_at": datetime.now(timezone.utc).isoformat()},
              "$setOnInsert": {"id": str(uuid.uuid4()), "event_id": event_id, "user_id": uid, "message_type": "assignment", "created_at": datetime.now(timezone.utc).isoformat()}},
             upsert=True
         )
@@ -116,7 +116,7 @@ async def send_welcome_messages(event_id: str, template_name: str = "welcome", a
 
 
 @router.post("/send-assignments/{event_id}")
-async def send_assignment_messages(event_id: str, template_name: str = "table_assignment", admin=Depends(require_admin)):
+async def send_assignment_messages(event_id: str, request: Request, template_name: str = "table_assignment", admin=Depends(require_admin)):
     """Kick off background job to send assignment messages."""
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
@@ -136,8 +136,10 @@ async def send_assignment_messages(event_id: str, template_name: str = "table_as
             user_tables.setdefault(a['captain_id'], {})[rn] = tn
 
     user_map = await bulk_fetch_users(list(user_tables.keys()), enrich=False)
-    import os
-    base_url = os.environ.get("BASE_URL", "")
+    # Derive external base URL from request headers (set by ingress/proxy)
+    forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    scheme = request.headers.get("x-forwarded-proto", "https")
+    base_url = f"{scheme}://{forwarded_host}" if forwarded_host else str(request.base_url).rstrip('/')
 
     job_id = str(uuid.uuid4())[:8]
     asyncio.create_task(_run_assignment_job(job_id, event_id, event.get('name', ''), template_name, user_tables, user_map, base_url))
