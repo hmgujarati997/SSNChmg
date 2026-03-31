@@ -80,6 +80,11 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
   - Status Dashboard: Real-time cards showing Registered, Attended, Absent, Spot, Needing Seats counts
   - Absent Users & Spot Registrations lists
 
+## What's Been Implemented (2026-03-31 - Session 2)
+- **Sponsor UI in Admin Settings**: Dashboard Sponsors section with text inputs for sponsor_name_1 and sponsor_name_2, plus logo uploads for sponsor_logo_1 and sponsor_logo_2
+- **Sponsor Display on Live Screen**: Footer banner showing sponsor logos and names, fetched from /api/public/branding endpoint
+- **Public Branding API Update**: Extended GET /api/public/branding to return sponsor_logo_1, sponsor_logo_2, sponsor_name_1, sponsor_name_2
+
 ## P0 Features Remaining
 - Razorpay payment integration
 
