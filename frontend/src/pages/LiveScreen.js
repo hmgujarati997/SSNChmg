@@ -207,6 +207,38 @@ export default function LiveScreen() {
                 </div>
             </div>
 
+            {/* Sponsor Banner - Top */}
+            {hasSponsors && (
+                <div className="mb-3" data-testid="sponsor-banner">
+                    <p className="text-xs uppercase tracking-widest text-gray-400 font-bold text-center mb-1">Dashboard Sponsors</p>
+                    <div className="rounded-2xl border border-gray-200 bg-white shadow-sm px-6 py-3 flex items-center justify-center gap-12">
+                        {hasSponsor1 && (
+                            <div className="flex items-center gap-4" data-testid="sponsor-1-display">
+                                {branding.sponsor_logo_1 && (
+                                    <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-14 w-auto object-contain rounded bg-gray-50 p-1" />
+                                )}
+                                {branding.sponsor_name_1 && (
+                                    <span className="text-2xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
+                                )}
+                            </div>
+                        )}
+                        {hasSponsor1 && hasSponsor2 && (
+                            <div className="w-px h-10 bg-gray-200" />
+                        )}
+                        {hasSponsor2 && (
+                            <div className="flex items-center gap-4" data-testid="sponsor-2-display">
+                                {branding.sponsor_logo_2 && (
+                                    <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-14 w-auto object-contain rounded bg-gray-50 p-1" />
+                                )}
+                                {branding.sponsor_name_2 && (
+                                    <span className="text-2xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Main Layout: Timer center, Stats sides */}
             <div className="grid grid-cols-[1fr_2fr_1fr] gap-4 mb-4">
                 {/* Left: Total References */}
@@ -307,35 +339,6 @@ export default function LiveScreen() {
                     </div>
                 </div>
             </div>
-
-            {/* Sponsor Banner */}
-            {hasSponsors && (
-                <div className="mt-4 rounded-2xl border border-gray-200 bg-white shadow-sm px-6 py-3 flex items-center justify-center gap-12" data-testid="sponsor-banner">
-                    {hasSponsor1 && (
-                        <div className="flex items-center gap-4" data-testid="sponsor-1-display">
-                            {branding.sponsor_logo_1 && (
-                                <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-14 w-auto object-contain rounded bg-gray-50 p-1" />
-                            )}
-                            {branding.sponsor_name_1 && (
-                                <span className="text-2xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
-                            )}
-                        </div>
-                    )}
-                    {hasSponsor1 && hasSponsor2 && (
-                        <div className="w-px h-10 bg-gray-200" />
-                    )}
-                    {hasSponsor2 && (
-                        <div className="flex items-center gap-4" data-testid="sponsor-2-display">
-                            {branding.sponsor_logo_2 && (
-                                <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-14 w-auto object-contain rounded bg-gray-50 p-1" />
-                            )}
-                            {branding.sponsor_name_2 && (
-                                <span className="text-2xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
         </div>
     );
 }
