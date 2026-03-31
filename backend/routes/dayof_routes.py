@@ -47,8 +47,8 @@ async def day_of_status(event_id: str, admin=Depends(require_admin)):
         for uid in a.get('user_ids', []):
             assigned_ids.add(uid)
 
-    # Absent = registered + assigned but not attended
-    absent_ids = [uid for uid in reg_user_ids if uid in assigned_ids and uid not in attended_ids]
+    # Absent = registered (non-spot) but not attended
+    absent_ids = [uid for uid in reg_user_ids if uid not in attended_ids and uid not in spot_user_ids]
 
     # Spot users needing seats = spot registered but not yet assigned
     spot_needing_seats = [uid for uid in spot_user_ids if uid not in assigned_ids]
