@@ -4,7 +4,7 @@ import API from '@/lib/api';
 import QRCode from 'react-qr-code';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, Mail, Globe, Download, Building2, Briefcase, Zap } from 'lucide-react';
+import { Phone, Mail, Globe, Download, Building2, Briefcase } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -62,11 +62,13 @@ const SOCIAL_COLORS = {
 export default function PublicProfile() {
     const { userId } = useParams();
     const [user, setUser] = useState(null);
+    const [branding, setBranding] = useState({});
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         API.get(`/public/profile/${userId}`).then(r => { setUser(r.data); setLoading(false); })
             .catch(() => setLoading(false));
+        API.get('/public/branding').then(r => setBranding(r.data)).catch(() => {});
     }, [userId]);
 
     const downloadVCard = () => {
@@ -103,10 +105,10 @@ export default function PublicProfile() {
             <div className="max-w-md mx-auto animate-fade-in">
                 {/* Header with Profile Picture & Company Logo */}
                 <div className="glass-card rounded-2xl overflow-hidden mb-4">
-                    <div className="h-24 bg-gradient-to-br from-primary/30 via-[hsl(var(--cyan))]/10 to-transparent" />
-                    <div className="px-6 pb-6 -mt-10">
+                    <div className="h-28 bg-gradient-to-br from-primary/30 via-[hsl(var(--cyan))]/10 to-transparent" />
+                    <div className="px-6 pb-6 -mt-14">
                         <div className="flex items-end justify-between">
-                            <div className="w-20 h-20 rounded-2xl bg-muted border-4 border-background overflow-hidden flex items-center justify-center text-3xl font-black text-primary" style={{fontFamily:'Outfit'}}>
+                            <div className="w-28 h-28 rounded-2xl bg-muted border-4 border-background overflow-hidden flex items-center justify-center text-4xl font-black text-primary shadow-lg" style={{fontFamily:'Outfit'}}>
                                 {user.profile_picture ? (
                                     <img src={`${BACKEND_URL}${user.profile_picture}`} alt={user.full_name} className="w-full h-full object-cover" data-testid="profile-picture" />
                                 ) : (
@@ -114,7 +116,7 @@ export default function PublicProfile() {
                                 )}
                             </div>
                             {user.company_logo && (
-                                <div className="w-14 h-14 rounded-xl bg-white border border-border overflow-hidden flex items-center justify-center p-1 shadow-sm" data-testid="company-logo">
+                                <div className="w-20 h-20 rounded-xl bg-white border border-border overflow-hidden flex items-center justify-center p-1.5 shadow-md" data-testid="company-logo">
                                     <img src={`${BACKEND_URL}${user.company_logo}`} alt={user.business_name} className="w-full h-full object-contain" />
                                 </div>
                             )}
@@ -180,7 +182,10 @@ export default function PublicProfile() {
 
                 <div className="text-center mt-6 pb-4">
                     <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                        <Zap size={12} className="text-primary" />Powered by SSNC
+                        {branding.sponsor_logo_1 && (
+                            <img src={`${BACKEND_URL}${branding.sponsor_logo_1}`} alt="" className="h-5 w-auto object-contain" />
+                        )}
+                        Developed by Rapid Express Technologies
                     </div>
                 </div>
             </div>
