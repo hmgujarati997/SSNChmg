@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Save, User } from 'lucide-react';
+import { Save, User, Camera, Building2 } from 'lucide-react';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function UserProfile() {
     const { user, setUser } = useAuth();
@@ -14,6 +16,9 @@ export default function UserProfile() {
     const [categories, setCategories] = useState([]);
     const [subcategories, setSubcategories] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState({});
+    const ppRef = useRef(null);
+    const clRef = useRef(null);
 
     useEffect(() => {
         API.get('/user/profile').then(r => setProfile(r.data)).catch(() => {});
@@ -25,6 +30,21 @@ export default function UserProfile() {
             API.get(`/user/subcategories?category_id=${profile.category_id}`).then(r => setSubcategories(r.data)).catch(() => {});
         }
     }, [profile?.category_id]);
+
+    const uploadPhoto = async (file, photoType) => {
+        setUploading(u => ({ ...u, [photoType]: true }));
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('photo_type', photoType);
+            const r = await API.post(`/user/upload-photo?photo_type=${photoType}`, fd, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            setProfile(p => ({ ...p, [photoType]: r.data.url }));
+            toast.success(photoType === 'profile_picture' ? 'Profile picture updated' : 'Company logo updated');
+        } catch { toast.error('Upload failed'); }
+        setUploading(u => ({ ...u, [photoType]: false }));
+    };
 
     const save = async () => {
         setLoading(true);
@@ -53,9 +73,60 @@ export default function UserProfile() {
 
     return (
         <div className="space-y-6 animate-fade-in" data-testid="user-profile">
+            {/* Profile Picture & Company Logo */}
+            <div className="glass-card rounded-xl p-5 space-y-4">
+                <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Photos</h3>
+                <div className="flex gap-8 items-start">
+                    {/* Profile Picture */}
+                    <div className="flex flex-col items-center gap-2">
+                        <div
+                            className="w-24 h-24 rounded-full bg-muted border-2 border-border overflow-hidden flex items-center justify-center cursor-pointer relative group"
+                            onClick={() => ppRef.current?.click()}
+                            data-testid="profile-picture-upload"
+                        >
+                            {profile.profile_picture ? (
+                                <img src={`${BACKEND_URL}${profile.profile_picture}`} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                <User size={36} className="text-muted-foreground" />
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                                <Camera size={20} className="text-white" />
+                            </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground font-medium">Profile Picture</span>
+                        <input ref={ppRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files[0] && uploadPhoto(e.target.files[0], 'profile_picture')} />
+                        {uploading.profile_picture && <span className="text-xs text-primary">Uploading...</span>}
+                    </div>
+                    {/* Company Logo */}
+                    <div className="flex flex-col items-center gap-2">
+                        <div
+                            className="w-24 h-24 rounded-xl bg-muted border-2 border-border overflow-hidden flex items-center justify-center cursor-pointer relative group"
+                            onClick={() => clRef.current?.click()}
+                            data-testid="company-logo-upload"
+                        >
+                            {profile.company_logo ? (
+                                <img src={`${BACKEND_URL}${profile.company_logo}`} alt="Logo" className="w-full h-full object-contain p-1" />
+                            ) : (
+                                <Building2 size={36} className="text-muted-foreground" />
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                                <Camera size={20} className="text-white" />
+                            </div>
+                        </div>
+                        <span className="text-xs text-muted-foreground font-medium">Company Logo</span>
+                        <input ref={clRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files[0] && uploadPhoto(e.target.files[0], 'company_logo')} />
+                        {uploading.company_logo && <span className="text-xs text-primary">Uploading...</span>}
+                    </div>
+                </div>
+            </div>
+
             <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                    <User size={24} className="text-primary" />
+                <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+                    {profile.profile_picture ? (
+                        <img src={`${BACKEND_URL}${profile.profile_picture}`} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                        <User size={24} className="text-primary" />
+                    )}
                 </div>
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight" style={{fontFamily:'Outfit'}}>My Profile</h1>

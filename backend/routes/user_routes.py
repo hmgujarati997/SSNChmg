@@ -1,12 +1,32 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from database import db
 from auth_utils import require_user
 from models import UserUpdate, ReferenceCreate
 from db_helpers import enrich_users_with_categories, bulk_fetch_users
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 router = APIRouter(prefix="/api/user", tags=["User"])
+
+UPLOADS_DIR = Path(__file__).parent.parent / "uploads" / "users"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+
+@router.post("/upload-photo")
+async def upload_user_photo(file: UploadFile = File(...), photo_type: str = "profile_picture", user=Depends(require_user)):
+    if photo_type not in ("profile_picture", "company_logo"):
+        raise HTTPException(400, "photo_type must be profile_picture or company_logo")
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(400, "Only image files allowed")
+    content = await file.read()
+    ext = file.filename.split(".")[-1] if "." in file.filename else "png"
+    filename = f"{user['sub']}_{photo_type}.{ext}"
+    with open(UPLOADS_DIR / filename, "wb") as f:
+        f.write(content)
+    file_url = f"/api/uploads/users/{filename}"
+    await db.users.update_one({"id": user['sub']}, {"$set": {photo_type: file_url}})
+    return {"url": file_url}
 
 
 @router.get("/profile-status")
