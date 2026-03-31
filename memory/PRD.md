@@ -86,6 +86,9 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - **Public Branding API Update**: Extended GET /api/public/branding to return sponsor_logo_1, sponsor_logo_2, sponsor_name_1, sponsor_name_2
 - **Live Screen Light Mode**: Converted entire Live Screen from dark (#050505) to light (white/gray-50) theme with proper text contrast
 - **Live Screen Header Logo**: Replaced Zap icon with website header logo from branding settings next to event name
+- **User Photo Upload**: Profile picture and company logo upload on /user/profile with instant preview
+- **Public Profile Photos**: Profile picture and company logo displayed on /profile/{userId}
+- **Premium Social Icons**: Actual brand SVG icons (LinkedIn, Instagram, X/Twitter, YouTube, Facebook, WhatsApp, Website) on public profile
 
 ## P0 Features Remaining
 - Razorpay payment integration
