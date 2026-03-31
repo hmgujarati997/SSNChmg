@@ -166,6 +166,7 @@ export default function PunchReferences() {
                                                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                                                     <Building2 size={10} />{p.business_name}
                                                     {p.category_name && <Badge variant="outline" className="text-[10px] px-1.5">{p.category_name}</Badge>}
+                                                    {p.subcategory_name && <Badge variant="outline" className="text-[10px] px-1.5">{p.subcategory_name}</Badge>}
                                                 </div>
                                                 <SocialIcons links={p.social_links} />
                                             </div>
