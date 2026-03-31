@@ -169,11 +169,15 @@ async def edit_spot_registration(event_id: str, user_id: str, data: SpotRegister
 @router.delete("/{event_id}/spot-register/{user_id}")
 async def delete_spot_registration(event_id: str, user_id: str, admin=Depends(require_admin)):
     """Remove a spot registration and clean up all related data."""
+    # Try spot registration first, then any registration
     reg = await db.event_registrations.find_one({"event_id": event_id, "user_id": user_id, "is_spot": True})
-    if not reg:
-        raise HTTPException(404, "Spot registration not found")
-    # Remove registration
-    await db.event_registrations.delete_one({"event_id": event_id, "user_id": user_id, "is_spot": True})
+    if reg:
+        await db.event_registrations.delete_one({"_id": reg["_id"]})
+    else:
+        # Fallback: delete any registration for this user in this event
+        reg = await db.event_registrations.find_one({"event_id": event_id, "user_id": user_id})
+        if reg:
+            await db.event_registrations.delete_one({"_id": reg["_id"]})
     # Remove attendance
     await db.attendance.delete_many({"event_id": event_id, "user_id": user_id})
     # Remove from table assignments

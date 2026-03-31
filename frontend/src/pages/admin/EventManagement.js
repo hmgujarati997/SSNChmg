@@ -513,17 +513,17 @@ function EventDetail({ eventId, onBack }) {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div><Label className="text-xs text-muted-foreground">Full Name *</Label><Input value={spotForm.full_name} onChange={e => setSpotForm(p => ({...p, full_name: e.target.value}))} placeholder="Full Name" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-name" /></div>
                                 <div><Label className="text-xs text-muted-foreground">Phone *</Label><Input value={spotForm.phone} onChange={e => setSpotForm(p => ({...p, phone: e.target.value}))} placeholder="Phone Number" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-phone" /></div>
-                                <div><Label className="text-xs text-muted-foreground">Business Name</Label><Input value={spotForm.business_name} onChange={e => setSpotForm(p => ({...p, business_name: e.target.value}))} placeholder="Company Name" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-business" /></div>
-                                <div><Label className="text-xs text-muted-foreground">Position</Label><Input value={spotForm.position} onChange={e => setSpotForm(p => ({...p, position: e.target.value}))} placeholder="CEO, Director" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-position" /></div>
+                                <div><Label className="text-xs text-muted-foreground">Business Name <span className="opacity-50">(optional)</span></Label><Input value={spotForm.business_name} onChange={e => setSpotForm(p => ({...p, business_name: e.target.value}))} placeholder="Company Name" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-business" /></div>
+                                <div><Label className="text-xs text-muted-foreground">Position <span className="opacity-50">(optional)</span></Label><Input value={spotForm.position} onChange={e => setSpotForm(p => ({...p, position: e.target.value}))} placeholder="CEO, Director" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-position" /></div>
                                 <div>
-                                    <Label className="text-xs text-muted-foreground">Category</Label>
+                                    <Label className="text-xs text-muted-foreground">Category <span className="opacity-50">(optional)</span></Label>
                                     <Select value={spotForm.category_id} onValueChange={v => setSpotForm(p => ({...p, category_id: v, subcategory_id: ''}))}>
                                         <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-category"><SelectValue placeholder="Select Category" /></SelectTrigger>
                                         <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
                                     </Select>
                                 </div>
                                 <div>
-                                    <Label className="text-xs text-muted-foreground">Sub Category</Label>
+                                    <Label className="text-xs text-muted-foreground">Sub Category <span className="opacity-50">(optional)</span></Label>
                                     <Select value={spotForm.subcategory_id} onValueChange={v => setSpotForm(p => ({...p, subcategory_id: v}))}>
                                         <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-subcategory"><SelectValue placeholder="Select Sub Category" /></SelectTrigger>
                                         <SelectContent>{spotSubcats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
