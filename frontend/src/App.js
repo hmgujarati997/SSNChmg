@@ -1,5 +1,5 @@
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PWAProvider } from "@/contexts/PWAContext";
@@ -17,7 +17,11 @@ import PublicProfile from "@/pages/PublicProfile";
 
 function ProtectedRoute({ children, requiredRole }) {
     const { user, role } = useAuth();
-    if (!user) return <Navigate to={requiredRole === 'admin' ? '/admin/login' : '/login'} replace />;
+    const location = useLocation();
+    if (!user) {
+        const redirect = requiredRole === 'admin' ? '/admin/login' : `/login?redirect=${encodeURIComponent(location.pathname)}`;
+        return <Navigate to={redirect} replace />;
+    }
     if (requiredRole && role !== requiredRole) return <Navigate to={requiredRole === 'admin' ? '/admin/login' : '/login'} replace />;
     return children;
 }

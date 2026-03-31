@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import { ThemeToggle, InstallButton } from '@/components/AppBranding';
 export default function LoginPage() {
     const { login } = useAuth();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const redirectTo = searchParams.get('redirect') || '/user';
     const [loading, setLoading] = useState(false);
     const [userPhone, setUserPhone] = useState('');
     const [branding, setBranding] = useState({});
@@ -26,7 +28,7 @@ export default function LoginPage() {
         setLoading(true);
         try {
             await login('/auth/user/login', { phone: userPhone });
-            navigate('/user');
+            navigate(redirectTo);
             toast.success('Welcome back!');
         } catch (err) {
             toast.error(err.response?.data?.detail || 'Login failed');
