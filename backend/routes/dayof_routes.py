@@ -15,10 +15,10 @@ router = APIRouter(prefix="/api/admin/events", tags=["DayOf"])
 class SpotRegister(BaseModel):
     full_name: str
     phone: str
-    business_name: str = ""
-    category_id: str = ""
-    subcategory_id: str = ""
-    position: str = ""
+    business_name: str
+    category_id: str
+    subcategory_id: str
+    position: str
     email: str = ""
 
 
@@ -58,8 +58,16 @@ async def day_of_status(event_id: str, admin=Depends(require_admin)):
 
     def user_info(uid):
         u = user_map.get(uid, {})
+        # Check payment status from registration
         return {"id": uid, "full_name": u.get('full_name', '?'), "phone": u.get('phone', ''),
                 "business_name": u.get('business_name', ''), "category_name": u.get('category_name', '')}
+
+    def spot_user_info(uid):
+        u = user_map.get(uid, {})
+        reg = next((r for r in spot_regs if r['user_id'] == uid), {})
+        return {"id": uid, "full_name": u.get('full_name', '?'), "phone": u.get('phone', ''),
+                "business_name": u.get('business_name', ''), "category_name": u.get('category_name', ''),
+                "payment_status": reg.get('payment_status', 'unknown')}
 
     entry_closed = event.get('entry_closed', False)
 
@@ -71,8 +79,8 @@ async def day_of_status(event_id: str, admin=Depends(require_admin)):
         "spot_needing_seats": len(spot_needing_seats),
         "entry_closed": entry_closed,
         "absent_users": [user_info(uid) for uid in absent_ids],
-        "spot_users": [user_info(uid) for uid in spot_user_ids],
-        "spot_unseated": [user_info(uid) for uid in spot_needing_seats],
+        "spot_users": [spot_user_info(uid) for uid in spot_user_ids],
+        "spot_unseated": [spot_user_info(uid) for uid in spot_needing_seats],
     }
 
 
@@ -84,6 +92,8 @@ async def spot_register(event_id: str, data: SpotRegister, admin=Depends(require
         raise HTTPException(404, "Event not found")
     if not data.full_name or not data.phone:
         raise HTTPException(400, "Name and phone required")
+    if not data.business_name or not data.category_id or not data.subcategory_id or not data.position:
+        raise HTTPException(400, "All fields are required: name, phone, business, category, subcategory, position")
 
     # Check existing user by phone
     existing = await db.users.find_one({"phone": data.phone})
@@ -112,12 +122,13 @@ async def spot_register(event_id: str, data: SpotRegister, admin=Depends(require
         }
         await db.users.insert_one(user_doc)
 
-    # Register for event with spot flag
+    # Register for event with spot flag + paid status
     await db.event_registrations.insert_one({
         "id": str(uuid.uuid4()),
         "event_id": event_id,
         "user_id": user_id,
         "is_spot": True,
+        "payment_status": "paid",
         "created_at": datetime.now(timezone.utc).isoformat()
     })
 
