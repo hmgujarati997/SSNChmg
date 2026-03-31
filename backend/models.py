@@ -40,7 +40,8 @@ class EventCreate(BaseModel):
     total_rounds: int = 3
     vacant_seats_per_table: int = 1
     round_duration_minutes: int = 10
-    speaker_time_seconds: int = 60
+    speaker_time_seconds: int = 180
+    conclusion_time_seconds: int = 60
 
 
 class EventUpdate(BaseModel):
@@ -57,6 +58,7 @@ class EventUpdate(BaseModel):
     vacant_seats_per_table: Optional[int] = None
     round_duration_minutes: Optional[int] = None
     speaker_time_seconds: Optional[int] = None
+    conclusion_time_seconds: Optional[int] = None
     registration_open: Optional[bool] = None
 
 

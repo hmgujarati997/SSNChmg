@@ -104,7 +104,8 @@ function EventDetail({ eventId, onBack }) {
                 total_rounds: ev.data.total_rounds || 3,
                 vacant_seats_per_table: ev.data.vacant_seats_per_table || 1,
                 round_duration_minutes: ev.data.round_duration_minutes || 10,
-                speaker_time_seconds: ev.data.speaker_time_seconds || 60
+                speaker_time_seconds: ev.data.speaker_time_seconds || 180,
+                conclusion_time_seconds: ev.data.conclusion_time_seconds || 60
             });
         } catch {}
     };
@@ -331,6 +332,7 @@ function EventDetail({ eventId, onBack }) {
                                 <div><Label>Total Vacant Seats</Label><Input type="number" min={0} value={config.vacant_seats_per_table} onChange={e => uc('vacant_seats_per_table', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-vacant-input" /></div>
                                 <div><Label>Round Duration (min)</Label><Input type="number" min={1} value={config.round_duration_minutes} onChange={e => uc('round_duration_minutes', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-duration-input" /></div>
                                 <div><Label>Speaker Time (sec)</Label><Input type="number" min={1} value={config.speaker_time_seconds} onChange={e => uc('speaker_time_seconds', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-speaker-input" /></div>
+                                <div><Label>Conclusion Time (sec)</Label><Input type="number" min={1} value={config.conclusion_time_seconds} onChange={e => uc('conclusion_time_seconds', Number(e.target.value))} className="bg-muted/50 border-border h-11 mt-1" data-testid="config-conclusion-input" /></div>
                             </div>
                             <Button onClick={saveConfig} disabled={savingConfig} className="bg-primary" data-testid="save-config-btn">
                                 {savingConfig ? 'Saving...' : 'Save Configuration'}
