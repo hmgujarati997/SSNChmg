@@ -69,8 +69,16 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - **Edit User**: Admin can edit any user's details (name, phone, email, business, category, subcategory, position) via PUT /api/admin/users/{user_id} with phone uniqueness validation
 - **Delete User with Cascade**: Deleting a user removes all related data: event registrations, table captains, attendance, references, WA messages, and removes from table_assignments arrays
 - **Delete All Users**: Bulk delete with "DELETE ALL" confirmation text, clears all user-related collections
-- **Edit UI**: Pencil icon per row opens pre-filled dialog with all user fields including category/subcategory dropdowns
-- **Delete All UI**: Red button with count, confirmation dialog listing all cascading effects
+- **WhatsApp Campaign Names**: Added configurable campaign name fields alongside each template name in Settings (Welcome, Assignment, Reference)
+- **Settings Persistence Fix**: Fixed frontend save function to include all WhatsApp fields
+- **QR Code Static Generation**: Pre-generates QR codes as static PNG files for WhatsApp media attachments
+- **Reference WA Notification Fix**: Now uses configurable campaign name from settings
+- **Day Of Event Feature**: 
+  - Spot Registration: Quick form (name, phone, business, category, subcategory, position) with auto-attendance marking
+  - Close/Reopen Entry: Admin controls entry cutoff
+  - Table Reallocation: Removes absent users from assigned tables, places spot-registered users into freed + vacant seats across ALL rounds, respects subcategory constraints (no competitors at same table), does NOT disturb present users' seating
+  - Status Dashboard: Real-time cards showing Registered, Attended, Absent, Spot, Needing Seats counts
+  - Absent Users & Spot Registrations lists
 
 ## P0 Features Remaining
 - Razorpay payment integration
