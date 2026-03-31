@@ -27,6 +27,7 @@ from routes.volunteer_routes import router as volunteer_router
 from routes.live_routes import router as live_router
 from routes.public_routes import router as public_router
 from routes.whatsapp_routes import router as whatsapp_router
+from routes.dayof_routes import router as dayof_router
 
 app.include_router(auth_router)
 app.include_router(admin_router)
@@ -35,6 +36,7 @@ app.include_router(volunteer_router)
 app.include_router(live_router)
 app.include_router(public_router)
 app.include_router(whatsapp_router)
+app.include_router(dayof_router)
 
 app.add_middleware(
     CORSMiddleware,

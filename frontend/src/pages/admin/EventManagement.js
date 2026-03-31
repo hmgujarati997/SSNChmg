@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2, UserPlus, Lock, Unlock, Shuffle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 function EventForm({ onCreated }) {
@@ -68,6 +68,14 @@ function EventDetail({ eventId, onBack }) {
     const welcomePollingRef = useRef(null);
     const assignPollingRef = useRef(null);
 
+    // Day of Event state
+    const [dayOfStatus, setDayOfStatus] = useState(null);
+    const [spotForm, setSpotForm] = useState({ full_name: '', phone: '', business_name: '', category_id: '', subcategory_id: '', position: '' });
+    const [spotSubcats, setSpotSubcats] = useState([]);
+    const [spotLoading, setSpotLoading] = useState(false);
+    const [reallocating, setReallocating] = useState(false);
+    const [categories, setCategories] = useState([]);
+
     const load = async () => {
         try {
             const [ev, rg, as, cp, us] = await Promise.all([
@@ -77,6 +85,8 @@ function EventDetail({ eventId, onBack }) {
             ]);
             setEvent(ev.data); setRegs(rg.data); setAssignments(as.data); setCaptains(cp.data); setUsers(us.data);
             API.get(`/admin/whatsapp/status/${eventId}`).then(r => setWaStatus(r.data)).catch(() => {});
+            API.get(`/admin/events/${eventId}/day-of-status`).then(r => setDayOfStatus(r.data)).catch(() => {});
+            API.get('/admin/categories').then(r => setCategories(r.data)).catch(() => {});
             // Find first available table number (fills gaps)
             const usedTables = new Set(cp.data.map(c => c.table_number));
             let nextTable = null;
@@ -103,6 +113,13 @@ function EventDetail({ eventId, onBack }) {
             if (assignPollingRef.current) clearInterval(assignPollingRef.current);
         };
     }, []);
+
+    // Spot form subcategory loading
+    useEffect(() => {
+        if (spotForm.category_id) {
+            API.get(`/admin/subcategories?category_id=${spotForm.category_id}`).then(r => setSpotSubcats(r.data)).catch(() => {});
+        } else { setSpotSubcats([]); }
+    }, [spotForm.category_id]);
 
     const startPolling = (jobId, type) => {
         const ref = type === 'welcome' ? welcomePollingRef : assignPollingRef;
@@ -255,6 +272,7 @@ function EventDetail({ eventId, onBack }) {
                     <TabsTrigger value="captains">Table Captains</TabsTrigger>
                     <TabsTrigger value="seating">Seating</TabsTrigger>
                     <TabsTrigger value="controls">Controls</TabsTrigger>
+                    <TabsTrigger value="dayof" data-testid="dayof-tab"><UserPlus size={14} className="mr-1" />Day Of Event</TabsTrigger>
                     <TabsTrigger value="whatsapp" data-testid="whatsapp-tab"><MessageCircle size={14} className="mr-1" />WhatsApp</TabsTrigger>
                 </TabsList>
 
@@ -455,6 +473,154 @@ function EventDetail({ eventId, onBack }) {
                             <Button variant="destructive" onClick={deleteEvent} data-testid="delete-event-btn"><Trash2 size={16} className="mr-2" />Delete Event</Button>
                             <p className="text-xs text-muted-foreground mt-2">This will delete the event, registrations, seating, and references. Users will not be deleted.</p>
                         </div>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="dayof">
+                    <div className="space-y-6">
+                        {/* Status Cards */}
+                        {dayOfStatus && (
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                                {[
+                                    { label: 'Registered', val: dayOfStatus.total_registered, color: 'text-primary' },
+                                    { label: 'Attended', val: dayOfStatus.total_attended, color: 'text-green-500' },
+                                    { label: 'Absent', val: dayOfStatus.total_absent, color: 'text-destructive' },
+                                    { label: 'Spot Registered', val: dayOfStatus.total_spot, color: 'text-yellow-500' },
+                                    { label: 'Needing Seats', val: dayOfStatus.spot_needing_seats, color: 'text-orange-500' },
+                                ].map(s => (
+                                    <div key={s.label} className="glass-card rounded-xl p-4 text-center">
+                                        <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
+                                        <p className="text-xs text-muted-foreground">{s.label}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Spot Registration Form */}
+                        <div className="glass-card rounded-xl p-5">
+                            <h3 className="font-semibold mb-3">Spot Registration</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div><Label className="text-xs text-muted-foreground">Full Name *</Label><Input value={spotForm.full_name} onChange={e => setSpotForm(p => ({...p, full_name: e.target.value}))} placeholder="Full Name" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-name" /></div>
+                                <div><Label className="text-xs text-muted-foreground">Phone *</Label><Input value={spotForm.phone} onChange={e => setSpotForm(p => ({...p, phone: e.target.value}))} placeholder="Phone Number" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-phone" /></div>
+                                <div><Label className="text-xs text-muted-foreground">Business Name</Label><Input value={spotForm.business_name} onChange={e => setSpotForm(p => ({...p, business_name: e.target.value}))} placeholder="Company Name" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-business" /></div>
+                                <div><Label className="text-xs text-muted-foreground">Position</Label><Input value={spotForm.position} onChange={e => setSpotForm(p => ({...p, position: e.target.value}))} placeholder="CEO, Director" className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-position" /></div>
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">Category</Label>
+                                    <Select value={spotForm.category_id} onValueChange={v => setSpotForm(p => ({...p, category_id: v, subcategory_id: ''}))}>
+                                        <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-category"><SelectValue placeholder="Select Category" /></SelectTrigger>
+                                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label className="text-xs text-muted-foreground">Sub Category</Label>
+                                    <Select value={spotForm.subcategory_id} onValueChange={v => setSpotForm(p => ({...p, subcategory_id: v}))}>
+                                        <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="spot-subcategory"><SelectValue placeholder="Select Sub Category" /></SelectTrigger>
+                                        <SelectContent>{spotSubcats.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <Button className="mt-4 w-full sm:w-auto" disabled={spotLoading} onClick={async () => {
+                                if (!spotForm.full_name || !spotForm.phone) { toast.error('Name and phone required'); return; }
+                                setSpotLoading(true);
+                                try {
+                                    const r = await API.post(`/admin/events/${eventId}/spot-register`, spotForm);
+                                    toast.success(r.data.message);
+                                    setSpotForm({ full_name: '', phone: '', business_name: '', category_id: '', subcategory_id: '', position: '' });
+                                    API.get(`/admin/events/${eventId}/day-of-status`).then(r2 => setDayOfStatus(r2.data));
+                                    load();
+                                } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
+                                setSpotLoading(false);
+                            }} data-testid="spot-register-btn">
+                                <UserPlus size={16} className="mr-2" />{spotLoading ? 'Registering...' : 'Spot Register'}
+                            </Button>
+                        </div>
+
+                        {/* Close Entry + Reallocate */}
+                        <div className="glass-card rounded-xl p-5">
+                            <h3 className="font-semibold mb-3">Entry & Reallocation</h3>
+                            <div className="flex flex-wrap gap-3 mb-4">
+                                {dayOfStatus?.entry_closed ? (
+                                    <Button variant="outline" onClick={async () => {
+                                        try {
+                                            await API.post(`/admin/events/${eventId}/reopen-entry`);
+                                            toast.success('Entry reopened');
+                                            API.get(`/admin/events/${eventId}/day-of-status`).then(r => setDayOfStatus(r.data));
+                                        } catch { toast.error('Failed'); }
+                                    }} data-testid="reopen-entry-btn">
+                                        <Unlock size={16} className="mr-2" />Reopen Entry
+                                    </Button>
+                                ) : (
+                                    <Button variant="destructive" onClick={async () => {
+                                        if (!window.confirm('Close entry? Absent users will be identified based on current attendance.')) return;
+                                        try {
+                                            await API.post(`/admin/events/${eventId}/close-entry`);
+                                            toast.success('Entry closed. You can now reallocate tables.');
+                                            API.get(`/admin/events/${eventId}/day-of-status`).then(r => setDayOfStatus(r.data));
+                                        } catch { toast.error('Failed'); }
+                                    }} data-testid="close-entry-btn">
+                                        <Lock size={16} className="mr-2" />Close Entry
+                                    </Button>
+                                )}
+                                <Button className="bg-green-600 hover:bg-green-700" disabled={reallocating} onClick={async () => {
+                                    if (!window.confirm('Reallocate tables? This will remove absent users from their seats and place spot registrations into available seats.')) return;
+                                    setReallocating(true);
+                                    try {
+                                        const r = await API.post(`/admin/events/${eventId}/reallocate`);
+                                        toast.success(r.data.message, { duration: 6000 });
+                                        API.get(`/admin/events/${eventId}/day-of-status`).then(r2 => setDayOfStatus(r2.data));
+                                        load();
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
+                                    setReallocating(false);
+                                }} data-testid="reallocate-btn">
+                                    <Shuffle size={16} className="mr-2" />{reallocating ? 'Reallocating...' : 'Reallocate Tables'}
+                                </Button>
+                                <Button variant="ghost" size="sm" onClick={() => API.get(`/admin/events/${eventId}/day-of-status`).then(r => setDayOfStatus(r.data))} data-testid="refresh-dayof-btn">
+                                    <RefreshCw size={14} className="mr-1" />Refresh
+                                </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {dayOfStatus?.entry_closed ? '🔒 Entry is closed.' : '🔓 Entry is open — volunteers are scanning attendees.'}
+                                {' '}Reallocate will remove absent users from tables and place spot registrations into freed + vacant seats without disturbing present users.
+                            </p>
+                        </div>
+
+                        {/* Absent Users List */}
+                        {dayOfStatus?.absent_users?.length > 0 && (
+                            <div className="glass-card rounded-xl p-5">
+                                <h3 className="font-semibold mb-3 text-destructive">Absent Users ({dayOfStatus.absent_users.length})</h3>
+                                <div className="max-h-60 overflow-y-auto space-y-1">
+                                    {dayOfStatus.absent_users.map(u => (
+                                        <div key={u.id} className="flex items-center justify-between text-xs py-1.5 px-3 rounded bg-muted/30" data-testid={`absent-${u.id}`}>
+                                            <div className="flex items-center gap-2">
+                                                <XCircle size={12} className="text-destructive" />
+                                                <span className="font-medium">{u.full_name}</span>
+                                                <span className="text-muted-foreground">{u.phone}</span>
+                                            </div>
+                                            <span className="text-muted-foreground">{u.business_name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Spot Registrations List */}
+                        {dayOfStatus?.spot_users?.length > 0 && (
+                            <div className="glass-card rounded-xl p-5">
+                                <h3 className="font-semibold mb-3 text-yellow-500">Spot Registrations ({dayOfStatus.spot_users.length})</h3>
+                                <div className="max-h-60 overflow-y-auto space-y-1">
+                                    {dayOfStatus.spot_users.map(u => (
+                                        <div key={u.id} className="flex items-center justify-between text-xs py-1.5 px-3 rounded bg-muted/30" data-testid={`spot-${u.id}`}>
+                                            <div className="flex items-center gap-2">
+                                                <UserPlus size={12} className="text-yellow-500" />
+                                                <span className="font-medium">{u.full_name}</span>
+                                                <span className="text-muted-foreground">{u.phone}</span>
+                                            </div>
+                                            <span className="text-muted-foreground">{u.business_name}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </TabsContent>
 
