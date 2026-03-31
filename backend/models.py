@@ -92,6 +92,16 @@ class AdminUserCreate(BaseModel):
     event_id: str = ""  # optional: auto-register for event
 
 
+class AdminUserEdit(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    business_name: Optional[str] = None
+    category_id: Optional[str] = None
+    subcategory_id: Optional[str] = None
+    position: Optional[str] = None
+
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[str] = None

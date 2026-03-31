@@ -3,7 +3,7 @@ from database import db
 from auth_utils import require_admin, hash_password
 from models import (EventCreate, EventUpdate, CategoryCreate, SubCategoryCreate,
                     VolunteerCreate, TableCaptainAssign, SiteSettingsUpdate, RoundControl,
-                    AdminUserCreate)
+                    AdminUserCreate, AdminUserEdit)
 from db_helpers import enrich_users_with_categories, bulk_fetch_users
 from seating import assign_tables
 import uuid
@@ -572,10 +572,59 @@ async def get_user(user_id: str, admin=Depends(require_admin)):
     return user
 
 
+@router.put("/users/{user_id}")
+async def update_user_admin(user_id: str, data: AdminUserEdit, admin=Depends(require_admin)):
+    """Admin edits a user's details."""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
+    update = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update:
+        raise HTTPException(400, "No fields to update")
+    # Check phone uniqueness if changing phone
+    if "phone" in update and update["phone"] != user.get("phone"):
+        existing = await db.users.find_one({"phone": update["phone"], "id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(400, "Phone number already in use by another user")
+    await db.users.update_one({"id": user_id}, {"$set": update})
+    updated = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    return updated
+
+
 @router.delete("/users/{user_id}")
 async def delete_user(user_id: str, admin=Depends(require_admin)):
+    """Delete a user and clean up all related data across events."""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(404, "User not found")
     await db.users.delete_one({"id": user_id})
-    return {"message": "User deleted"}
+    # Cascade: remove registrations, captains, attendance, references, WA messages
+    await db.event_registrations.delete_many({"user_id": user_id})
+    await db.table_captains.delete_many({"user_id": user_id})
+    await db.attendance.delete_many({"user_id": user_id})
+    await db.references.delete_many({"$or": [{"from_user_id": user_id}, {"to_user_id": user_id}]})
+    await db.whatsapp_messages.delete_many({"user_id": user_id})
+    # Remove user from table_assignments user_ids arrays
+    await db.table_assignments.update_many(
+        {"user_ids": user_id},
+        {"$pull": {"user_ids": user_id}}
+    )
+    return {"message": "User and all related data deleted"}
+
+
+@router.delete("/users")
+async def delete_all_users(admin=Depends(require_admin)):
+    """Delete ALL users and clean up all related data."""
+    result = await db.users.delete_many({})
+    deleted_count = result.deleted_count
+    # Cascade: clean up all user-related collections
+    await db.event_registrations.delete_many({})
+    await db.table_captains.delete_many({})
+    await db.attendance.delete_many({})
+    await db.references.delete_many({})
+    await db.whatsapp_messages.delete_many({})
+    await db.table_assignments.delete_many({})
+    return {"message": f"All {deleted_count} users and related data deleted", "deleted": deleted_count}
 
 
 # ========== VOLUNTEERS ==========

@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Search, Users, Plus, Upload, Trash2, FileSpreadsheet, Download } from 'lucide-react';
+import { Search, Users, Plus, Upload, Trash2, FileSpreadsheet, Download, Pencil, AlertTriangle } from 'lucide-react';
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -25,6 +25,17 @@ export default function UserManagement() {
         category_id: '', subcategory_id: '', position: '', event_id: ''
     });
 
+    // Edit state
+    const [editUser, setEditUser] = useState(null);
+    const [editForm, setEditForm] = useState({});
+    const [editSubcategories, setEditSubcategories] = useState([]);
+    const [saving, setSaving] = useState(false);
+
+    // Delete all state
+    const [showDeleteAll, setShowDeleteAll] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+    const [deleting, setDeleting] = useState(false);
+
     const load = () => { API.get('/admin/users').then(r => setUsers(r.data)).catch(() => {}); };
     useEffect(() => {
         load();
@@ -38,7 +49,14 @@ export default function UserManagement() {
         } else { setSubcategories([]); }
     }, [form.category_id]);
 
+    useEffect(() => {
+        if (editForm.category_id) {
+            API.get(`/admin/subcategories?category_id=${editForm.category_id}`).then(r => setEditSubcategories(r.data)).catch(() => {});
+        } else { setEditSubcategories([]); }
+    }, [editForm.category_id]);
+
     const u = (k, v) => setForm(p => ({ ...p, [k]: v }));
+    const ue = (k, v) => setEditForm(p => ({ ...p, [k]: v }));
 
     const addUser = async () => {
         if (!form.full_name || !form.phone) { toast.error('Name and phone required'); return; }
@@ -51,8 +69,50 @@ export default function UserManagement() {
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
     };
 
-    const deleteUser = async (id) => {
-        try { await API.delete(`/admin/users/${id}`); toast.success('Deleted'); load(); } catch {}
+    const openEditDialog = (user) => {
+        setEditUser(user);
+        setEditForm({
+            full_name: user.full_name || '',
+            phone: user.phone || '',
+            email: user.email || '',
+            business_name: user.business_name || '',
+            category_id: user.category_id || '',
+            subcategory_id: user.subcategory_id || '',
+            position: user.position || '',
+        });
+    };
+
+    const saveEdit = async () => {
+        if (!editUser) return;
+        setSaving(true);
+        try {
+            await API.put(`/admin/users/${editUser.id}`, editForm);
+            toast.success('User updated');
+            setEditUser(null);
+            load();
+        } catch (err) { toast.error(err.response?.data?.detail || 'Update failed'); }
+        setSaving(false);
+    };
+
+    const deleteUser = async (user) => {
+        if (!window.confirm(`Delete "${user.full_name}"? This will also remove them from all event registrations, seating, and references.`)) return;
+        try {
+            await API.delete(`/admin/users/${user.id}`);
+            toast.success(`${user.full_name} deleted`);
+            load();
+        } catch { toast.error('Delete failed'); }
+    };
+
+    const deleteAllUsers = async () => {
+        setDeleting(true);
+        try {
+            const r = await API.delete('/admin/users');
+            toast.success(r.data.message);
+            setShowDeleteAll(false);
+            setDeleteConfirmText('');
+            load();
+        } catch { toast.error('Delete all failed'); }
+        setDeleting(false);
     };
 
     const handleCSVUpload = async (e) => {
@@ -92,7 +152,10 @@ export default function UserManagement() {
         <div data-testid="user-management">
             <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
                 <h2 className="text-3xl font-bold tracking-tight" style={{fontFamily:'Outfit'}}>Users</h2>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                    <Button variant="destructive" onClick={() => setShowDeleteAll(true)} disabled={users.length === 0} data-testid="delete-all-users-btn">
+                        <Trash2 size={16} className="mr-2" />Delete All ({users.length})
+                    </Button>
                     <Dialog open={showUploadCSV} onOpenChange={setShowUploadCSV}>
                         <DialogTrigger asChild>
                             <Button variant="outline" data-testid="upload-users-csv-btn"><Upload size={16} className="mr-2" />Upload CSV</Button>
@@ -194,37 +257,42 @@ export default function UserManagement() {
                             <th className="text-left p-3 text-xs text-muted-foreground uppercase font-bold hidden md:table-cell">Business</th>
                             <th className="text-left p-3 text-xs text-muted-foreground uppercase font-bold hidden lg:table-cell">Category / Sub</th>
                             <th className="text-left p-3 text-xs text-muted-foreground uppercase font-bold hidden lg:table-cell">Position</th>
-                            <th className="text-right p-3 text-xs text-muted-foreground uppercase font-bold w-10"></th>
+                            <th className="text-right p-3 text-xs text-muted-foreground uppercase font-bold w-24">Actions</th>
                         </tr></thead>
-                        <tbody>{filtered.map(u => (
-                            <tr key={u.id} className="border-b border-border hover:bg-white/5 transition-colors">
+                        <tbody>{filtered.map(usr => (
+                            <tr key={usr.id} className="border-b border-border hover:bg-white/5 transition-colors">
                                 <td className="p-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                                            {(u.full_name || '?')[0].toUpperCase()}
+                                            {(usr.full_name || '?')[0].toUpperCase()}
                                         </div>
                                         <div>
-                                            <p className="font-medium text-foreground">{u.full_name}</p>
-                                            <p className="text-xs text-muted-foreground sm:hidden">{u.phone}</p>
-                                            <p className="text-xs text-muted-foreground md:hidden">{u.business_name}</p>
+                                            <p className="font-medium text-foreground">{usr.full_name}</p>
+                                            <p className="text-xs text-muted-foreground sm:hidden">{usr.phone}</p>
+                                            <p className="text-xs text-muted-foreground md:hidden">{usr.business_name}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-3 text-muted-foreground hidden sm:table-cell">{u.phone}</td>
-                                <td className="p-3 text-muted-foreground hidden md:table-cell">{u.business_name || <span className="text-destructive/60 text-xs">Missing</span>}</td>
+                                <td className="p-3 text-muted-foreground hidden sm:table-cell">{usr.phone}</td>
+                                <td className="p-3 text-muted-foreground hidden md:table-cell">{usr.business_name || <span className="text-destructive/60 text-xs">Missing</span>}</td>
                                 <td className="p-3 hidden lg:table-cell">
-                                    {u.category_name ? (
+                                    {usr.category_name ? (
                                         <div>
-                                            <Badge variant="outline" className="text-xs">{u.category_name}</Badge>
-                                            {u.subcategory_name && <span className="text-xs text-muted-foreground ml-1">/ {u.subcategory_name}</span>}
+                                            <Badge variant="outline" className="text-xs">{usr.category_name}</Badge>
+                                            {usr.subcategory_name && <span className="text-xs text-muted-foreground ml-1">/ {usr.subcategory_name}</span>}
                                         </div>
                                     ) : <span className="text-destructive/60 text-xs">Missing</span>}
                                 </td>
-                                <td className="p-3 text-muted-foreground hidden lg:table-cell">{u.position}</td>
+                                <td className="p-3 text-muted-foreground hidden lg:table-cell">{usr.position}</td>
                                 <td className="p-3 text-right">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteUser(u.id)}>
-                                        <Trash2 size={14} className="text-destructive" />
-                                    </Button>
+                                    <div className="flex gap-1 justify-end">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(usr)} data-testid={`edit-user-${usr.id}`}>
+                                            <Pencil size={14} className="text-primary" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteUser(usr)} data-testid={`delete-user-${usr.id}`}>
+                                            <Trash2 size={14} className="text-destructive" />
+                                        </Button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}</tbody>
@@ -232,6 +300,84 @@ export default function UserManagement() {
                 </div>
                 {filtered.length === 0 && <div className="p-8 text-center text-muted-foreground"><Users size={32} className="mx-auto mb-3 opacity-30" /><p>No users found</p></div>}
             </div>
+
+            {/* Edit User Dialog */}
+            <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null); }}>
+                <DialogContent className="bg-background border-border max-w-lg max-h-[85vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
+                    {editUser && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><Label>Full Name</Label><Input value={editForm.full_name} onChange={e => ue('full_name', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-name" /></div>
+                                <div><Label>Phone</Label><Input value={editForm.phone} onChange={e => ue('phone', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-phone" /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><Label>Email</Label><Input value={editForm.email} onChange={e => ue('email', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-email" /></div>
+                                <div><Label>Position</Label><Input value={editForm.position} onChange={e => ue('position', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-position" /></div>
+                            </div>
+                            <div><Label>Business Name</Label><Input value={editForm.business_name} onChange={e => ue('business_name', e.target.value)} className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-business" /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <Label>Category</Label>
+                                    <Select value={editForm.category_id} onValueChange={v => { ue('category_id', v); ue('subcategory_id', ''); }}>
+                                        <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-category"><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                                <div>
+                                    <Label>Sub Category</Label>
+                                    <Select value={editForm.subcategory_id} onValueChange={v => ue('subcategory_id', v)}>
+                                        <SelectTrigger className="bg-muted/50 border-border h-10 mt-1" data-testid="edit-user-subcategory"><SelectValue placeholder="Select" /></SelectTrigger>
+                                        <SelectContent>{editSubcategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <Button onClick={saveEdit} className="w-full" disabled={saving} data-testid="save-edit-user-btn">
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete All Users Confirmation Dialog */}
+            <Dialog open={showDeleteAll} onOpenChange={(open) => { setShowDeleteAll(open); if (!open) setDeleteConfirmText(''); }}>
+                <DialogContent className="bg-background border-border max-w-md">
+                    <DialogHeader><DialogTitle className="flex items-center gap-2 text-destructive"><AlertTriangle size={20} /> Delete All Users</DialogTitle></DialogHeader>
+                    <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            This will permanently delete <strong className="text-foreground">{users.length} users</strong> and all their related data including:
+                        </p>
+                        <ul className="text-sm text-muted-foreground list-disc ml-5 space-y-1">
+                            <li>Event registrations</li>
+                            <li>Table captain assignments</li>
+                            <li>Seating assignments</li>
+                            <li>Attendance records</li>
+                            <li>References</li>
+                            <li>WhatsApp message logs</li>
+                        </ul>
+                        <div>
+                            <Label className="text-sm">Type <strong className="text-destructive">DELETE ALL</strong> to confirm</Label>
+                            <Input
+                                value={deleteConfirmText}
+                                onChange={e => setDeleteConfirmText(e.target.value)}
+                                placeholder="DELETE ALL"
+                                className="bg-muted/50 border-border h-10 mt-1"
+                                data-testid="delete-all-confirm-input"
+                            />
+                        </div>
+                        <Button
+                            variant="destructive"
+                            className="w-full"
+                            disabled={deleteConfirmText !== 'DELETE ALL' || deleting}
+                            onClick={deleteAllUsers}
+                            data-testid="confirm-delete-all-btn"
+                        >
+                            {deleting ? 'Deleting...' : `Delete All ${users.length} Users`}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
