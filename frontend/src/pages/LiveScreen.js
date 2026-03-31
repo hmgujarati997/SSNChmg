@@ -210,108 +210,67 @@ export default function LiveScreen() {
                 </div>
             </div>
 
-            {/* Stats + Sponsors Row */}
-            {hasSponsors ? (
-                <div className="grid grid-cols-[1fr_1fr_2fr_1fr_1fr] gap-4 mb-4">
-                    <div className="rounded-2xl p-4 flex flex-col items-center justify-center border border-gray-200 bg-white shadow-sm" data-testid="sponsor-banner">
-                        {hasSponsor1 && (
-                            <div className="flex flex-col items-center" data-testid="sponsor-1-display">
-                                {branding.sponsor_logo_1 && (
-                                    <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-14 w-auto object-contain mb-2" />
-                                )}
-                                {branding.sponsor_name_1 && (
-                                    <p className="text-2xl font-black tracking-tight text-gray-900 text-center" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</p>
-                                )}
-                            </div>
+            {/* Row 2: Sponsor Boxes */}
+            {hasSponsors && (
+                <div className="grid grid-cols-2 gap-4 mb-4" data-testid="sponsor-banner">
+                    <div className="rounded-2xl p-5 flex items-center justify-center gap-4 border border-gray-200 bg-white shadow-sm" data-testid="sponsor-1-display">
+                        {branding.sponsor_logo_1 && (
+                            <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-16 w-auto object-contain" />
+                        )}
+                        {branding.sponsor_name_1 && (
+                            <span className="text-3xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
                         )}
                     </div>
-                    <div className="rounded-2xl p-4 flex flex-col items-center justify-center border border-gray-200 bg-white shadow-sm">
-                        {hasSponsor2 && (
-                            <div className="flex flex-col items-center" data-testid="sponsor-2-display">
-                                {branding.sponsor_logo_2 && (
-                                    <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-14 w-auto object-contain mb-2" />
-                                )}
-                                {branding.sponsor_name_2 && (
-                                    <p className="text-2xl font-black tracking-tight text-gray-900 text-center" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</p>
-                                )}
-                            </div>
+                    <div className="rounded-2xl p-5 flex items-center justify-center gap-4 border border-gray-200 bg-white shadow-sm" data-testid="sponsor-2-display">
+                        {branding.sponsor_logo_2 && (
+                            <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-16 w-auto object-contain" />
                         )}
-                    </div>
-                    <div className={`rounded-2xl p-6 flex flex-col items-center justify-center border bg-white shadow-sm ${timerBg}`}>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Volume2 size={20} className={timerColor} />
-                            <p className="text-lg font-bold text-gray-500 uppercase tracking-widest">
-                                {timerPhase === 'idle' ? 'Waiting...' :
-                                 timerPhase === 'speaking' ? `Speaker ${speakerNum}` :
-                                 timerPhase === 'concluding' ? `Speaker ${speakerNum} — CONCLUDE` :
-                                 'Round Complete'}
-                            </p>
-                        </div>
-                        <p className={`text-[8rem] leading-none font-black ${timerColor}`} style={{fontFamily:'Outfit'}} data-testid="speaker-timer">
-                            {formatSec(speakerTimeLeft)}
-                        </p>
-                        {timerPhase === 'concluding' && (
-                            <p className="text-xl font-bold text-orange-500 mt-2 animate-pulse">Please wrap up!</p>
+                        {branding.sponsor_name_2 && (
+                            <span className="text-3xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
                         )}
-                        {timerPhase === 'done' && (
-                            <p className="text-xl font-bold text-red-600 mt-2">Time&apos;s up! Switch speakers.</p>
-                        )}
-                        {timerPhase === 'speaking' && event?.speaker_time_seconds && (
-                            <div className="w-full mt-3 bg-gray-200 rounded-full h-2 overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                                     style={{width: `${Math.max(0, (speakerTimeLeft / event.speaker_time_seconds) * 100)}%`}} />
-                            </div>
-                        )}
-                    </div>
-                    <div className="rounded-2xl p-4 flex flex-col items-center justify-center border border-primary/20 bg-white shadow-sm">
-                        <ArrowUp size={24} className="mb-1 text-primary" />
-                        <p className="text-6xl font-black text-primary" style={{fontFamily:'Outfit'}} data-testid="total-references">{stats.total_references}</p>
-                        <p className="text-base text-gray-500 mt-1 font-medium">Total References</p>
-                    </div>
-                    <div className="rounded-2xl p-4 flex flex-col items-center justify-center border border-emerald-200 bg-white shadow-sm">
-                        <Users size={24} className="mb-1 text-emerald-600" />
-                        <p className="text-6xl font-black text-emerald-600" style={{fontFamily:'Outfit'}} data-testid="attendance-count">{stats.attendance_count}</p>
-                        <p className="text-base text-gray-500 mt-1 font-medium">Attendance</p>
-                    </div>
-                </div>
-            ) : (
-                <div className="grid grid-cols-[1fr_2fr_1fr] gap-4 mb-4">
-                    <div className="rounded-2xl p-5 flex flex-col items-center justify-center border border-primary/20 bg-white shadow-sm">
-                        <ArrowUp size={28} className="mb-2 text-primary" />
-                        <p className="text-7xl font-black text-primary" style={{fontFamily:'Outfit'}} data-testid="total-references">{stats.total_references}</p>
-                        <p className="text-lg text-gray-500 mt-1 font-medium">Total References</p>
-                    </div>
-                    <div className={`rounded-2xl p-6 flex flex-col items-center justify-center border bg-white shadow-sm ${timerBg}`}>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Volume2 size={20} className={timerColor} />
-                            <p className="text-lg font-bold text-gray-500 uppercase tracking-widest">
-                                {timerPhase === 'idle' ? 'Waiting...' :
-                                 timerPhase === 'speaking' ? `Speaker ${speakerNum}` :
-                                 timerPhase === 'concluding' ? `Speaker ${speakerNum} — CONCLUDE` :
-                                 'Round Complete'}
-                            </p>
-                        </div>
-                        <p className={`text-[8rem] leading-none font-black ${timerColor}`} style={{fontFamily:'Outfit'}} data-testid="speaker-timer">{formatSec(speakerTimeLeft)}</p>
-                        {timerPhase === 'concluding' && (
-                            <p className="text-xl font-bold text-orange-500 mt-2 animate-pulse">Please wrap up!</p>
-                        )}
-                        {timerPhase === 'done' && (
-                            <p className="text-xl font-bold text-red-600 mt-2">Time&apos;s up! Switch speakers.</p>
-                        )}
-                        {timerPhase === 'speaking' && event?.speaker_time_seconds && (
-                            <div className="w-full mt-3 bg-gray-200 rounded-full h-2 overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full transition-all duration-500"
-                                     style={{width: `${Math.max(0, (speakerTimeLeft / event.speaker_time_seconds) * 100)}%`}} />
-                            </div>
-                        )}
-                    </div>
-                    <div className="rounded-2xl p-5 flex flex-col items-center justify-center border border-emerald-200 bg-white shadow-sm">
-                        <Users size={28} className="mb-2 text-emerald-600" />
-                        <p className="text-7xl font-black text-emerald-600" style={{fontFamily:'Outfit'}} data-testid="attendance-count">{stats.attendance_count}</p>
-                        <p className="text-lg text-gray-500 mt-1 font-medium">Attendance</p>
                     </div>
                 </div>
             )}
+
+            {/* Row 3: Total References | Timer | Attendance */}
+            <div className="grid grid-cols-[1fr_2fr_1fr] gap-4 mb-4">
+                <div className="rounded-2xl p-5 flex flex-col items-center justify-center border border-primary/20 bg-white shadow-sm">
+                    <ArrowUp size={28} className="mb-2 text-primary" />
+                    <p className="text-7xl font-black text-primary" style={{fontFamily:'Outfit'}} data-testid="total-references">{stats.total_references}</p>
+                    <p className="text-lg text-gray-500 mt-1 font-medium">Total References</p>
+                </div>
+                <div className={`rounded-2xl p-6 flex flex-col items-center justify-center border bg-white shadow-sm ${timerBg}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Volume2 size={20} className={timerColor} />
+                        <p className="text-lg font-bold text-gray-500 uppercase tracking-widest">
+                            {timerPhase === 'idle' ? 'Waiting...' :
+                             timerPhase === 'speaking' ? `Speaker ${speakerNum}` :
+                             timerPhase === 'concluding' ? `Speaker ${speakerNum} — CONCLUDE` :
+                             'Round Complete'}
+                        </p>
+                    </div>
+                    <p className={`text-[8rem] leading-none font-black ${timerColor}`} style={{fontFamily:'Outfit'}} data-testid="speaker-timer">
+                        {formatSec(speakerTimeLeft)}
+                    </p>
+                    {timerPhase === 'concluding' && (
+                        <p className="text-xl font-bold text-orange-500 mt-2 animate-pulse">Please wrap up!</p>
+                    )}
+                    {timerPhase === 'done' && (
+                        <p className="text-xl font-bold text-red-600 mt-2">Time&apos;s up! Switch speakers.</p>
+                    )}
+                    {timerPhase === 'speaking' && event?.speaker_time_seconds && (
+                        <div className="w-full mt-3 bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                                 style={{width: `${Math.max(0, (speakerTimeLeft / event.speaker_time_seconds) * 100)}%`}} />
+                        </div>
+                    )}
+                </div>
+                <div className="rounded-2xl p-5 flex flex-col items-center justify-center border border-emerald-200 bg-white shadow-sm">
+                    <Users size={28} className="mb-2 text-emerald-600" />
+                    <p className="text-7xl font-black text-emerald-600" style={{fontFamily:'Outfit'}} data-testid="attendance-count">{stats.attendance_count}</p>
+                    <p className="text-lg text-gray-500 mt-1 font-medium">Attendance</p>
+                </div>
+            </div>
 
             {/* Leaderboards - Full Width */}
             <div className="grid grid-cols-3 gap-4 flex-1 min-h-0">
