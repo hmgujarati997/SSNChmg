@@ -105,20 +105,17 @@ export default function PublicProfile() {
             <div className="max-w-md mx-auto animate-fade-in">
                 {/* Header with Profile Picture & Company Logo */}
                 <div className="glass-card rounded-2xl overflow-hidden mb-4">
-                    <div className="h-28 bg-gradient-to-br from-primary/30 via-[hsl(var(--cyan))]/10 to-transparent" />
+                    <div className="h-28 bg-gradient-to-br from-primary/30 via-[hsl(var(--cyan))]/10 to-transparent relative">
+                        {user.company_logo && (
+                            <img src={`${BACKEND_URL}${user.company_logo}`} alt={user.business_name} className="absolute top-3 right-4 h-16 w-auto object-contain drop-shadow-md" data-testid="company-logo" />
+                        )}
+                    </div>
                     <div className="px-6 pb-6 -mt-14">
-                        <div className="flex items-end justify-between">
-                            <div className="w-28 h-28 rounded-2xl bg-muted border-4 border-background overflow-hidden flex items-center justify-center text-4xl font-black text-primary shadow-lg" style={{fontFamily:'Outfit'}}>
-                                {user.profile_picture ? (
-                                    <img src={`${BACKEND_URL}${user.profile_picture}`} alt={user.full_name} className="w-full h-full object-cover" data-testid="profile-picture" />
-                                ) : (
-                                    (user.full_name || '?')[0].toUpperCase()
-                                )}
-                            </div>
-                            {user.company_logo && (
-                                <div className="w-20 h-20 rounded-xl bg-white border border-border overflow-hidden flex items-center justify-center p-1.5 shadow-md" data-testid="company-logo">
-                                    <img src={`${BACKEND_URL}${user.company_logo}`} alt={user.business_name} className="w-full h-full object-contain" />
-                                </div>
+                        <div className="w-28 h-28 rounded-2xl bg-muted border-4 border-background overflow-hidden flex items-center justify-center text-4xl font-black text-primary shadow-lg" style={{fontFamily:'Outfit'}}>
+                            {user.profile_picture ? (
+                                <img src={`${BACKEND_URL}${user.profile_picture}`} alt={user.full_name} className="w-full h-full object-cover" data-testid="profile-picture" />
+                            ) : (
+                                (user.full_name || '?')[0].toUpperCase()
                             )}
                         </div>
                         <h1 className="text-2xl font-bold mt-3" style={{fontFamily:'Outfit'}}>{user.full_name}</h1>
