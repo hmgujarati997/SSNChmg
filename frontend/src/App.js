@@ -7,6 +7,7 @@ import { BrandingProvider } from "@/contexts/BrandingContext";
 import { Toaster } from "@/components/ui/sonner";
 import LoginPage from "@/pages/LoginPage";
 import AdminLoginPage from "@/pages/AdminLoginPage";
+import VolunteerLoginPage from "@/pages/VolunteerLoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import AdminLayout from "@/pages/admin/AdminLayout";
 import UserLayout from "@/pages/user/UserLayout";
@@ -27,6 +28,7 @@ function AppRoutes() {
         <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/volunteer/login" element={<VolunteerLoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/admin/*" element={
                 <ProtectedRoute requiredRole="admin"><AdminLayout /></ProtectedRoute>

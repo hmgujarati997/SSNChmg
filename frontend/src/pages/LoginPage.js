@@ -60,9 +60,6 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full h-12 text-base font-semibold tracking-wide bg-primary hover:bg-primary/90 shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all duration-200" disabled={loading} data-testid="user-login-btn">
                             {loading ? 'Signing in...' : 'Sign In'}
                         </Button>
-                        <p className="text-center text-sm text-muted-foreground pt-2">
-                            New here? <Link to="/register" className="text-primary hover:underline font-medium" data-testid="register-link">Create Account</Link>
-                        </p>
                     </form>
                 </div>
             </div>
