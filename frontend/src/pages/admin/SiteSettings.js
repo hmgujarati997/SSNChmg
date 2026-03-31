@@ -34,6 +34,13 @@ export default function SiteSettings() {
             if (settings.admin_email) data.admin_email = settings.admin_email;
             if (newPassword) data.admin_password = newPassword;
             if (settings.razorpay_key_id) data.razorpay_key_id = settings.razorpay_key_id;
+            // WhatsApp config
+            data.wa_api_key = settings.wa_api_key || '';
+            data.wa_username = settings.wa_username || '';
+            data.wa_source = settings.wa_source || '';
+            data.wa_template_welcome = settings.wa_template_welcome || '';
+            data.wa_template_assignment = settings.wa_template_assignment || '';
+            data.wa_template_reference = settings.wa_template_reference || '';
             await API.put('/admin/settings', data);
             toast.success('Settings saved'); setNewPassword('');
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
