@@ -15,6 +15,7 @@ export default function LiveScreen() {
     const [stats, setStats] = useState(null);
     const [leaderboard, setLeaderboard] = useState(null);
     const [event, setEvent] = useState(null);
+    const [branding, setBranding] = useState({});
     const intervalRef = useRef(null);
 
     // Speaker timer state
@@ -27,6 +28,7 @@ export default function LiveScreen() {
     const audioCtxRef = useRef(null);
 
     useEffect(() => {
+        API.get('/public/branding').then(r => setBranding(r.data)).catch(() => {});
         if (!paramEventId) {
             API.get('/live/events').then(r => setEvents(r.data)).catch(() => {});
         }
@@ -175,6 +177,10 @@ export default function LiveScreen() {
 
     const timerColor = timerPhase === 'concluding' ? 'text-orange-400' : timerPhase === 'done' ? 'text-destructive' : 'text-[hsl(var(--gold))]';
     const timerBg = timerPhase === 'concluding' ? 'border-orange-400/30 bg-orange-400/5' : timerPhase === 'done' ? 'border-destructive/30 bg-destructive/5' : 'border-[hsl(var(--gold))]/20';
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+    const hasSponsor1 = branding.sponsor_name_1 || branding.sponsor_logo_1;
+    const hasSponsor2 = branding.sponsor_name_2 || branding.sponsor_logo_2;
+    const hasSponsors = hasSponsor1 || hasSponsor2;
 
     return (
         <div className="min-h-screen bg-[#050505] p-4 overflow-hidden flex flex-col" data-testid="live-screen">
@@ -296,6 +302,35 @@ export default function LiveScreen() {
                     </div>
                 </div>
             </div>
+
+            {/* Sponsor Banner */}
+            {hasSponsors && (
+                <div className="mt-4 glass-card rounded-2xl border border-primary/20 px-6 py-3 flex items-center justify-center gap-12" data-testid="sponsor-banner">
+                    {hasSponsor1 && (
+                        <div className="flex items-center gap-4" data-testid="sponsor-1-display">
+                            {branding.sponsor_logo_1 && (
+                                <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-14 w-auto object-contain rounded bg-white/10 p-1" />
+                            )}
+                            {branding.sponsor_name_1 && (
+                                <span className="text-2xl font-black tracking-tight" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
+                            )}
+                        </div>
+                    )}
+                    {hasSponsor1 && hasSponsor2 && (
+                        <div className="w-px h-10 bg-border/50" />
+                    )}
+                    {hasSponsor2 && (
+                        <div className="flex items-center gap-4" data-testid="sponsor-2-display">
+                            {branding.sponsor_logo_2 && (
+                                <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-14 w-auto object-contain rounded bg-white/10 p-1" />
+                            )}
+                            {branding.sponsor_name_2 && (
+                                <span className="text-2xl font-black tracking-tight" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

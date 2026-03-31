@@ -92,6 +92,10 @@ async def get_branding():
         "login_logo_2": settings.get("login_logo_2", ""),
         "favicon": settings.get("favicon", ""),
         "pwa_icon": settings.get("pwa_icon", ""),
+        "sponsor_logo_1": settings.get("sponsor_logo_1", ""),
+        "sponsor_logo_2": settings.get("sponsor_logo_2", ""),
+        "sponsor_name_1": settings.get("sponsor_name_1", ""),
+        "sponsor_name_2": settings.get("sponsor_name_2", ""),
     }
 
 
