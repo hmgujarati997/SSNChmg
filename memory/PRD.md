@@ -65,6 +65,13 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - **Status API Enhancement**: GET /api/admin/whatsapp/status/{event_id} now returns 'welcome' and 'assignment' sub-objects
 - **Retry with Progress**: Retry Failed button now also returns job_id and shows progress bar
 
+## What's Been Implemented (2026-03-31)
+- **Edit User**: Admin can edit any user's details (name, phone, email, business, category, subcategory, position) via PUT /api/admin/users/{user_id} with phone uniqueness validation
+- **Delete User with Cascade**: Deleting a user removes all related data: event registrations, table captains, attendance, references, WA messages, and removes from table_assignments arrays
+- **Delete All Users**: Bulk delete with "DELETE ALL" confirmation text, clears all user-related collections
+- **Edit UI**: Pencil icon per row opens pre-filled dialog with all user fields including category/subcategory dropdowns
+- **Delete All UI**: Red button with count, confirmation dialog listing all cascading effects
+
 ## P0 Features Remaining
 - Razorpay payment integration
 
