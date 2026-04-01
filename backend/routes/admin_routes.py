@@ -11,6 +11,8 @@ import io
 import csv
 from datetime import datetime, timezone
 
+import re
+
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
@@ -150,13 +152,13 @@ async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(
         cat_name = row.get('category', '').strip()
         subcat_name = row.get('subcategory', '').strip()
         if cat_name:
-            cat = await db.categories.find_one({"name": {"$regex": f"^{cat_name}$", "$options": "i"}})
+            cat = await db.categories.find_one({"name": {"$regex": f"^{re.escape(cat_name)}$", "$options": "i"}})
             if cat:
                 cat_id = cat['id']
                 if subcat_name:
                     subcat = await db.subcategories.find_one({
                         "category_id": cat_id,
-                        "name": {"$regex": f"^{subcat_name}$", "$options": "i"}
+                        "name": {"$regex": f"^{re.escape(subcat_name)}$", "$options": "i"}
                     })
                     if subcat:
                         subcat_id = subcat['id']
@@ -387,7 +389,7 @@ async def upload_categories_csv(file: UploadFile = File(...), admin=Depends(requ
     for cat_name in sorted_cat_names:
         # Check if category already exists (case-insensitive)
         existing_cat = await db.categories.find_one(
-            {"name": {"$regex": f"^{cat_name}$", "$options": "i"}}
+            {"name": {"$regex": f"^{re.escape(cat_name)}$", "$options": "i"}}
         )
         if existing_cat:
             cat_id = existing_cat['id']
@@ -554,13 +556,13 @@ async def upload_users_csv(file: UploadFile = File(...), event_id: str = "", adm
         cat_name = row.get('category', '').strip()
         subcat_name = row.get('subcategory', '').strip()
         if cat_name:
-            cat = await db.categories.find_one({"name": {"$regex": f"^{cat_name}$", "$options": "i"}})
+            cat = await db.categories.find_one({"name": {"$regex": f"^{re.escape(cat_name)}$", "$options": "i"}})
             if cat:
                 cat_id = cat['id']
                 if subcat_name:
                     subcat = await db.subcategories.find_one({
                         "category_id": cat_id,
-                        "name": {"$regex": f"^{subcat_name}$", "$options": "i"}
+                        "name": {"$regex": f"^{re.escape(subcat_name)}$", "$options": "i"}
                     })
                     if subcat:
                         subcat_id = subcat['id']
