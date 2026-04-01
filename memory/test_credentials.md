@@ -11,6 +11,11 @@
 - Login endpoint: POST /api/auth/user/login
 - URL: /login
 
+## Volunteer
+- Phone: 9876543210
+- Password: a@a.com
+- URL: /volunteer/login
+
 ## Live Screen
 - Password: ssnc2026
 

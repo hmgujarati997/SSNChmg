@@ -100,6 +100,27 @@ async def delete_event(event_id: str, admin=Depends(require_admin)):
     return {"message": "Event deleted"}
 
 
+@router.post("/events/{event_id}/assign-badges")
+async def assign_badge_numbers(event_id: str, admin=Depends(require_admin)):
+    """Assign sequential badge numbers (1 to N) to all registered users missing one."""
+    regs = await db.event_registrations.find(
+        {"event_id": event_id}, {"_id": 0}
+    ).sort("registered_at", 1).to_list(10000)
+    max_existing = max((r.get('badge_number', 0) for r in regs), default=0)
+    next_num = max_existing + 1
+    assigned = 0
+    for r in regs:
+        if not r.get('badge_number'):
+            await db.event_registrations.update_one(
+                {"event_id": event_id, "user_id": r['user_id']},
+                {"$set": {"badge_number": next_num}}
+            )
+            next_num += 1
+            assigned += 1
+    return {"message": f"Assigned {assigned} badge numbers", "total": next_num - 1}
+
+
+
 @router.post("/events/{event_id}/upload-csv")
 async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(require_admin)):
     event = await db.events.find_one({"id": event_id})

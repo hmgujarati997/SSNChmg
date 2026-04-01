@@ -130,6 +130,14 @@ export default function VolunteerDashboard() {
 
                 {scanResult && (
                     <div className="glass-card rounded-xl p-5 space-y-4 animate-slide-up border-[hsl(var(--emerald))]/20" data-testid="scan-result">
+                        {/* Badge Number - Big & Prominent */}
+                        {scanResult.badge_number && (
+                            <div className="text-center py-3 rounded-xl bg-primary/10 border border-primary/20" data-testid="badge-number">
+                                <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">ID Card Number</p>
+                                <p className="text-6xl font-black text-primary" style={{fontFamily:'Outfit'}}>#{scanResult.badge_number}</p>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-3">
                             {scanResult.already_checked_in ?
                                 <AlertCircle size={24} className="text-[hsl(var(--gold))]" /> :
@@ -142,12 +150,20 @@ export default function VolunteerDashboard() {
                         </div>
 
                         <Badge className={scanResult.already_checked_in ? 'bg-[hsl(var(--gold))]/20 text-[hsl(var(--gold))]' : 'bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))]'}>
-                            {scanResult.already_checked_in ? 'Already Checked In' : 'Checked In Successfully'}
+                            {scanResult.already_checked_in ? 'Already Marked Present' : 'Checked In Successfully'}
                         </Badge>
-
-                        {scanResult.user.category_name && (
-                            <p className="text-sm text-muted-foreground">Category: <span className="text-foreground">{scanResult.user.category_name}</span></p>
+                        {scanResult.already_checked_in && scanResult.checked_in_at && (
+                            <p className="text-xs text-muted-foreground">Checked in at: {new Date(scanResult.checked_in_at).toLocaleTimeString()}</p>
                         )}
+
+                        <div className="flex flex-wrap gap-2">
+                            {scanResult.user.category_name && (
+                                <Badge variant="outline" className="text-xs">{scanResult.user.category_name}</Badge>
+                            )}
+                            {scanResult.user.subcategory_name && (
+                                <Badge variant="outline" className="text-xs">{scanResult.user.subcategory_name}</Badge>
+                            )}
+                        </div>
 
                         {scanResult.table_assignments.length > 0 && (
                             <div>
