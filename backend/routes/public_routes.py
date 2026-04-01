@@ -27,12 +27,12 @@ async def get_qr_code(user_id: str, frontend_url: str = ""):
     if not user:
         raise HTTPException(404, "User not found")
     url = f"{frontend_url}/profile/{user_id}" if frontend_url else user_id
-    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr = qrcode.QRCode(version=1, box_size=20, border=6)
     qr.add_data(url)
     qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
+    img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
     buf = io.BytesIO()
-    img.save(buf, format='PNG')
+    img.save(buf, format="PNG", compress_level=0)
     buf.seek(0)
     return StreamingResponse(buf, media_type="image/png")
 

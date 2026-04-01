@@ -105,7 +105,11 @@ Build a PWA website for Speed Networking event "SSNC" with Admin panel, User por
 - Speaker timer display on live screen
 - Spot registration workflow
 
+## What's Been Fixed (2026-04-01)
+- QR Code PNG file size increased from ~1KB to >25KB (now ~2MB) to satisfy Meta/Flexiwaba API minimum requirement
+- Modified both `whatsapp_routes.py` (file-based QR) and `public_routes.py` (streaming QR) with `box_size=20`, `border=6`, RGB conversion, and `compress_level=0`
+- Cleared old undersized QR files from `/app/backend/uploads/qr/` so they regenerate at new size
+
 ## Next Tasks
-1. Integrate Razorpay payment gateway
-2. File upload for profile pictures
-3. Admin analytics dashboard
+1. Admin analytics dashboard
+2. Export reports (CSV/PDF)
