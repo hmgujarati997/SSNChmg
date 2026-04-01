@@ -182,6 +182,21 @@ async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(
             created += 1
         else:
             user_id = existing['id']
+            update_fields = {}
+            if cat_id and existing.get('category_id') != cat_id:
+                update_fields['category_id'] = cat_id
+            if subcat_id and existing.get('subcategory_id') != subcat_id:
+                update_fields['subcategory_id'] = subcat_id
+            if row.get('business_name', '').strip() and not existing.get('business_name'):
+                update_fields['business_name'] = row.get('business_name', '').strip()
+            if row.get('position', '').strip() and not existing.get('position'):
+                update_fields['position'] = row.get('position', '').strip()
+            if row.get('email', '').strip() and not existing.get('email'):
+                update_fields['email'] = row.get('email', '').strip()
+            if row.get('full_name', '').strip() and not existing.get('full_name'):
+                update_fields['full_name'] = row.get('full_name', '').strip()
+            if update_fields:
+                await db.users.update_one({"id": user_id}, {"$set": update_fields})
             skipped += 1
         existing_reg = await db.event_registrations.find_one({"event_id": event_id, "user_id": user_id})
         if not existing_reg:
