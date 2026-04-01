@@ -47,25 +47,29 @@ def assign_tables(users, event, captains, categories):
         best_assignment = None
         best_score = float('inf')
 
-        attempts = 30 if round_num > 1 else 5
+        attempts = 200
         for attempt in range(attempts):
-            seed = round_num * 137 + 42 + attempt * 7919
-            result, remeets, subcat_v = _assign_round(
+            seed = round_num * 137 + 42 + attempt * 7919 + random.randint(0, 99999)
+            result, remeets, subcat_v, cat_v = _assign_round(
                 users, total_tables, table_capacity, user_cats, user_subcats,
                 captain_cats, captain_subcats, captain_ids, met_pairs, seed
             )
-            score = remeets * 1000 + subcat_v
+            score = remeets * 10000 + subcat_v * 100 + cat_v
             if score < best_score:
                 best_score = score
                 best_assignment = result
-            if remeets == 0 and subcat_v == 0:
+            if score == 0:
                 break
 
-        if best_score >= 1000:
-            best_assignment, remeets, subcat_v = _swap_optimize(
+        if best_score > 0 and best_assignment:
+            optimized, remeets, subcat_v, cat_v = _swap_optimize(
                 best_assignment, total_tables, table_capacity, user_cats,
-                user_subcats, captain_cats, captain_subcats, captain_ids, met_pairs
+                user_subcats, captain_cats, captain_subcats, captain_ids, met_pairs,
+                max_iterations=2000
             )
+            opt_score = remeets * 10000 + subcat_v * 100 + cat_v
+            if opt_score <= best_score:
+                best_assignment = optimized
 
         # Record met pairs for this round
         for t in range(1, total_tables + 1):
@@ -94,7 +98,16 @@ def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
 
     shuffled = users.copy()
     random.shuffle(shuffled)
-    shuffled.sort(key=lambda u: -subcat_count.get(user_subcats.get(u['id'], ''), 0))
+    # Most constrained first: users with popular subcategories, then popular categories
+    cat_count = defaultdict(int)
+    for u in users:
+        c = user_cats.get(u['id'], '')
+        if c:
+            cat_count[c] += 1
+    shuffled.sort(key=lambda u: (
+        -subcat_count.get(user_subcats.get(u['id'], ''), 0),
+        -cat_count.get(user_cats.get(u['id'], ''), 0)
+    ))
 
     round_tables = {t: [] for t in range(1, total_tables + 1)}
     table_cats = {t: set() for t in range(1, total_tables + 1)}
@@ -180,9 +193,9 @@ def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
                 assigned.add(uid)
                 break
 
-    remeets, subcat_v = _count_violations(round_tables, total_tables, user_subcats,
-                                           captain_subcats, captain_ids, met_pairs)
-    return round_tables, remeets, subcat_v
+    remeets, subcat_v, cat_v = _count_violations(round_tables, total_tables, user_cats, user_subcats,
+                                           captain_cats, captain_subcats, captain_ids, met_pairs)
+    return round_tables, remeets, subcat_v, cat_v
 
 
 def _find_best_table(uid, round_tables, total_tables, table_capacity,
@@ -239,13 +252,14 @@ def _place_user(uid, t, round_tables, table_cats, table_subcats,
         table_subcats[t].add(u_subcat)
 
 
-def _count_violations(round_tables, total_tables, user_subcats,
-                       captain_subcats, captain_ids, met_pairs):
-    """Count re-meeting violations and subcategory violations separately."""
+def _count_violations(round_tables, total_tables, user_cats, user_subcats,
+                       captain_cats, captain_subcats, captain_ids, met_pairs):
+    """Count re-meeting violations, subcategory violations, and category clashes separately."""
     remeets = 0
     subcat_v = 0
+    cat_v = 0
     for t in range(1, total_tables + 1):
-        # Subcategory violations
+        # Subcategory violations (skip empty)
         subcats = []
         if t in captain_subcats and captain_subcats[t]:
             subcats.append(captain_subcats[t])
@@ -258,6 +272,19 @@ def _count_violations(round_tables, total_tables, user_subcats,
             if cnt > 1:
                 subcat_v += cnt - 1
 
+        # Category clashes (skip empty)
+        cats = []
+        if t in captain_cats and captain_cats[t]:
+            cats.append(captain_cats[t])
+        for uid in round_tables[t]:
+            c = user_cats.get(uid, '')
+            if c:
+                cats.append(c)
+        for c in set(cats):
+            cnt = cats.count(c)
+            if cnt > 1:
+                cat_v += cnt - 1
+
         # Re-meeting violations
         all_ids = list(round_tables[t])
         if t in captain_ids:
@@ -266,24 +293,22 @@ def _count_violations(round_tables, total_tables, user_subcats,
             for j in range(i + 1, len(all_ids)):
                 if frozenset({all_ids[i], all_ids[j]}) in met_pairs:
                     remeets += 1
-    return remeets, subcat_v
+    return remeets, subcat_v, cat_v
 
 
 def _swap_optimize(round_tables, total_tables, table_capacity, user_cats, user_subcats,
                     captain_cats, captain_subcats, captain_ids, met_pairs, max_iterations=500):
-    """Try swapping users between tables to eliminate re-meetings first, then subcategory violations."""
+    """Try swapping users between tables to eliminate re-meetings first, then subcategory, then category violations."""
 
     def score():
-        rm, sv = _count_violations(round_tables, total_tables, user_subcats,
-                                    captain_subcats, captain_ids, met_pairs)
-        return rm * 1000 + sv, rm, sv
+        rm, sv, cv = _count_violations(round_tables, total_tables, user_cats, user_subcats,
+                                    captain_cats, captain_subcats, captain_ids, met_pairs)
+        return rm * 10000 + sv * 100 + cv, rm, sv, cv
 
-    current_score, current_rm, current_sv = score()
-    if current_rm == 0:
-        return round_tables, current_rm, current_sv
+    current_score, current_rm, current_sv, current_cv = score()
 
     for _ in range(max_iterations):
-        if current_rm == 0:
+        if current_score == 0:
             break
 
         improved = False
@@ -293,29 +318,22 @@ def _swap_optimize(round_tables, total_tables, table_capacity, user_cats, user_s
             for idx1, uid1 in enumerate(round_tables[t1]):
                 if improved:
                     break
-                # Check if uid1 has a re-meeting at t1
-                all_at_t1 = [o for o in round_tables[t1] if o != uid1]
-                if t1 in captain_ids:
-                    all_at_t1.append(captain_ids[t1])
-                has_remeet = any(frozenset({uid1, o}) in met_pairs for o in all_at_t1)
-                if not has_remeet:
-                    continue
-
-                for t2 in range(1, total_tables + 1):
-                    if t2 == t1 or improved:
-                        continue
+                for t2 in range(t1 + 1, total_tables + 1):
+                    if improved:
+                        break
                     for idx2, uid2 in enumerate(round_tables[t2]):
                         round_tables[t1][idx1] = uid2
                         round_tables[t2][idx2] = uid1
-                        new_score, new_rm, new_sv = score()
+                        new_score, new_rm, new_sv, new_cv = score()
                         if new_score < current_score:
                             current_score = new_score
                             current_rm = new_rm
                             current_sv = new_sv
+                            current_cv = new_cv
                             improved = True
                             break
                         else:
                             round_tables[t1][idx1] = uid1
                             round_tables[t2][idx2] = uid2
 
-    return round_tables, current_rm, current_sv
+    return round_tables, current_rm, current_sv, current_cv
