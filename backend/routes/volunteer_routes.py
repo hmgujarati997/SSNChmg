@@ -27,16 +27,6 @@ async def scan_qr(data: ScanRequest, vol=Depends(require_volunteer)):
         raise HTTPException(400, "User not registered for this event")
 
     badge_number = reg.get('badge_number')
-    if not badge_number:
-        max_reg = await db.event_registrations.find(
-            {"event_id": data.event_id, "badge_number": {"$exists": True}},
-            {"_id": 0, "badge_number": 1}
-        ).sort("badge_number", -1).limit(1).to_list(1)
-        badge_number = (max_reg[0]['badge_number'] + 1) if max_reg else 1
-        await db.event_registrations.update_one(
-            {"event_id": data.event_id, "user_id": data.user_id},
-            {"$set": {"badge_number": badge_number}}
-        )
 
     existing_attendance = await db.attendance.find_one({"event_id": data.event_id, "user_id": data.user_id})
     already_checked = bool(existing_attendance)
