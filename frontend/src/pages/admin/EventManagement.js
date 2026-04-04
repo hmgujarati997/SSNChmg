@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2, UserPlus, Lock, Unlock, Shuffle, Pencil } from 'lucide-react';
+import { Plus, Upload, Play, Square, Users, TableProperties, Crown, Trash2, ArrowLeft, Download, MessageCircle, RefreshCw, CheckCircle, XCircle, Loader2, UserPlus, Lock, Unlock, Shuffle, Pencil, Hash } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 function EventForm({ onCreated }) {
@@ -294,6 +294,12 @@ function EventDetail({ eventId, onBack }) {
                         <Button variant="outline" onClick={downloadSampleCSV} data-testid="download-sample-event-csv-btn"><Download size={16} className="mr-2" />Sample CSV</Button>
                         <Button variant="outline" onClick={() => fileRef.current?.click()} data-testid="upload-csv-btn"><Upload size={16} className="mr-2" />Upload CSV</Button>
                         <Button variant="outline" onClick={toggleReg} data-testid="toggle-reg-btn">{event.registration_open ? 'Close Registration' : 'Open Registration'}</Button>
+                        <Button variant="outline" onClick={async () => {
+                            try {
+                                const r = await API.post(`/admin/events/${event.id}/assign-badges`);
+                                toast.success(r.data.message);
+                            } catch (err) { toast.error(err.response?.data?.detail || 'Error assigning badges'); }
+                        }} data-testid="assign-badges-btn"><Hash size={16} className="mr-2" />Assign Badges</Button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">CSV format: full_name, phone, email, business_name, category, subcategory, position</p>
                     <div className="glass-card rounded-xl overflow-hidden">
