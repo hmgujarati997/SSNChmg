@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.gzip import GZipMiddleware
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 import os
@@ -13,6 +14,7 @@ from database import db, client
 from auth_utils import hash_password
 
 app = FastAPI(title="SSNC Speed Networking")
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Serve uploaded files
 UPLOADS_DIR = ROOT_DIR / "uploads"
@@ -64,6 +66,13 @@ async def startup():
     await db.table_assignments.create_index([("event_id", 1), ("round_number", 1), ("table_number", 1)])
     await db.references.create_index("event_id")
     await db.attendance.create_index([("event_id", 1), ("user_id", 1)], unique=True)
+    await db.references.create_index([("event_id", 1), ("from_user_id", 1)])
+    await db.references.create_index([("event_id", 1), ("to_user_id", 1)])
+    await db.references.create_index([("event_id", 1), ("table_number", 1)])
+    await db.references.create_index([("event_id", 1), ("round_number", 1)])
+    await db.whatsapp_messages.create_index([("event_id", 1), ("message_type", 1)])
+    await db.table_assignments.create_index("event_id")
+    await db.event_registrations.create_index([("event_id", 1), ("badge_number", 1)])
 
     existing_admin = await db.admins.find_one({})
     if not existing_admin:

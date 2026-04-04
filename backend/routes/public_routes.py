@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from database import db
 import qrcode
+import numpy as np
+from PIL import Image
 import io
 
 router = APIRouter(prefix="/api/public", tags=["Public"])
@@ -27,12 +29,16 @@ async def get_qr_code(user_id: str, frontend_url: str = ""):
     if not user:
         raise HTTPException(404, "User not found")
     url = f"{frontend_url}/profile/{user_id}" if frontend_url else user_id
-    qr = qrcode.QRCode(version=1, box_size=20, border=6)
+    qr = qrcode.QRCode(version=1, box_size=8, border=4)
     qr.add_data(url)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    arr = np.array(img)
+    white_mask = (arr[:,:,0] > 200)
+    noise = np.random.randint(248, 256, size=arr.shape, dtype=np.uint8)
+    arr[white_mask] = noise[white_mask]
     buf = io.BytesIO()
-    img.save(buf, format="PNG", compress_level=0)
+    Image.fromarray(arr).save(buf, format="PNG", compress_level=9)
     buf.seek(0)
     return StreamingResponse(buf, media_type="image/png")
 

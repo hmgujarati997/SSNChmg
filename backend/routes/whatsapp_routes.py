@@ -7,6 +7,8 @@ from db_helpers import bulk_fetch_users
 import uuid
 import asyncio
 import qrcode
+import numpy as np
+from PIL import Image
 import os
 from pathlib import Path
 from datetime import datetime, timezone
@@ -17,8 +19,15 @@ UPLOADS_DIR = Path(__file__).parent.parent / "uploads"
 QR_DIR = UPLOADS_DIR / "qr"
 QR_DIR.mkdir(parents=True, exist_ok=True)
 
-# In-memory job tracker
+# In-memory job tracker (auto-cleanup after 1 hour)
 _jobs = {}
+
+def _cleanup_old_jobs():
+    """Remove completed jobs older than 1 hour."""
+    now = datetime.now(timezone.utc)
+    expired = [jid for jid, j in _jobs.items() if j.get('status') == 'completed' and j.get('completed_at') and (now - datetime.fromisoformat(j['completed_at'])).total_seconds() > 3600]
+    for jid in expired:
+        del _jobs[jid]
 
 
 async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template_name: str, campaign_name: str, user_ids: list, user_map: dict, already_done: set):
@@ -56,6 +65,8 @@ async def _run_welcome_job(job_id: str, event_id: str, event_name: str, template
             _jobs[job_id]['failed'] += 1
         _jobs[job_id]['processed'] += 1
     _jobs[job_id]['status'] = 'completed'
+    _jobs[job_id]['completed_at'] = datetime.now(timezone.utc).isoformat()
+    _cleanup_old_jobs()
 
 
 async def _run_assignment_job(job_id: str, event_id: str, event_name: str, template_name: str, campaign_name: str, user_tables: dict, user_map: dict, base_url: str):
@@ -77,11 +88,15 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
 
         qr_file = QR_DIR / f"{uid}.png"
         qr_data = f"{base_url}/profile/{uid}" if base_url else uid
-        qr_img = qrcode.QRCode(version=1, box_size=20, border=6)
+        qr_img = qrcode.QRCode(version=1, box_size=8, border=4)
         qr_img.add_data(qr_data)
         qr_img.make(fit=True)
         img = qr_img.make_image(fill_color="black", back_color="white").convert("RGB")
-        img.save(str(qr_file), format="PNG", compress_level=0)
+        arr = np.array(img)
+        white_mask = (arr[:,:,0] > 200)
+        noise = np.random.randint(248, 256, size=arr.shape, dtype=np.uint8)
+        arr[white_mask] = noise[white_mask]
+        Image.fromarray(arr).save(str(qr_file), format="PNG", compress_level=9)
         qr_url = f"{base_url}/api/uploads/qr/{uid}.png" if base_url else None
         success, resp = await send_whatsapp(
             destination=user['phone'],
@@ -104,6 +119,8 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
             _jobs[job_id]['failed'] += 1
         _jobs[job_id]['processed'] += 1
     _jobs[job_id]['status'] = 'completed'
+    _jobs[job_id]['completed_at'] = datetime.now(timezone.utc).isoformat()
+    _cleanup_old_jobs()
 
 
 @router.post("/send-welcome/{event_id}")
