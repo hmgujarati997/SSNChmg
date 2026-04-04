@@ -5,19 +5,72 @@ from models import UserUpdate, ReferenceCreate
 from db_helpers import enrich_users_with_categories, bulk_fetch_users
 import uuid
 import asyncio
+import time
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/user", tags=["User"])
 
 UPLOADS_DIR = Path(__file__).parent.parent / "uploads" / "users"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Semaphore to limit concurrent WhatsApp sends (prevent overwhelming external API)
-_wa_semaphore = asyncio.Semaphore(20)
+# Bounded notification queue (max 200 pending). If full, notification is silently dropped.
+_notification_queue = asyncio.Queue(maxsize=200)
+_wa_worker_started = False
 
 # Simple cache for site_settings (refreshed every 60s)
 _settings_cache = {"data": None, "ts": 0}
+
+
+async def _get_cached_settings():
+    """Cache site_settings for 60s."""
+    now = time.time()
+    if _settings_cache["data"] is None or (now - _settings_cache["ts"]) > 60:
+        _settings_cache["data"] = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+        _settings_cache["ts"] = now
+    return _settings_cache["data"]
+
+
+async def _wa_notification_worker():
+    """Single worker that drains the notification queue at a controlled rate (max 10/sec)."""
+    from whatsapp_service import send_whatsapp
+    while True:
+        try:
+            item = await _notification_queue.get()
+            settings = await _get_cached_settings()
+            template = settings.get("wa_template_reference", "") if settings else ""
+            campaign = settings.get("wa_campaign_reference", "") if settings else ""
+            if template and campaign:
+                from_user = await db.users.find_one({"id": item["from_user_id"]}, {"_id": 0, "full_name": 1})
+                to_user = await db.users.find_one({"id": item["to_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
+                if from_user and to_user and to_user.get("phone"):
+                    params = [
+                        to_user.get("full_name", "User"),
+                        from_user.get("full_name", "Someone"),
+                        item.get("contact_name", ""),
+                        item.get("contact_phone", ""),
+                    ]
+                    await send_whatsapp(
+                        destination=to_user["phone"],
+                        template_name=template,
+                        template_params=params,
+                        campaign_name=campaign,
+                    )
+            _notification_queue.task_done()
+            await asyncio.sleep(0.1)  # Max ~10 notifications/sec
+        except Exception:
+            await asyncio.sleep(0.5)
+
+
+def _ensure_wa_worker():
+    """Start the background worker once."""
+    global _wa_worker_started
+    if not _wa_worker_started:
+        _wa_worker_started = True
+        asyncio.create_task(_wa_notification_worker())
 
 
 @router.post("/upload-photo")
@@ -155,50 +208,19 @@ async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
     }
     await db.references.insert_one(ref_doc)
 
-    # Auto-send WhatsApp notification (throttled, fire-and-forget)
-    asyncio.create_task(_send_reference_notification(user['sub'], data.to_user_id, data))
+    # Queue WhatsApp notification (non-blocking, dropped if queue full)
+    _ensure_wa_worker()
+    try:
+        _notification_queue.put_nowait({
+            "from_user_id": user['sub'],
+            "to_user_id": data.to_user_id,
+            "contact_name": data.contact_name,
+            "contact_phone": data.contact_phone,
+        })
+    except asyncio.QueueFull:
+        pass  # Silently drop — reference is saved, notification is best-effort
 
     return {"message": "Reference passed", "id": ref_doc['id']}
-
-
-async def _get_cached_settings():
-    """Cache site_settings for 60s to avoid 500 identical DB reads."""
-    import time
-    now = time.time()
-    if _settings_cache["data"] is None or (now - _settings_cache["ts"]) > 60:
-        _settings_cache["data"] = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
-        _settings_cache["ts"] = now
-    return _settings_cache["data"]
-
-
-async def _send_reference_notification(from_user_id: str, to_user_id: str, data):
-    """Background task: send WhatsApp to to_user about the reference (throttled)."""
-    async with _wa_semaphore:
-        try:
-            from whatsapp_service import send_whatsapp
-            settings = await _get_cached_settings()
-            template = settings.get("wa_template_reference", "") if settings else ""
-            campaign = settings.get("wa_campaign_reference", "") if settings else ""
-            if not template or not campaign:
-                return
-            from_user = await db.users.find_one({"id": from_user_id}, {"_id": 0, "password_hash": 0})
-            to_user = await db.users.find_one({"id": to_user_id}, {"_id": 0, "password_hash": 0})
-            if not from_user or not to_user or not to_user.get('phone'):
-                return
-            params = [
-                to_user.get('full_name', 'User'),
-                from_user.get('full_name', 'Someone'),
-                data.contact_name or '',
-                data.contact_phone or '',
-            ]
-            await send_whatsapp(
-                destination=to_user['phone'],
-                template_name=template,
-                template_params=params,
-                campaign_name=campaign
-            )
-        except Exception:
-            pass
 
 
 @router.get("/references/{event_id}")
