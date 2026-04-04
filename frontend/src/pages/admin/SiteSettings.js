@@ -50,6 +50,7 @@ export default function SiteSettings() {
             data.sponsor_name_2 = settings.sponsor_name_2 || '';
             data.sponsor_title_1 = settings.sponsor_title_1 || '';
             data.sponsor_title_2 = settings.sponsor_title_2 || '';
+            data.sponsor_heading = settings.sponsor_heading || '';
             await API.put('/admin/settings', data);
             toast.success('Settings saved'); setNewPassword('');
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
@@ -124,6 +125,10 @@ export default function SiteSettings() {
                 <div className="glass-card rounded-xl p-6 space-y-4">
                     <div className="flex items-center gap-2 mb-2"><Image size={18} className="text-primary" /><h3 className="font-semibold">Dashboard Sponsors</h3></div>
                     <p className="text-xs text-muted-foreground">Sponsor titles and names displayed on the live screen alongside their logos uploaded above.</p>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">Center Header Text</Label>
+                        <Input value={settings.sponsor_heading || ''} onChange={e => setSettings(p => ({ ...p, sponsor_heading: e.target.value }))} placeholder="e.g. Dashboard Sponsors, Our Partners" className="bg-muted/50 border-border h-11 mt-1" data-testid="sponsor-heading-input" />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <Label className="text-sm text-muted-foreground">Sponsor 1 Title</Label>

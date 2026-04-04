@@ -197,7 +197,7 @@ export default function LiveScreen() {
                 </div>
                 <div className="text-center">
                     {hasSponsors && (
-                        <span className="text-2xl font-black uppercase tracking-widest text-gray-700" style={{fontFamily:'Outfit'}}>Dashboard Sponsors</span>
+                        <span className="text-2xl font-black uppercase tracking-widest text-gray-700" style={{fontFamily:'Outfit'}}>{branding.sponsor_heading || 'Dashboard Sponsors'}</span>
                     )}
                 </div>
                 <div className="flex items-center gap-4 justify-end">
