@@ -4,6 +4,7 @@ from auth_utils import require_user
 from models import UserUpdate, ReferenceCreate
 from db_helpers import enrich_users_with_categories, bulk_fetch_users
 import uuid
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -11,6 +12,12 @@ router = APIRouter(prefix="/api/user", tags=["User"])
 
 UPLOADS_DIR = Path(__file__).parent.parent / "uploads" / "users"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+# Semaphore to limit concurrent WhatsApp sends (prevent overwhelming external API)
+_wa_semaphore = asyncio.Semaphore(20)
+
+# Simple cache for site_settings (refreshed every 60s)
+_settings_cache = {"data": None, "ts": 0}
 
 
 @router.post("/upload-photo")
@@ -148,40 +155,50 @@ async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
     }
     await db.references.insert_one(ref_doc)
 
-    # Auto-send WhatsApp notification to the reference recipient (fire-and-forget)
-    import asyncio
+    # Auto-send WhatsApp notification (throttled, fire-and-forget)
     asyncio.create_task(_send_reference_notification(user['sub'], data.to_user_id, data))
 
     return {"message": "Reference passed", "id": ref_doc['id']}
 
 
+async def _get_cached_settings():
+    """Cache site_settings for 60s to avoid 500 identical DB reads."""
+    import time
+    now = time.time()
+    if _settings_cache["data"] is None or (now - _settings_cache["ts"]) > 60:
+        _settings_cache["data"] = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+        _settings_cache["ts"] = now
+    return _settings_cache["data"]
+
+
 async def _send_reference_notification(from_user_id: str, to_user_id: str, data):
-    """Background task: send WhatsApp to to_user about the reference."""
-    try:
-        from whatsapp_service import send_whatsapp
-        settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
-        template = settings.get("wa_template_reference", "") if settings else ""
-        campaign = settings.get("wa_campaign_reference", "") if settings else ""
-        if not template or not campaign:
-            return
-        from_user = await db.users.find_one({"id": from_user_id}, {"_id": 0, "password_hash": 0})
-        to_user = await db.users.find_one({"id": to_user_id}, {"_id": 0, "password_hash": 0})
-        if not from_user or not to_user or not to_user.get('phone'):
-            return
-        params = [
-            to_user.get('full_name', 'User'),
-            from_user.get('full_name', 'Someone'),
-            data.contact_name or '',
-            data.contact_phone or '',
-        ]
-        await send_whatsapp(
-            destination=to_user['phone'],
-            template_name=template,
-            template_params=params,
-            campaign_name=campaign
-        )
-    except Exception:
-        pass  # Don't fail the reference creation
+    """Background task: send WhatsApp to to_user about the reference (throttled)."""
+    async with _wa_semaphore:
+        try:
+            from whatsapp_service import send_whatsapp
+            settings = await _get_cached_settings()
+            template = settings.get("wa_template_reference", "") if settings else ""
+            campaign = settings.get("wa_campaign_reference", "") if settings else ""
+            if not template or not campaign:
+                return
+            from_user = await db.users.find_one({"id": from_user_id}, {"_id": 0, "password_hash": 0})
+            to_user = await db.users.find_one({"id": to_user_id}, {"_id": 0, "password_hash": 0})
+            if not from_user or not to_user or not to_user.get('phone'):
+                return
+            params = [
+                to_user.get('full_name', 'User'),
+                from_user.get('full_name', 'Someone'),
+                data.contact_name or '',
+                data.contact_phone or '',
+            ]
+            await send_whatsapp(
+                destination=to_user['phone'],
+                template_name=template,
+                template_params=params,
+                campaign_name=campaign
+            )
+        except Exception:
+            pass
 
 
 @router.get("/references/{event_id}")
