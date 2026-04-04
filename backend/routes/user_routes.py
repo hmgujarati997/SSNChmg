@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/user", tags=["User"])
 UPLOADS_DIR = Path(__file__).parent.parent / "uploads" / "users"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Bounded notification queue (max 200 pending). If full, notification is silently dropped.
+# Bounded notification queue (max 200 pending). Overflow spills to MongoDB backlog.
 _notification_queue = asyncio.Queue(maxsize=200)
 _wa_worker_started = False
 
@@ -34,35 +34,54 @@ async def _get_cached_settings():
     return _settings_cache["data"]
 
 
-async def _wa_notification_worker():
-    """Single worker that drains the notification queue at a controlled rate (max 10/sec)."""
+async def _send_one_notification(item):
+    """Send a single WhatsApp reference notification."""
     from whatsapp_service import send_whatsapp
+    settings = await _get_cached_settings()
+    template = settings.get("wa_template_reference", "") if settings else ""
+    campaign = settings.get("wa_campaign_reference", "") if settings else ""
+    if not template or not campaign:
+        return
+    from_user = await db.users.find_one({"id": item["from_user_id"]}, {"_id": 0, "full_name": 1})
+    to_user = await db.users.find_one({"id": item["to_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
+    if not from_user or not to_user or not to_user.get("phone"):
+        return
+    await send_whatsapp(
+        destination=to_user["phone"],
+        template_name=template,
+        template_params=[
+            to_user.get("full_name", "User"),
+            from_user.get("full_name", "Someone"),
+            item.get("contact_name", ""),
+            item.get("contact_phone", ""),
+        ],
+        campaign_name=campaign,
+    )
+
+
+async def _wa_notification_worker():
+    """Single worker: drains in-memory queue, then backlog from MongoDB when idle."""
     while True:
         try:
-            item = await _notification_queue.get()
-            settings = await _get_cached_settings()
-            template = settings.get("wa_template_reference", "") if settings else ""
-            campaign = settings.get("wa_campaign_reference", "") if settings else ""
-            if template and campaign:
-                from_user = await db.users.find_one({"id": item["from_user_id"]}, {"_id": 0, "full_name": 1})
-                to_user = await db.users.find_one({"id": item["to_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
-                if from_user and to_user and to_user.get("phone"):
-                    params = [
-                        to_user.get("full_name", "User"),
-                        from_user.get("full_name", "Someone"),
-                        item.get("contact_name", ""),
-                        item.get("contact_phone", ""),
-                    ]
-                    await send_whatsapp(
-                        destination=to_user["phone"],
-                        template_name=template,
-                        template_params=params,
-                        campaign_name=campaign,
-                    )
-            _notification_queue.task_done()
-            await asyncio.sleep(0.1)  # Max ~10 notifications/sec
+            # 1) Drain in-memory queue (with 0.5s timeout so we can check backlog)
+            try:
+                item = await asyncio.wait_for(_notification_queue.get(), timeout=0.5)
+                await _send_one_notification(item)
+                _notification_queue.task_done()
+                await asyncio.sleep(0.1)  # ~10/sec rate limit
+                continue
+            except asyncio.TimeoutError:
+                pass
+
+            # 2) Queue empty — check MongoDB backlog for spilled notifications
+            backlog_item = await db.notification_backlog.find_one_and_delete({})
+            if backlog_item:
+                await _send_one_notification(backlog_item)
+                await asyncio.sleep(0.1)
+            else:
+                await asyncio.sleep(2)  # Nothing to do, sleep longer
         except Exception:
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(1)
 
 
 def _ensure_wa_worker():
@@ -208,17 +227,19 @@ async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
     }
     await db.references.insert_one(ref_doc)
 
-    # Queue WhatsApp notification (non-blocking, dropped if queue full)
+    # Queue WhatsApp notification (non-blocking, spills to MongoDB backlog if queue full)
     _ensure_wa_worker()
+    notification = {
+        "from_user_id": user['sub'],
+        "to_user_id": data.to_user_id,
+        "contact_name": data.contact_name,
+        "contact_phone": data.contact_phone,
+    }
     try:
-        _notification_queue.put_nowait({
-            "from_user_id": user['sub'],
-            "to_user_id": data.to_user_id,
-            "contact_name": data.contact_name,
-            "contact_phone": data.contact_phone,
-        })
+        _notification_queue.put_nowait(notification)
     except asyncio.QueueFull:
-        pass  # Silently drop — reference is saved, notification is best-effort
+        # Spill to persistent backlog — worker will pick it up when queue drains
+        await db.notification_backlog.insert_one(notification)
 
     return {"message": "Reference passed", "id": ref_doc['id']}
 
