@@ -205,14 +205,14 @@ export default function PunchReferences() {
 
                         <div className="grid grid-cols-1 gap-3">
                             <div>
-                                <Label className="text-xs">Contact Name</Label>
+                                <Label className="text-xs">Contact Name <span className="text-red-500">*</span></Label>
                                 <Input value={refForm.contact_name} onChange={e => setRefForm(p => ({ ...p, contact_name: e.target.value }))}
-                                    placeholder="Person's name" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-name" />
+                                    placeholder="Person's name" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-name" required />
                             </div>
                             <div>
-                                <Label className="text-xs">Contact Phone</Label>
+                                <Label className="text-xs">Contact Phone <span className="text-red-500">*</span></Label>
                                 <Input value={refForm.contact_phone} onChange={e => setRefForm(p => ({ ...p, contact_phone: e.target.value }))}
-                                    placeholder="Phone number" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-phone" />
+                                    placeholder="Phone number" className="bg-muted/50 border-border h-10 mt-1" data-testid="ref-contact-phone" required />
                             </div>
                             <div>
                                 <Label className="text-xs">Contact Email</Label>
@@ -228,7 +228,7 @@ export default function PunchReferences() {
                         </div>
 
                         <div className="flex gap-2 pt-2">
-                            <Button onClick={submitReference} disabled={loading} className="flex-1 bg-primary" data-testid="submit-ref-btn">
+                            <Button onClick={submitReference} disabled={loading || !refForm.contact_name.trim() || !refForm.contact_phone.trim()} className="flex-1 bg-primary" data-testid="submit-ref-btn">
                                 <Send size={14} className="mr-2" />{loading ? 'Passing...' : 'Pass Reference'}
                             </Button>
                             <Button variant="outline" onClick={() => setDialogOpen(false)}><X size={14} /></Button>

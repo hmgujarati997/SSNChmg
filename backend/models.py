@@ -141,8 +141,8 @@ class ReferenceCreate(BaseModel):
     round_number: int
     table_number: int = 0
     notes: str = ""
-    contact_name: str = ""
-    contact_phone: str = ""
+    contact_name: str
+    contact_phone: str
     contact_email: str = ""
 
 
