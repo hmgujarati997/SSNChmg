@@ -298,14 +298,34 @@ function EventDetail({ eventId, onBack }) {
                             try {
                                 const r = await API.post(`/admin/events/${event.id}/assign-badges`);
                                 toast.success(r.data.message);
+                                const rg = await API.get(`/admin/events/${event.id}/registrations`);
+                                setRegs(rg.data);
                             } catch (err) { toast.error(err.response?.data?.detail || 'Error assigning badges'); }
                         }} data-testid="assign-badges-btn"><Hash size={16} className="mr-2" />Assign Badges</Button>
+                        <Button variant="outline" onClick={() => {
+                            const baseUrl = window.location.origin;
+                            const rows = [['Badge #', 'Name', 'Phone', 'Email', 'Business', 'Category', 'Subcategory', 'Position', 'Public URL', 'QR PNG URL']];
+                            regs.forEach(r => {
+                                const u = r.user || {};
+                                rows.push([
+                                    r.badge_number || '', u.full_name || '', u.phone || '', u.email || '',
+                                    u.business_name || '', u.category_name || '', u.subcategory_name || '', u.position || '',
+                                    `${baseUrl}/profile/${r.user_id}`,
+                                    `${baseUrl}/api/uploads/qr/${r.user_id}.png`
+                                ]);
+                            });
+                            const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+                            const blob = new Blob([csv], { type: 'text/csv' });
+                            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                            a.download = `registrations_${event.name || 'event'}.csv`; a.click();
+                        }} data-testid="download-regs-csv-btn"><Download size={16} className="mr-2" />Download Registrations CSV</Button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">CSV format: full_name, phone, email, business_name, category, subcategory, position</p>
                     <div className="glass-card rounded-xl overflow-hidden">
                         <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead><tr className="border-b border-border">
+                                <th className="text-left p-3 text-xs text-muted-foreground uppercase w-16">Badge #</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase">Name</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden sm:table-cell">Phone</th>
                                 <th className="text-left p-3 text-xs text-muted-foreground uppercase hidden md:table-cell">Business</th>
@@ -314,6 +334,7 @@ function EventDetail({ eventId, onBack }) {
                             </tr></thead>
                             <tbody>{regs.map(r => (
                                 <tr key={r.id} className="border-b border-border hover:bg-white/5 transition-colors">
+                                    <td className="p-3 font-bold text-primary" data-testid={`badge-${r.user_id}`}>{r.badge_number || '—'}</td>
                                     <td className="p-3 font-medium">{r.user?.full_name || 'N/A'}</td>
                                     <td className="p-3 text-muted-foreground hidden sm:table-cell">{r.user?.phone}</td>
                                     <td className="p-3 text-muted-foreground hidden md:table-cell">{r.user?.business_name || <span className="text-destructive/60 text-xs">Missing</span>}</td>
