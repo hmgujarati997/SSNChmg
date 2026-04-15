@@ -128,11 +128,11 @@ async def assign_badge_numbers(event_id: str, admin=Depends(require_admin)):
 
 
 @router.get("/events/{event_id}/download-qr-codes")
-async def download_qr_codes(event_id: str, admin=Depends(require_admin)):
-    """Download all QR codes as a ZIP file. Each PNG is named by badge number (e.g. 1.png)."""
+async def download_qr_codes(event_id: str, frontend_url: str = "", admin=Depends(require_admin)):
+    """Download all QR codes as a ZIP file. Each PNG is named by badge number (e.g. 1.png).
+    QR encodes the same profile URL as shown on user profiles."""
     import zipfile
     import qrcode
-    import numpy as np
     from PIL import Image as PILImage
 
     regs = await db.event_registrations.find(
@@ -141,10 +141,6 @@ async def download_qr_codes(event_id: str, admin=Depends(require_admin)):
     if not regs:
         raise HTTPException(400, "No registrations found")
 
-    # Get frontend URL for QR content
-    settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
-    frontend_url = ""
-
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for r in regs:
@@ -152,18 +148,14 @@ async def download_qr_codes(event_id: str, admin=Depends(require_admin)):
             if not badge:
                 continue
             user_id = r['user_id']
-            url = f"{frontend_url}/profile/{user_id}" if frontend_url else user_id
+            url = f"{frontend_url}/profile/{user_id}" if frontend_url else f"/profile/{user_id}"
 
-            qr = qrcode.QRCode(version=1, box_size=8, border=4)
+            qr = qrcode.QRCode(version=1, box_size=10, border=4)
             qr.add_data(url)
             qr.make(fit=True)
-            img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-            arr = np.array(img)
-            white_mask = (arr[:, :, 0] > 200)
-            noise = np.random.randint(248, 256, size=arr.shape, dtype=np.uint8)
-            arr[white_mask] = noise[white_mask]
+            img = qr.make_image(fill_color="black", back_color="white")
             png_buf = io.BytesIO()
-            PILImage.fromarray(arr).save(png_buf, format="PNG", compress_level=9)
+            img.save(png_buf, format="PNG")
             zf.writestr(f"{badge}.png", png_buf.getvalue())
 
     zip_buf.seek(0)

@@ -347,7 +347,8 @@ function EventDetail({ eventId, onBack }) {
                         <Button variant="outline" onClick={async () => {
                             try {
                                 toast.info('Generating QR codes ZIP...');
-                                const r = await API.get(`/admin/events/${eventId}/download-qr-codes`, { responseType: 'blob' });
+                                const origin = window.location.origin;
+                                const r = await API.get(`/admin/events/${eventId}/download-qr-codes?frontend_url=${encodeURIComponent(origin)}`, { responseType: 'blob' });
                                 const url = URL.createObjectURL(new Blob([r.data]));
                                 const a = document.createElement('a');
                                 a.href = url; a.download = `qr_codes_${event.name || 'event'}.zip`; a.click();
