@@ -136,7 +136,7 @@ def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
         if t in captain_ids:
             for pair in met_pairs:
                 if captain_ids[t] in pair:
-                    other = (pair - {captain_ids[t]}).pop()
+                    other = next(iter(pair - {captain_ids[t]}))
                     table_met_users[t].add(other)
 
     assigned = set()
