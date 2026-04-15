@@ -54,6 +54,7 @@ Build a PWA for a speed networking event "SSNC". Admin manages events, users, ca
 - [x] OpenAI API key in Settings + auto AI clash detection on Assign Tables (Feb 2026)
 - [x] Categories page simplified — removed AI button and inline clash group inputs (Feb 2026)
 - [x] Download All QR Codes as ZIP (PNGs named by badge number) in Registrations tab (Feb 2026)
+- [x] Badge Print CSV download (Badge#, Name, Company, Category, SubCategory, Round table numbers) (Feb 2026)
 
 ## P2 Features (Backlog)
 - [ ] Admin analytics dashboard

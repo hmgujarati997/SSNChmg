@@ -175,6 +175,79 @@ async def download_qr_codes(event_id: str, admin=Depends(require_admin)):
     )
 
 
+@router.get("/events/{event_id}/badge-print-csv")
+async def badge_print_csv(event_id: str, admin=Depends(require_admin)):
+    """Download CSV for badge printing with table assignments per round."""
+    from fastapi.responses import StreamingResponse
+
+    event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    if not event:
+        raise HTTPException(404, "Event not found")
+    total_rounds = event.get('total_rounds', 3)
+
+    regs = await db.event_registrations.find(
+        {"event_id": event_id}, {"_id": 0}
+    ).to_list(10000)
+    if not regs:
+        raise HTTPException(400, "No registrations found")
+
+    user_ids = [r['user_id'] for r in regs]
+    users = await db.users.find({"id": {"$in": user_ids}}, {"_id": 0, "password_hash": 0}).to_list(10000)
+    user_map = {u['id']: u for u in users}
+
+    # Build badge map: user_id -> badge_number
+    badge_map = {r['user_id']: r.get('badge_number', '') for r in regs}
+
+    # Fetch categories and subcategories for name lookup
+    categories = await db.categories.find({}, {"_id": 0}).to_list(200)
+    subcategories = await db.subcategories.find({}, {"_id": 0}).to_list(1000)
+    cat_map = {c['id']: c['name'] for c in categories}
+    sub_map = {s['id']: s['name'] for s in subcategories}
+
+    # Fetch table assignments: build user_id -> {round: table_number}
+    assignments = await db.table_assignments.find({"event_id": event_id}, {"_id": 0}).to_list(5000)
+    user_tables = {}  # user_id -> {round_number: table_number}
+    for a in assignments:
+        rnd = a['round_number']
+        tbl = a['table_number']
+        for uid in a.get('user_ids', []):
+            user_tables.setdefault(uid, {})[rnd] = tbl
+        if a.get('captain_id'):
+            user_tables.setdefault(a['captain_id'], {})[rnd] = tbl
+
+    # Build CSV
+    header = ['Badge Number', 'Name', 'Company Name', 'Category', 'Sub Category']
+    for r in range(1, total_rounds + 1):
+        header.append(f'Round {r} Table Number')
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(header)
+
+    # Sort by badge number
+    sorted_regs = sorted(regs, key=lambda r: r.get('badge_number', 0) or 0)
+    for r in sorted_regs:
+        uid = r['user_id']
+        badge = r.get('badge_number', '')
+        user = user_map.get(uid, {})
+        name = user.get('full_name', '')
+        company = user.get('business_name', '')
+        cat_name = cat_map.get(user.get('category_id', ''), '')
+        sub_name = sub_map.get(user.get('subcategory_id', ''), '')
+        row = [badge, name, company, cat_name, sub_name]
+        tables = user_tables.get(uid, {})
+        for rnd in range(1, total_rounds + 1):
+            row.append(tables.get(rnd, ''))
+        writer.writerow(row)
+
+    output = io.BytesIO(buf.getvalue().encode('utf-8-sig'))
+    return StreamingResponse(
+        output,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=badge_print_{event_id[:8]}.csv"}
+    )
+
+
 @router.post("/events/{event_id}/upload-csv")
 async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(require_admin)):
     event = await db.events.find_one({"id": event_id})

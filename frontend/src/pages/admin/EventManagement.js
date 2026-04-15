@@ -355,6 +355,15 @@ function EventDetail({ eventId, onBack }) {
                                 toast.success('QR codes downloaded');
                             } catch (err) { toast.error(err.response?.data?.detail || 'Download failed'); }
                         }} data-testid="download-qr-codes-btn"><Download size={16} className="mr-2" />Download All QR Codes</Button>
+                        <Button variant="outline" onClick={async () => {
+                            try {
+                                const r = await API.get(`/admin/events/${eventId}/badge-print-csv`, { responseType: 'blob' });
+                                const url = URL.createObjectURL(new Blob([r.data]));
+                                const a = document.createElement('a');
+                                a.href = url; a.download = `badge_print_${event.name || 'event'}.csv`; a.click();
+                                URL.revokeObjectURL(url);
+                            } catch (err) { toast.error('Download failed'); }
+                        }} data-testid="download-badge-print-csv-btn"><Download size={16} className="mr-2" />Badge Print CSV</Button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">CSV format: full_name, phone, email, business_name, category, subcategory, position</p>
                     <div className="glass-card rounded-xl overflow-hidden">
