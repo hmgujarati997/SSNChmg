@@ -49,6 +49,8 @@ Build a PWA for a speed networking event "SSNC". Admin manages events, users, ca
 - [x] Volunteer check-in
 - [x] Reference passing with notifications
 - [x] Performance for 1200 concurrent users
+- [x] AI-powered Category & Subcategory Clash Groups (Feb 2026)
+- [x] Subcategory clash group seating logic fix — NameError in _count_violations (Feb 2026)
 
 ## P2 Features (Backlog)
 - [ ] Admin analytics dashboard

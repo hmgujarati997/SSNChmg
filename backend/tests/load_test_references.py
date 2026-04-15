@@ -4,7 +4,7 @@ import aiohttp
 import time
 import sys
 
-API_URL = "https://event-match-14.preview.emergentagent.com"
+API_URL = "https://speed-match-live.preview.emergentagent.com"
 TOKEN = sys.argv[1]
 EVENT_ID = sys.argv[2]
 TO_USER_ID = sys.argv[3]

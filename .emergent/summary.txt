@@ -1,60 +1,39 @@
 <analysis>**original_problem_statement**: 
 The user wants to build a Progressive Web App (PWA) for a speed networking event called SSNC.
-**PRODUCT REQUIREMENTS**:
-- **Admin Role**: Manage events, users, business categories, spot registrations, seating reallocation, live screen settings, and trigger badge assignment. Execute strict seating algorithms (no rematches, competitors separated).
-- **User Role**: Register/login (phone-only), update profile (vCard, profile picture, company logo), pass references.
-- **Volunteer Role**: Scan user QRs, check-in attendees, and view sequentially assigned badge numbers.
-- **Live Screen**: Banquet-hall friendly, light-mode dashboard with a speaker/conclusion timer, leaderboards, attendance, header logo, and dynamic sponsor logos prominently displayed.
-- **Integrations**: Flexiwaba WhatsApp API for broadcast notifications (Welcome, Table Assignments, References). Future: Razorpay for event fees.
+PRODUCT REQUIREMENTS:
+- Admin Role: Manage events, users, business categories/subcategories, spot registrations, seating reallocation, live screen settings, and trigger badge assignment. Execute strict seating algorithms (no rematches, competitors separated).
+- User Role: Register/login (phone-only), update profile, pass references.
+- Volunteer Role: Scan user QRs, check-in attendees, read sequential badge numbers.
+- Live Screen: Banquet-hall friendly dashboard with speaker timer, leaderboards, and dynamic sponsor logos.
+- Integrations: Flexiwaba WhatsApp API for broadcast notifications. OpenAI for AI auto-grouping of clash categories. Future: Razorpay.
 
-**User's preferred language**: English
-*(INSTRUCT NEXT AGENT: ALWAYS respond in English)*
+**User's preferred language**: English (INSTRUCT NEXT AGENT: ALWAYS respond in English)
 
 **what currently exists?** 
-A mature, highly optimized full-stack PWA (React + FastAPI + MongoDB). It features a robust, randomized seating algorithm strictly avoiding re-meetings and subcategory clashes, a Day Of Event spot registration and reallocation module, and a massive-font Live Screen in light mode with sponsor integration. It also includes comprehensive user profiles with file uploads, distinct separated login routes (User, Admin, Volunteer), and background WhatsApp broadcasts.
+A mature, highly optimized full-stack PWA tuned for 1200+ concurrent users. Includes a robust background-processed seating algorithm with AI-powered Clash Groups (Category & Subcategory) to strictly separate competitors. Features high-concurrency WhatsApp background notifications (in-memory queue + MongoDB backlog), an Admin dashboard with CSV exports and category locks, separated auth routes, and a Live Screen with customizable sponsor branding. 
 
 **Last working item**: 
-- **Last item agent was working**: Increasing the generated QR code PNG file size to >25KB. Meta (Flexiwaba) requires media attachments to be at least 25kb, but the current  generation creates ~1KB files. The agent just started the session and invoked  to propose the fix.
-- **Status**: BLOCKED (Waiting for user response to )
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: backend manual testing by checking the size of generated PNG files in  via bash (total 64K
--rw-r--r-- 1 root root   29 Jun 18  2025 README.md
-drwxr-xr-x 7 root root 4.0K Mar 30 11:45 backend
--rw-r--r-- 1 root root  20K Mar 31 08:01 backend_test.py
--rw-r--r-- 1 root root 6.4K Mar 23 13:04 design_guidelines.json
-drwxr-xr-x 6 root root 4.0K Apr  1 12:29 frontend
-drwxr-xr-x 2 root root 4.0K Mar 30 12:21 memory
-drwxr-xr-x 3 root root 4.0K Mar 31 10:52 test_reports
--rw-r--r-- 1 root root 4.7K Jun 18  2025 test_result.md
-drwxr-xr-x 2 root root 4.0K Jun 18  2025 tests
--rw-r--r-- 1 root root   86 Jun 18  2025 yarn.lock) or .
-- **User Testing Done**: N
+    - Last item agent was working: The previous agent extended the AI-powered Clash Group logic to Subcategories so that umbrella categories do not place competitors at the same table (e.g., Architects and Engineers). , , and  were updated. In this current session, the agent *just* executed  to propose a plan to the user and is actively waiting for the user's response.
+    - Status: USER VERIFICATION PENDING (Waiting on  response)
+    - Agent Testing Done: N
+    - Which testing method agent to use?: Backend manual testing (run , , or  to trigger the AI auto-grouping on subcategories, then trigger  to ensure the algorithm completes without errors and returns 0 subclash violations).
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**: 
-  Issue 1: Increase QR Code Image File Size > 25KB (P0)
-  Issue 2: WhatsApp Table Assignment Media Delivery on Production (P2)
+  Issue 1: Verify Subcategory Clash Group Seating Logic (P0)
 
   Issues Detail:
   - Issue 1: 
-     - Attempted fixes: Agent viewed the issue but hasn't applied the fix yet (waiting on ). 
-     - Next debug checklist: Modify  parameters (, ) or add image padding/upscaling using PIL () in  and  to ensure the generated  is strictly >25KB to satisfy Meta API requirements. Uncompressed RGB saving is recommended.
-     - Why fix this issue and what will be achieved with the fix?: Meta API rejects images under 25KB, breaking WhatsApp broadcast QR deliveries.
-     - Status: BLOCKED (Waiting for user response to ask_human)
+     - Attempted fixes: The previous agent updated the AI grouping endpoint and  to support .
+     - Next debug checklist: Await user's response to the plan. Once approved, run the table assignment algorithm and verify that no  or  occurs due to the  variable swapping, and confirm that the algorithm cleanly finishes within the 45s time budget.
+     - Why fix this issue and what will be achieved with the fix?: Ensures specific subcategories (e.g., Architects and Engineers) do not sit together, guaranteeing 0 clashes.
+     - Status: TESTING PENDING
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Backend (Check generated file size via bash)
+     - Should Test frontend/backend/both after fix?: Backend 
      - Blocked on other issue: None
 
-  - Issue 2: 
-     - Attempted fixes: Agent switched to static file serving in a previous fork.
-     - Next debug checklist: Await production deployment to verify if Flexiwaba successfully fetches the QRs.
-     - Why fix this issue and what will be achieved with the fix?: Ensures users get their QR codes via WA.
-     - Status: USER VERIFICATION PENDING
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: NA
-     - Blocked on other issue: Issue 1
-
-**In progress Task List**:
-None.
+**In progress Task List**: 
+None
 
 **Upcoming and Future Tasks**
   Upcoming Tasks:
@@ -63,100 +42,100 @@ None.
   Future Tasks:
   - Admin analytics dashboard (P2)
   - Export functionality for reports (CSV/PDF) (P2)
+  - References tab in Event detail page for admins to view all passed references (P2)
 
 **Completed work in this session**
-- None in this specific brief session (Agent only invoked  and paused).
-- *Recently completed (Previous Forks)*:
-  - Added Sponsor UI to Admin Settings and Converted Live Screen to Light Mode (DONE)
-  - Implemented Profile Picture and Company Logo uploads for Users (DONE)
-  - Separated Auth Routes (User, Admin, Volunteer) (DONE)
-  - Implemented Redirect-After-Login for QR code scan flows (DONE)
-  - Created Sequential Badge Number auto-assignment system for Volunteer Check-in (DONE)
-  - Refactored Seating Algorithm for STRICT constraint enforcement (Zero repeat meetings, zero subcategory clashes) (DONE)
+- List of all completed tasks with file and method name:
+  - *No code changes were made in this immediate session (the agent just called  and paused).*
+- Recently completed:
+  - AI-powered auto-detection of Category & Subcategory Clash Groups (DONE)
+  - Category Lock toggle fix for user profile saves (DONE)
+  - Seating Algorithm Crash Fix (converted to async background task, 45s execution limit) (DONE)
+  - WhatsApp notifications payload combined referrer name and phone (DONE)
 
 **Earlier issues found/mentioned but not fixed**
-None.
+None
 
 **Known issue recurrence from previous fork**
-- Issue recurrence in previous fork: None
-- Recurrence count: 0
-- Status: RESOLVED
+  - Issue recurrence in previous fork: None
+  - Recurrence count: 0
+  - Status: RESOLVED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- React, TailwindCSS, Shadcn UI
-- FastAPI, MongoDB (Motor Async), Pydantic
-- FastAPI BackgroundTasks (Async Whatsapp messaging)
--  and  libraries for Python (QR Generation)
+React, TailwindCSS, Shadcn UI, FastAPI, MongoDB (Motor Async), Pydantic, BackgroundTasks (Async table assignments and WA messaging),  (LiteLLM / OpenAI for AI-powered data grouping)
 
 **key DB schema**
-- : 
-- : 
-- : 
+  - : {id, name, clash_group}
+  - : {id, category_id, name, clash_group}
+  - : {category_locked (bool), sponsor_name_1, etc.}
+  - : {type, to_phone, payload, ...}
 
 **changes in tech stack**
-- None
+  - Added  for OpenAI access via Emergent LLM Key.
 
 **All files of reference** 
--  (Current target)
--  (Current target)
+  - 
+  - 
+  -  
+  - 
+  -  
 
 **Areas that need refactoring**: 
-- None. Codebase is in highly healthy state.
+ is increasingly complex with 4-level deep loops and new subcategory clash logic. Monitor for timeout regressions.
 
 **key api endpoints**
-- 
-- 
-- 
+  -  
+  - 
+  -  
+  - 
 
 **Critical Info for New Agent** 
-- **Immediate State**: The agent in this session did exactly one thing: called . You will wake up with the user's response. Proceed immediately to edit  and  to inflate the PNG generation size >25KB.
-- **QR File Inflation Strategy**: The  library inherently generates very small optimized PNGs (~1KB). To bypass the Meta/Flexiwaba 25KB limitation, use  to save uncompressed RGB formatting (e.g., ) or artificially pad the image size.
-- **Login Paths**: Do NOT add links to the admin or volunteer portals from the public  page. The user explicitly requested these to be hidden URL paths ( and ).
-- **Algorithm State**: The seating algorithm was thoroughly debugged and correctly enforces 0 repeat meetings and 0 subcategory clashes using a multi-run approach. **Do not modify .**
+- **Seating Algorithm Changes**: The algorithm isolates by  and , NOT by pure .
+- **WhatsApp High Concurrency**: WhatsApp notifications are strictly bounded to an in-memory queue of 200, overflowing to  in MongoDB. Do NOT revert to unbounded  calls (will cause OOM).
+- **Table Assignment**: This is now an async background job with progress polling. It enforces a strict 45s time limit to prevent 502 gateway timeouts.
 
 **documents and test reports created in this job** 
--  
--  
-*(No new iteration reports generated in this short session)*
+  - /app/PRODUCTION_DEPLOY.md
+  - /app/test_reports/iteration_13.json
+  - /app/memory/PRD.md
 
 **Last 10 User Messages and any pending HUMAN messages** 
-1. **User**: where are the images of the QR code stored? -> **Resolved**
-2. **User**: what would be user ID of a user? -> **Resolved**
-3. **User**: can you increase the png file size beacuse its only 1001b its not accepeted by meta for messages need atleast 25kb file -> **Agent called ask_human with a plan**
-4. **User**: [PENDING RESPONSE TO ASK_HUMAN]
+1. User: Please use ask_human tool and confirm your plan now. -> **Pending Response** (Agent dispatched the  tool and is waiting for the user's reply).
+*(Older messages regarding zero clash categories and OpenAI usage have been resolved and implemented, pending the final backend seating tests).*
 
 **Project Health Check:**
-- All Backend tests & E2E flows passing natively.
-- **Mocked**: Razorpay integration (upcoming).
+- Broken:  needs verification after subclash integration.
+- Mocked: Razorpay (Upcoming).
 
 **3rd Party Integrations** 
-- Flexiwaba (WhatsApp API) — requires User API Key.
+- Flexiwaba (WhatsApp) — requires User API Key.
+- OpenAI GPT-4o-mini (AI Category Grouping) — uses Emergent LLM Key.
 - Razorpay (Payments) — requires User API Key (Upcoming).
 
 **Testing status**
-- Testing agent used after significant changes: NO (Session was too short, but previously passed in )
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: None
-- Known regressions: None
+  - Testing agent used after significant changes: NO (Needed for the recent  changes once approved by user).
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: 
+  - Known regressions: None
 
 **Credentials to test flow:**
-Admin Login ():  / 
-Volunteer Login (): Phone:  / Pass: 
-User Login (): Phone:  (No password required)
+Admin:  / 
+Volunteer:  / 
+User:  (No password required)
 
 **What agent forgot to execute**
-The agent navigated to the  and  files to increase the QR code file size to  as requested by the user, but paused the execution by calling  before actually writing the file modification code. The next agent must read the user's reply in the immediate next prompt and resume by inflating the PNG generation size in these files.
+The previous agent did not test the actual  changes (via backend triggers or UI) to ensure no syntax errors/crash loops exist with the new  variables. In this current session, the agent merely initiated the planning phase and is paused waiting for the user. 
 
 **Debugging checklist for current issue**
-    Issue: QR codes generated are ~1KB, but Meta requires >25KB.
+    Issue: Verify Subcategory Clash logic in seating algorithm.
 
     Backend files to check: 
-    
-    
+     (check  and )
 
-    Database to check: N/A
+    Database to check: 
+     (ensure  is being generated and respected)
 
     </analysis>

@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 
 
-def assign_tables(users, event, captains, categories, on_progress=None):
+def assign_tables(users, event, captains, categories, on_progress=None, subcategories=None):
     """
     Smart seating algorithm for speed networking.
     Hard constraints:
@@ -42,16 +42,29 @@ def assign_tables(users, event, captains, categories, on_progress=None):
     # Map user -> clash_group for category-level clash checking
     user_clash = {uid: cat_to_clash.get(cat_id, cat_id) for uid, cat_id in user_cats.items()}
 
+    # Build subcategory clash group map
+    sub_to_clash = {}
+    if subcategories:
+        for sub in subcategories:
+            sid = sub.get('id', '')
+            group = sub.get('clash_group', '').strip()
+            sub_to_clash[sid] = group if group else sid
+    # Map user -> subcategory clash group
+    user_subclash = {uid: sub_to_clash.get(sub_id, sub_id) for uid, sub_id in user_subcats.items()}
+
     captain_cats = {}
     captain_subcats = {}
     captain_ids = {}
     captain_clash = {}
+    captain_subclash = {}
     for t, c in captain_tables.items():
         cat_id = c.get('category_id', '')
+        sub_id = c.get('subcategory_id', '')
         captain_cats[t] = cat_id
-        captain_subcats[t] = c.get('subcategory_id', '')
+        captain_subcats[t] = sub_id
         captain_ids[t] = c['user_id']
         captain_clash[t] = cat_to_clash.get(cat_id, cat_id)
+        captain_subclash[t] = sub_to_clash.get(sub_id, sub_id)
 
     assignments = {}
     met_pairs = set()
@@ -74,7 +87,7 @@ def assign_tables(users, event, captains, categories, on_progress=None):
             result, remeets, subcat_v, cat_v = _assign_round(
                 users, total_tables, table_capacity, user_cats, user_subcats,
                 captain_cats, captain_subcats, captain_ids, met_pairs, seed,
-                user_clash, captain_clash
+                user_clash, captain_clash, user_subclash, captain_subclash
             )
             score = remeets * 10000 + subcat_v * 100 + cat_v
             if score < best_score:
@@ -91,7 +104,8 @@ def assign_tables(users, event, captains, categories, on_progress=None):
                 best_assignment, total_tables, table_capacity, user_cats,
                 user_subcats, captain_cats, captain_subcats, captain_ids, met_pairs,
                 max_iterations=500, time_limit=min(time_left * 0.5, 10),
-                user_clash=user_clash, captain_clash=captain_clash
+                user_clash=user_clash, captain_clash=captain_clash,
+                user_subclash=user_subclash, captain_subclash=captain_subclash
             )
             opt_score = remeets * 10000 + subcat_v * 100 + cat_v
             if opt_score <= best_score:
@@ -115,12 +129,16 @@ def assign_tables(users, event, captains, categories, on_progress=None):
 
 def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
                    captain_cats, captain_subcats, captain_ids, met_pairs, seed,
-                   user_clash=None, captain_clash=None):
-    """Assign users for a single round. Uses clash groups for category separation."""
+                   user_clash=None, captain_clash=None, user_subclash=None, captain_subclash=None):
+    """Assign users for a single round. Uses clash groups for category and subcategory separation."""
     if user_clash is None:
         user_clash = user_cats
     if captain_clash is None:
         captain_clash = {t: captain_cats.get(t, '') for t in captain_cats}
+    if user_subclash is None:
+        user_subclash = user_subcats
+    if captain_subclash is None:
+        captain_subclash = captain_subcats
 
     random.seed(seed)
 
@@ -145,14 +163,14 @@ def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
 
     round_tables = {t: [] for t in range(1, total_tables + 1)}
     table_clash_groups = {t: set() for t in range(1, total_tables + 1)}
-    table_subcats = {t: set() for t in range(1, total_tables + 1)}
+    table_subclash_groups = {t: set() for t in range(1, total_tables + 1)}
     table_met_users = {t: set() for t in range(1, total_tables + 1)}
 
     for t in range(1, total_tables + 1):
         if t in captain_clash and captain_clash[t]:
             table_clash_groups[t].add(captain_clash[t])
-        if t in captain_subcats and captain_subcats[t]:
-            table_subcats[t].add(captain_subcats[t])
+        if t in captain_subclash and captain_subclash[t]:
+            table_subclash_groups[t].add(captain_subclash[t])
         if t in captain_ids:
             for pair in met_pairs:
                 if captain_ids[t] in pair:
@@ -161,32 +179,32 @@ def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
 
     assigned = set()
 
-    # Phase 1: All constraints (no re-meeting, no subcat clash, no clash group clash)
+    # Phase 1: All constraints (no re-meeting, no subclash group clash, no category clash group clash)
     for user in shuffled:
         uid = user['id']
         if uid in assigned:
             continue
         t = _find_best_table(uid, round_tables, total_tables, table_capacity,
-                             table_clash_groups, table_subcats, table_met_users,
-                             user_clash, user_subcats, met_pairs,
+                             table_clash_groups, table_subclash_groups, table_met_users,
+                             user_clash, user_subclash, met_pairs,
                              strict_category=True)
         if t is not None:
-            _place_user(uid, t, round_tables, table_clash_groups, table_subcats,
-                       table_met_users, user_clash, user_subcats, met_pairs)
+            _place_user(uid, t, round_tables, table_clash_groups, table_subclash_groups,
+                       table_met_users, user_clash, user_subclash, met_pairs)
             assigned.add(uid)
 
-    # Phase 2: Relax clash group constraint (still no re-meeting, no subcat clash)
+    # Phase 2: Relax category clash group constraint (still no re-meeting, no subcategory clash)
     for user in shuffled:
         uid = user['id']
         if uid in assigned:
             continue
         t = _find_best_table(uid, round_tables, total_tables, table_capacity,
-                             table_clash_groups, table_subcats, table_met_users,
-                             user_clash, user_subcats, met_pairs,
+                             table_clash_groups, table_subclash_groups, table_met_users,
+                             user_clash, user_subclash, met_pairs,
                              strict_category=False)
         if t is not None:
-            _place_user(uid, t, round_tables, table_clash_groups, table_subcats,
-                       table_met_users, user_clash, user_subcats, met_pairs)
+            _place_user(uid, t, round_tables, table_clash_groups, table_subclash_groups,
+                       table_met_users, user_clash, user_subclash, met_pairs)
             assigned.add(uid)
 
     # Phase 3: Relax subcategory (still NO re-meetings)
@@ -211,32 +229,32 @@ def _assign_round(users, total_tables, table_capacity, user_cats, user_subcats,
                 best_score = score
                 best_t = t
         if best_t is not None:
-            _place_user(uid, best_t, round_tables, table_clash_groups, table_subcats,
-                       table_met_users, user_clash, user_subcats, met_pairs)
+            _place_user(uid, best_t, round_tables, table_clash_groups, table_subclash_groups,
+                       table_met_users, user_clash, user_subclash, met_pairs)
             assigned.add(uid)
 
-    # Phase 4: Absolute last resort (re-meetings allowed only if no other option)
+    # Phase 4: Absolute last resort
     for user in shuffled:
         uid = user['id']
         if uid in assigned:
             continue
         for t in range(1, total_tables + 1):
             if len(round_tables[t]) < table_capacity.get(t, 0):
-                _place_user(uid, t, round_tables, table_clash_groups, table_subcats,
-                           table_met_users, user_clash, user_subcats, met_pairs)
+                _place_user(uid, t, round_tables, table_clash_groups, table_subclash_groups,
+                           table_met_users, user_clash, user_subclash, met_pairs)
                 assigned.add(uid)
                 break
 
-    remeets, subcat_v, cat_v = _count_violations(round_tables, total_tables, user_clash, user_subcats,
-                                           captain_clash, captain_subcats, captain_ids, met_pairs)
+    remeets, subcat_v, cat_v = _count_violations(round_tables, total_tables, user_clash, user_subclash,
+                                           captain_clash, captain_subclash, captain_ids, met_pairs)
     return round_tables, remeets, subcat_v, cat_v
 
 
 def _find_best_table(uid, round_tables, total_tables, table_capacity,
-                      table_clash_groups, table_subcats, table_met_users,
-                      user_clash, user_subcats, met_pairs, strict_category=True):
+                      table_clash_groups, table_subclash_groups, table_met_users,
+                      user_clash, user_subclash, met_pairs, strict_category=True):
     u_clash = user_clash.get(uid, '')
-    u_subcat = user_subcats.get(uid, '')
+    u_subclash = user_subclash.get(uid, '')
     best_t = None
     best_score = float('-inf')
 
@@ -244,8 +262,8 @@ def _find_best_table(uid, round_tables, total_tables, table_capacity,
         if len(round_tables[t]) >= table_capacity.get(t, 0):
             continue
 
-        # HARD: No duplicate subcategory
-        if u_subcat and u_subcat in table_subcats[t]:
+        # HARD: No duplicate subcategory clash group
+        if u_subclash and u_subclash in table_subclash_groups[t]:
             continue
 
         # HARD: No re-meeting
@@ -275,38 +293,38 @@ def _find_best_table(uid, round_tables, total_tables, table_capacity,
     return best_t
 
 
-def _place_user(uid, t, round_tables, table_clash_groups, table_subcats,
-                table_met_users, user_clash, user_subcats, met_pairs):
+def _place_user(uid, t, round_tables, table_clash_groups, table_subclash_groups,
+                table_met_users, user_clash, user_subclash, met_pairs):
     round_tables[t].append(uid)
     u_clash = user_clash.get(uid, '')
-    u_subcat = user_subcats.get(uid, '')
+    u_subclash = user_subclash.get(uid, '')
     if u_clash:
         table_clash_groups[t].add(u_clash)
-    if u_subcat:
-        table_subcats[t].add(u_subcat)
+    if u_subclash:
+        table_subclash_groups[t].add(u_subclash)
 
 
-def _count_violations(round_tables, total_tables, user_clash, user_subcats,
-                       captain_clash, captain_subcats, captain_ids, met_pairs):
-    """Count re-meeting violations, subcategory violations, and clash group clashes separately."""
+def _count_violations(round_tables, total_tables, user_clash, user_subclash,
+                       captain_clash, captain_subclash, captain_ids, met_pairs):
+    """Count re-meeting violations, subcategory clash group violations, and category clash group violations."""
     remeets = 0
     subcat_v = 0
     cat_v = 0
     for t in range(1, total_tables + 1):
-        # Subcategory violations (skip empty)
-        subcats = []
-        if t in captain_subcats and captain_subcats[t]:
-            subcats.append(captain_subcats[t])
+        # Subcategory clash group violations
+        subclashes = []
+        if t in captain_subclash and captain_subclash[t]:
+            subclashes.append(captain_subclash[t])
         for uid in round_tables[t]:
-            s = user_subcats.get(uid, '')
+            s = user_subclash.get(uid, '')
             if s:
-                subcats.append(s)
-        for s in set(subcats):
-            cnt = subcats.count(s)
+                subclashes.append(s)
+        for s in set(subclashes):
+            cnt = subclashes.count(s)
             if cnt > 1:
                 subcat_v += cnt - 1
 
-        # Clash group clashes (skip empty)
+        # Category clash group violations
         clashes = []
         if t in captain_clash and captain_clash[t]:
             clashes.append(captain_clash[t])
@@ -332,14 +350,16 @@ def _count_violations(round_tables, total_tables, user_clash, user_subcats,
 
 def _swap_optimize(round_tables, total_tables, table_capacity, user_cats, user_subcats,
                     captain_cats, captain_subcats, captain_ids, met_pairs, max_iterations=500, time_limit=10,
-                    user_clash=None, captain_clash=None):
-    """Try swapping users between tables to eliminate re-meetings first, then subcategory, then clash group violations."""
+                    user_clash=None, captain_clash=None, user_subclash=None, captain_subclash=None):
+    """Try swapping users between tables to reduce violations."""
     uc = user_clash if user_clash is not None else user_cats
+    usc = user_subclash if user_subclash is not None else user_subcats
     cc = captain_clash if captain_clash is not None else captain_cats
+    csc = captain_subclash if captain_subclash is not None else captain_subcats
 
     def score():
-        rm, sv, cv = _count_violations(round_tables, total_tables, uc, user_subcats,
-                                    cc, captain_subcats, captain_ids, met_pairs)
+        rm, sv, cv = _count_violations(round_tables, total_tables, uc, usc,
+                                    cc, csc, captain_ids, met_pairs)
         return rm * 10000 + sv * 100 + cv, rm, sv, cv
 
     current_score, current_rm, current_sv, current_cv = score()

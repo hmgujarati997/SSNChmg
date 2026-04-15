@@ -228,6 +228,9 @@ async def _run_table_assignment(job_id, event_id, event, regular_users, captains
         total_rounds = event.get('total_rounds', 1)
         _table_jobs[job_id] = {"status": "running", "message": "Computing seating...", "progress": 0, "total_rounds": total_rounds}
 
+        # Fetch subcategories for clash group support
+        subcategories = await db.subcategories.find({}, {"_id": 0}).to_list(1000)
+
         def on_progress(round_num, phase):
             base = ((round_num - 1) / total_rounds) * 80
             phase_add = {"attempt": 0, "optimizing": 10, "done": 15}
@@ -235,7 +238,7 @@ async def _run_table_assignment(job_id, event_id, event, regular_users, captains
             _table_jobs[job_id]["progress"] = min(pct, 80)
             _table_jobs[job_id]["message"] = f"Round {round_num}/{total_rounds}: {phase}..."
 
-        assignments = assign_tables(regular_users, event, captains, categories, on_progress=on_progress)
+        assignments = assign_tables(regular_users, event, captains, categories, on_progress=on_progress, subcategories=subcategories)
 
         _table_jobs[job_id]["progress"] = 85
         _table_jobs[job_id]["message"] = "Saving assignments..."
@@ -865,14 +868,21 @@ async def upload_logo(file: UploadFile = File(...), logo_type: str = "header_log
 
 @router.post("/categories/ai-clash-groups")
 async def ai_detect_clash_groups(admin=Depends(require_admin)):
-    """Use AI to automatically detect and assign clash groups for all categories."""
+    """Use AI to automatically detect and assign clash groups for all categories AND subcategories."""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
 
     categories = await db.categories.find({}, {"_id": 0}).to_list(200)
+    subcategories = await db.subcategories.find({}, {"_id": 0}).to_list(1000)
     if not categories:
         raise HTTPException(400, "No categories found")
 
-    cat_names = [{"id": c["id"], "name": c["name"]} for c in categories]
+    cat_name_map = {c["id"]: c["name"] for c in categories}
+
+    # Build full hierarchy for AI
+    hierarchy = []
+    for cat in categories:
+        subs = [{"id": s["id"], "name": s["name"]} for s in subcategories if s["category_id"] == cat["id"]]
+        hierarchy.append({"id": cat["id"], "name": cat["name"], "subcategories": subs})
 
     api_key = os.environ.get("EMERGENT_LLM_KEY")
     if not api_key:
@@ -881,54 +891,76 @@ async def ai_detect_clash_groups(admin=Depends(require_admin)):
     chat = LlmChat(
         api_key=api_key,
         session_id=f"clash-group-{uuid.uuid4()}",
-        system_message="You are an expert business category analyst for a speed networking event. Your job is to group related/competing business categories together so they don't sit at the same table."
+        system_message="You are an expert business category analyst for a speed networking event in India. Your job is to group related/competing businesses so they don't sit at the same table."
     ).with_model("openai", "gpt-4o")
 
-    prompt = f"""Here are business categories for a speed networking event. Group related/competing categories that should NOT sit at the same table.
+    prompt = f"""Here are business categories and their subcategories for a speed networking event. 
 
-Categories:
-{json.dumps(cat_names, indent=2)}
+I need TWO levels of clash groups:
+1. **Category-level clash groups**: Group related main categories (e.g., Garments + Textile + Jari = "textile")
+2. **Subcategory-level clash groups**: Group related subcategories WITHIN and ACROSS categories (e.g., Architect + Engineer = "design_engineering", CA + Accountant + Tax Practitioner = "finance_professional", Advocates + Legal Advisor = "legal")
+
+This is CRITICAL: subcategory clash groups prevent related professionals from sitting together even if they're in the same main category.
+
+Categories and Subcategories:
+{json.dumps(hierarchy, indent=2)}
 
 Rules:
-- Categories in the same industry or with overlapping business interests should share a clash_group
-- Use short, lowercase group names (e.g., "textile", "food", "healthcare", "finance")
-- Categories that are truly unique with no competitors can have an empty clash_group ""
-- Be thorough — even loosely related categories should be grouped (e.g., Garments + Textile + Jari = "textile")
+- Related/competing businesses at ANY level should share a clash_group
+- Use short, lowercase, descriptive group names
+- For subcategories: group by profession similarity (e.g., all design-related, all finance-related, all legal)
+- Unique subcategories with no similar ones can have empty clash_group ""
+- Be thorough and aggressive with grouping — we want ZERO same-industry people at a table
 
-Return ONLY a valid JSON array with this format:
-[{{"id": "category-id", "clash_group": "group-name"}}]
+Return ONLY valid JSON with this exact format:
+{{
+  "categories": [{{"id": "cat-id", "clash_group": "group-name"}}],
+  "subcategories": [{{"id": "sub-id", "clash_group": "group-name"}}]
+}}
 
-No explanation, no markdown, just the JSON array."""
+No explanation, no markdown, just the JSON."""
 
     try:
         response = await chat.send_message(UserMessage(text=prompt))
-        # Parse JSON from response
         text = response.strip()
         if text.startswith("```"):
             text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        groups = json.loads(text)
+        result = json.loads(text)
 
-        # Apply clash groups to database
-        updated = 0
-        for item in groups:
-            cat_id = item.get("id", "")
-            clash_group = item.get("clash_group", "")
-            if cat_id:
-                await db.categories.update_one({"id": cat_id}, {"$set": {"clash_group": clash_group}})
-                updated += 1
+        # Apply category clash groups
+        cat_updated = 0
+        for item in result.get("categories", []):
+            if item.get("id"):
+                await db.categories.update_one({"id": item["id"]}, {"$set": {"clash_group": item.get("clash_group", "")}})
+                cat_updated += 1
 
-        # Fetch updated categories
+        # Apply subcategory clash groups
+        sub_updated = 0
+        for item in result.get("subcategories", []):
+            if item.get("id"):
+                await db.subcategories.update_one({"id": item["id"]}, {"$set": {"clash_group": item.get("clash_group", "")}})
+                sub_updated += 1
+
+        # Build summary
         updated_cats = await db.categories.find({}, {"_id": 0, "id": 1, "name": 1, "clash_group": 1}).to_list(200)
-        group_summary = {}
+        updated_subs = await db.subcategories.find({}, {"_id": 0, "id": 1, "name": 1, "clash_group": 1, "category_id": 1}).to_list(1000)
+
+        cat_groups = {}
         for c in updated_cats:
             g = c.get("clash_group", "")
             if g:
-                group_summary.setdefault(g, []).append(c["name"])
+                cat_groups.setdefault(g, []).append(c["name"])
+
+        sub_groups = {}
+        for s in updated_subs:
+            g = s.get("clash_group", "")
+            if g:
+                sub_groups.setdefault(g, []).append(f"{s['name']} ({cat_name_map.get(s.get('category_id',''), '?')})")
 
         return {
-            "message": f"AI assigned clash groups to {updated} categories",
-            "groups": group_summary,
-            "details": updated_cats
+            "message": f"AI assigned clash groups: {cat_updated} categories, {sub_updated} subcategories",
+            "category_groups": cat_groups,
+            "subcategory_groups": sub_groups,
         }
     except json.JSONDecodeError as e:
         raise HTTPException(500, f"AI returned invalid JSON: {str(e)}")

@@ -26,6 +26,7 @@ class CategoryCreate(BaseModel):
 class SubCategoryCreate(BaseModel):
     name: str
     category_id: str
+    clash_group: str = ""
 
 
 class EventCreate(BaseModel):
