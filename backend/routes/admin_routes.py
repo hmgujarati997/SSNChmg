@@ -589,14 +589,28 @@ async def assign_remaining_users(event_id: str, admin=Depends(require_admin)):
     if not assignments:
         raise HTTPException(400, "No existing assignments. Use 'Assign Tables' first.")
 
-    # Find already-assigned users (from round 1)
-    assigned_ids = set()
+    # Clean ghost user IDs (deleted users still in assignments)
     for a in assignments:
-        assigned_ids.update(a.get('user_ids', []))
+        original_ids = a.get('user_ids', [])
+        valid_ids = [uid for uid in original_ids if uid in reg_user_ids]
+        if len(valid_ids) != len(original_ids):
+            await db.table_assignments.update_one(
+                {"event_id": event_id, "round_number": a['round_number'], "table_number": a['table_number']},
+                {"$set": {"user_ids": valid_ids}}
+            )
+            a['user_ids'] = valid_ids
+
+    # Find already-assigned users (only from round 1, only registered users)
+    r1_assignments = [a for a in assignments if a.get('round_number') == 1]
+    assigned_ids = set()
+    for a in r1_assignments:
+        for uid in a.get('user_ids', []):
+            if uid in reg_user_ids:
+                assigned_ids.add(uid)
         if a.get('captain_id'):
             assigned_ids.add(a['captain_id'])
 
-    # Unassigned = registered but not in any assignment
+    # Unassigned = registered but not seated in round 1
     unassigned_ids = reg_user_ids - assigned_ids
     if not unassigned_ids:
         return {"message": "All users are already assigned.", "placed": 0, "unplaced": 0}
