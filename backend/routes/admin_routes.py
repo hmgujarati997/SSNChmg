@@ -343,38 +343,31 @@ _table_jobs = {}
 
 
 async def _ai_detect_clash_groups(openai_api_key, categories, subcategories):
-    """Use OpenAI to detect and assign clash groups for categories.
-    Subcategories inherit their parent category's clash group.
-    The seating algorithm already enforces no-same-subcategory as a hard constraint."""
+    """Use OpenAI to detect clash groups at both category and subcategory level.
+    Step 1: AI groups 31 categories (fast).
+    Step 2: AI groups subcategory professions across all categories (catches cross-category clashes like Architect under Professionals vs Architects & Engineers under Real Estate)."""
     import openai
     import asyncio
 
-    cat_names = [{"id": c["id"], "name": c["name"]} for c in categories]
-
     client = openai.AsyncOpenAI(api_key=openai_api_key)
 
-    prompt = f"""Speed networking event in India. Group competing/related business categories so they DON'T sit at the same table.
+    # --- Step 1: Group categories ---
+    cat_names_list = [c["name"] for c in categories]
+
+    cat_prompt = f"""Speed networking event in India. Group competing/related business categories so they DON'T sit at the same table.
 
 Categories:
-{json.dumps([c["name"] for c in cat_names])}
+{json.dumps(cat_names_list)}
 
-Return JSON array grouping related categories:
-{{"categories": [{{"name": "Category Name", "clash_group": "short_group_name"}}]}}
+Return JSON: {{"categories": [{{"name": "Category Name", "clash_group": "short_group_name"}}]}}
+Related categories share a clash_group (e.g. Garments+Textile+Jari="textile", Banking+Finance="finance"). Unique ones: "". Be aggressive. JSON only."""
 
-Rules:
-- Related/competing categories share a clash_group (e.g. Garments+Textile+Jari = "textile", Banking+Finance = "finance")
-- Use short, lowercase group names
-- Unique categories with no match: empty string ""
-- Be aggressive — we want ZERO same-industry people at a table
-
-JSON only, no markdown."""
-
-    response = await asyncio.wait_for(
+    cat_response = await asyncio.wait_for(
         client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You group competing businesses for a networking event. Return only valid JSON."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "You group competing businesses. Return only valid JSON."},
+                {"role": "user", "content": cat_prompt}
             ],
             temperature=0.1,
             max_tokens=4096
@@ -382,17 +375,15 @@ JSON only, no markdown."""
         timeout=30
     )
 
-    text = response.choices[0].message.content.strip()
+    text = cat_response.choices[0].message.content.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-    result = json.loads(text)
+    cat_result = json.loads(text)
 
-    # Map names back to IDs and update categories
     cat_name_to_id = {c["name"].lower(): c["id"] for c in categories}
     cat_id_to_group = {}
-
     cat_updated = 0
-    for item in result.get("categories", []):
+    for item in cat_result.get("categories", []):
         name = item.get("name", "").lower()
         cid = cat_name_to_id.get(name)
         group = item.get("clash_group", "")
@@ -401,12 +392,60 @@ JSON only, no markdown."""
             cat_id_to_group[cid] = group
             cat_updated += 1
 
-    # Subcategories inherit their parent category's clash group
+    # --- Step 2: Group subcategories by profession similarity ---
+    # Clear all existing subcategory clash groups first
+    await db.subcategories.update_many({}, {"$set": {"clash_group": ""}})
+
+    # Send unique subcategory names, ask AI to return only the GROUPS (not every entry)
+    cat_id_to_name = {c["id"]: c["name"] for c in categories}
+    unique_sub_names = sorted(set(s["name"] for s in subcategories))
+
+    sub_prompt = f"""Speed networking event. Group SIMILAR professions/subcategories that compete and should NOT sit together.
+
+Subcategory names (from various business categories):
+{', '.join(unique_sub_names)}
+
+Return ONLY the groups of similar professions as JSON:
+{{"groups": [{{"group": "short_name", "members": ["SubName1", "SubName2"]}}]}}
+
+IMPORTANT: Match by profession similarity, not exact name. Examples:
+- Architect + Architects & Engineers + Interior Designer + Civil Engineer = "design_eng"
+- CA + Chartered Accountant + Tax Consultant + Accountant = "finance_pro"  
+- Advocate + Legal Advisor + Lawyer = "legal"
+- Photographer + Videographer + Photography = "media_production"
+Only include subcategories that have at least one match. Skip truly unique ones. Be very aggressive — similar professions MUST share a group. JSON only."""
+
+    sub_response = await asyncio.wait_for(
+        client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You group similar professions. Return only valid JSON with groups of matching professions."},
+                {"role": "user", "content": sub_prompt}
+            ],
+            temperature=0.1,
+            max_tokens=8000
+        ),
+        timeout=60
+    )
+
+    text = sub_response.choices[0].message.content.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    sub_result = json.loads(text)
+
+    # Build name -> group mapping from AI response
+    name_to_group = {}
+    for g in sub_result.get("groups", []):
+        group_name = g.get("group", "")
+        for member in g.get("members", []):
+            name_to_group[member.lower()] = group_name
+
+    # Apply to all subcategories matching by name
     sub_updated = 0
-    for sub in subcategories:
-        parent_group = cat_id_to_group.get(sub.get("category_id", ""), "")
-        if parent_group:
-            await db.subcategories.update_one({"id": sub["id"]}, {"$set": {"clash_group": parent_group}})
+    for s in subcategories:
+        group = name_to_group.get(s["name"].lower(), "")
+        if group:
+            await db.subcategories.update_one({"id": s["id"]}, {"$set": {"clash_group": group}})
             sub_updated += 1
 
     return cat_updated, sub_updated
