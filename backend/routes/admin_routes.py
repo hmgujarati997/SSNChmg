@@ -443,7 +443,11 @@ Only include subcategories that have at least one match. Skip truly unique ones.
     # Apply to all subcategories matching by name
     sub_updated = 0
     for s in subcategories:
+        # Priority 1: AI-assigned subcategory clash group (cross-category matches)
         group = name_to_group.get(s["name"].lower(), "")
+        if not group:
+            # Priority 2: Inherit parent category's clash group
+            group = cat_id_to_group.get(s.get("category_id", ""), "")
         if group:
             await db.subcategories.update_one({"id": s["id"]}, {"$set": {"clash_group": group}})
             sub_updated += 1
