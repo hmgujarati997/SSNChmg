@@ -175,16 +175,18 @@ function EventDetail({ eventId, onBack }) {
     };
 
     const [assigningTables, setAssigningTables] = useState(false);
+    const [assignProgress, setAssignProgress] = useState({ progress: 0, message: '' });
     const assignTables = async () => {
         try {
             setAssigningTables(true);
+            setAssignProgress({ progress: 0, message: 'Starting...' });
             const r = await API.post(`/admin/events/${eventId}/assign-tables`);
             const jobId = r.data.job_id;
-            toast.info(`Table assignment started for ${r.data.total_users} users...`);
             // Poll for completion
             const poll = setInterval(async () => {
                 try {
                     const status = await API.get(`/admin/events/${eventId}/assign-tables/status/${jobId}`);
+                    setAssignProgress({ progress: status.data.progress || 0, message: status.data.message || '' });
                     if (status.data.status === 'completed') {
                         clearInterval(poll);
                         setAssigningTables(false);
@@ -200,7 +202,7 @@ function EventDetail({ eventId, onBack }) {
                         toast.error(status.data.message || 'Assignment failed');
                     }
                 } catch { /* keep polling */ }
-            }, 3000);
+            }, 2000);
         } catch (err) {
             setAssigningTables(false);
             toast.error(err.response?.data?.detail || 'Assignment failed');
@@ -453,6 +455,18 @@ function EventDetail({ eventId, onBack }) {
                         <Button onClick={assignTables} disabled={assigningTables} className="bg-primary" data-testid="assign-tables-btn">
                             {assigningTables ? <><Loader2 size={16} className="mr-2 animate-spin" />Assigning...</> : <><TableProperties size={16} className="mr-2" />Assign Tables</>}
                         </Button>
+                    </div>
+                    {assigningTables && (
+                        <div className="mt-3 space-y-1" data-testid="assign-progress">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>{assignProgress.message}</span>
+                                <span>{assignProgress.progress}%</span>
+                            </div>
+                            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                                <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${assignProgress.progress}%` }} />
+                            </div>
+                        </div>
+                    )}
                         {assignments.length > 0 && (
                             <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
                         )}

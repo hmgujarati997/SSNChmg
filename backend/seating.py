@@ -3,7 +3,7 @@ import time
 from collections import defaultdict
 
 
-def assign_tables(users, event, captains, categories):
+def assign_tables(users, event, captains, categories, on_progress=None):
     """
     Smart seating algorithm for speed networking.
     Hard constraints:
@@ -50,6 +50,8 @@ def assign_tables(users, event, captains, categories):
     max_algo_time = 45  # seconds total budget
 
     for round_num in range(1, total_rounds + 1):
+        if on_progress:
+            on_progress(round_num, "attempt")
         best_assignment = None
         best_score = float('inf')
 
@@ -69,6 +71,8 @@ def assign_tables(users, event, captains, categories):
                 break
 
         if best_score > 0 and best_assignment and (time.time() - algo_start < max_algo_time):
+            if on_progress:
+                on_progress(round_num, "optimizing")
             time_left = max_algo_time - (time.time() - algo_start)
             optimized, remeets, subcat_v, cat_v = _swap_optimize(
                 best_assignment, total_tables, table_capacity, user_cats,
@@ -89,6 +93,8 @@ def assign_tables(users, event, captains, categories):
                     met_pairs.add(frozenset({all_at_table[i], all_at_table[j]}))
 
         assignments[round_num] = best_assignment
+        if on_progress:
+            on_progress(round_num, "done")
 
     return assignments
 

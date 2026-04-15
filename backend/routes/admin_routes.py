@@ -220,8 +220,19 @@ _table_jobs = {}
 async def _run_table_assignment(job_id, event_id, event, regular_users, captains, categories):
     """Background task for table assignment."""
     try:
-        _table_jobs[job_id] = {"status": "running", "message": "Computing seating..."}
-        assignments = assign_tables(regular_users, event, captains, categories)
+        total_rounds = event.get('total_rounds', 1)
+        _table_jobs[job_id] = {"status": "running", "message": "Computing seating...", "progress": 0, "total_rounds": total_rounds}
+
+        def on_progress(round_num, phase):
+            base = ((round_num - 1) / total_rounds) * 80
+            phase_add = {"attempt": 0, "optimizing": 10, "done": 15}
+            pct = int(base + phase_add.get(phase, 0))
+            _table_jobs[job_id]["progress"] = min(pct, 80)
+            _table_jobs[job_id]["message"] = f"Round {round_num}/{total_rounds}: {phase}..."
+
+        assignments = assign_tables(regular_users, event, captains, categories, on_progress=on_progress)
+
+        _table_jobs[job_id]["progress"] = 85
         _table_jobs[job_id]["message"] = "Saving assignments..."
         await db.table_assignments.delete_many({"event_id": event_id})
 
@@ -249,7 +260,7 @@ async def _run_table_assignment(job_id, event_id, event, regular_users, captains
                     "created_at": datetime.now(timezone.utc).isoformat()
                 })
 
-        result = {"status": "completed", "message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users)}
+        result = {"status": "completed", "message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users), "progress": 100}
         if missed_users:
             result["warning"] = f"{len(missed_users)} user(s) could not be assigned."
         _table_jobs[job_id] = result
