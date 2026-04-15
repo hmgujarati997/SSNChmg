@@ -1,0 +1,83 @@
+{
+  "summary": "Tested OpenAI API key settings integration and table assignment with AI clash detection. All 8 backend tests passed (100%). All frontend UI verifications passed. The OpenAI API key is properly masked in settings, table assignment works with/without OpenAI key, and Categories page is simplified (no AI button or clash group inputs).",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "GET /api/admin/settings returns masked openai_api_key (***xxxx format) - PASSED",
+    "PUT /api/admin/settings stores openai_api_key properly - PASSED",
+    "Masked key (***xxxx) does NOT overwrite stored key when saving settings - PASSED",
+    "POST /api/admin/events/{event_id}/assign-tables starts job successfully - PASSED",
+    "Table assignment completes (status=completed) even when no OpenAI key is set - PASSED",
+    "Table assignment completes with graceful AI skip when invalid OpenAI key is set - PASSED",
+    "GET /api/admin/categories returns categories with name and subcategory_count - PASSED",
+    "POST /api/admin/categories works without clash_group field - PASSED",
+    "Settings page shows 'OpenAI (AI Clash Detection)' section - PASSED (UI)",
+    "Settings page shows OpenAI API Key input with data-testid='settings-openai-key-input' - PASSED (UI)",
+    "Categories page has NO 'AI Clash Groups' button - PASSED (UI)",
+    "Categories page has NO inline clash group input fields - PASSED (UI)",
+    "Categories page shows category name and subcategory count cleanly (31 categories visible) - PASSED (UI)"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_openai_settings.py",
+    "/app/test_reports/pytest/pytest_openai_settings.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_openai_settings.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (8/8 tests passed)",
+    "frontend": "100% (all UI verifications passed)"
+  },
+
+  "test_credentials": {
+    "admin": {
+      "email": "admin@ssnc.com",
+      "password": "admin123",
+      "url": "/admin/login"
+    }
+  },
+
+  "seed_data_creation": "No new seed data created. Used existing event and categories.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "OpenAI API key integration tested. Key features verified: 1) OpenAI API key stored in site_settings with masking (***xxxx), 2) Masked keys don't overwrite actual stored keys, 3) Table assignment (_run_table_assignment) calls _ai_detect_clash_groups before seating algorithm, 4) AI detection gracefully skips if no key or invalid key, 5) Categories page simplified - no AI button or clash_group inputs. The seating.py _count_violations parameter was renamed from user_subcats to user_subclash (line 307).",
+
+  "features_verified": {
+    "openai_settings": {
+      "section_visible": true,
+      "input_field_visible": true,
+      "masking_works": true,
+      "masked_key_preservation": true
+    },
+    "table_assignment": {
+      "starts_job": true,
+      "completes_without_key": true,
+      "graceful_skip_invalid_key": true
+    },
+    "categories_page": {
+      "no_ai_button": true,
+      "no_clash_group_inputs": true,
+      "shows_name_and_count": true
+    }
+  }
+}

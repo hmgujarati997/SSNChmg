@@ -17,7 +17,7 @@ const LOGO_TYPES = [
 ];
 
 export default function SiteSettings() {
-    const [settings, setSettings] = useState({ admin_email: '', live_screen_password: '', razorpay_key_id: '' });
+    const [settings, setSettings] = useState({ admin_email: '', live_screen_password: '', razorpay_key_id: '', openai_api_key: '' });
     const [logos, setLogos] = useState({});
     const [newPassword, setNewPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -36,6 +36,7 @@ export default function SiteSettings() {
             if (settings.admin_email) data.admin_email = settings.admin_email;
             if (newPassword) data.admin_password = newPassword;
             if (settings.razorpay_key_id) data.razorpay_key_id = settings.razorpay_key_id;
+            if (settings.openai_api_key) data.openai_api_key = settings.openai_api_key;
             // WhatsApp config
             data.wa_api_key = settings.wa_api_key || '';
             data.wa_username = settings.wa_username || '';
@@ -187,6 +188,15 @@ export default function SiteSettings() {
                     <div>
                         <Label className="text-sm text-muted-foreground">Live Screen Password</Label>
                         <Input value={settings.live_screen_password} onChange={e => setSettings(p => ({ ...p, live_screen_password: e.target.value }))} className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-live-password-input" />
+                    </div>
+                </div>
+
+                <div className="glass-card rounded-xl p-6 space-y-4">
+                    <h3 className="font-semibold">OpenAI (AI Clash Detection)</h3>
+                    <p className="text-xs text-muted-foreground">When you click "Assign Tables", AI will auto-detect competing businesses and separate them at different tables. Requires an OpenAI API key.</p>
+                    <div>
+                        <Label className="text-sm text-muted-foreground">OpenAI API Key</Label>
+                        <Input value={settings.openai_api_key || ''} onChange={e => setSettings(p => ({ ...p, openai_api_key: e.target.value }))} placeholder="sk-..." className="bg-muted/50 border-border h-11 mt-1" data-testid="settings-openai-key-input" type="password" />
                     </div>
                 </div>
 

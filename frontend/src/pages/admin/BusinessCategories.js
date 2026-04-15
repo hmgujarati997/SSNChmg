@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Trash2, Tags, ChevronDown, ChevronRight, Upload, FileSpreadsheet, AlertCircle, Download, Loader2, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Tags, ChevronDown, ChevronRight, Upload, FileSpreadsheet, Download } from 'lucide-react';
 
 export default function BusinessCategories() {
     const [categories, setCategories] = useState([]);
@@ -18,7 +18,6 @@ export default function BusinessCategories() {
     const [showAddCat, setShowAddCat] = useState(false);
     const [showAddSub, setShowAddSub] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [aiLoading, setAiLoading] = useState(false);
     const fileRef = useRef(null);
 
     const loadCategories = async () => {
@@ -129,18 +128,6 @@ export default function BusinessCategories() {
                     <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} data-testid="upload-csv-categories-btn">
                         <Upload size={16} className="mr-2" />{uploading ? 'Uploading...' : 'Upload CSV'}
                     </Button>
-                    <Button variant="outline" className="border-primary text-primary" disabled={aiLoading} onClick={async () => {
-                        if (!window.confirm('AI will analyze all categories and auto-assign clash groups. This will overwrite existing clash groups. Continue?')) return;
-                        setAiLoading(true);
-                        try {
-                            const r = await API.post('/admin/categories/ai-clash-groups');
-                            toast.success(r.data.message);
-                            loadCategories();
-                        } catch (err) { toast.error(err.response?.data?.detail || 'AI detection failed'); }
-                        setAiLoading(false);
-                    }} data-testid="ai-clash-groups-btn">
-                        {aiLoading ? <><Loader2 size={16} className="mr-2 animate-spin" />Detecting...</> : <><Sparkles size={16} className="mr-2" />AI Clash Groups</>}
-                    </Button>
                     <Dialog open={showAddCat} onOpenChange={setShowAddCat}>
                         <DialogTrigger asChild>
                             <Button className="bg-primary" data-testid="add-category-btn"><Plus size={16} className="mr-2" />Add Category</Button>
@@ -190,21 +177,6 @@ export default function BusinessCategories() {
                                 <Tags size={18} className="text-primary" />
                                 <span className="font-medium">{cat.name}</span>
                                 <Badge variant="outline" className="text-xs">{cat.subcategory_count} sub</Badge>
-                                <Input
-                                    value={cat.clash_group || ''}
-                                    onChange={e => {
-                                        const val = e.target.value;
-                                        setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, clash_group: val } : c));
-                                    }}
-                                    onBlur={async () => {
-                                        try { await API.put(`/admin/categories/${cat.id}`, { name: cat.name, clash_group: cat.clash_group || '' }); }
-                                        catch {}
-                                    }}
-                                    onClick={e => e.stopPropagation()}
-                                    placeholder="Clash group (e.g. textile)"
-                                    className="bg-muted/50 border-border h-7 text-xs w-44 ml-2"
-                                    data-testid={`clash-group-${cat.id}`}
-                                />
                             </div>
                             <div className="flex gap-2">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedCatId(cat.id); setShowAddSub(true); }} data-testid={`add-sub-${cat.id}`}>

@@ -222,20 +222,109 @@ async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(
 _table_jobs = {}
 
 
+async def _ai_detect_clash_groups(openai_api_key, categories, subcategories):
+    """Use OpenAI to detect and assign clash groups for categories and subcategories."""
+    import openai
+
+    hierarchy = []
+    for cat in categories:
+        subs = [{"id": s["id"], "name": s["name"]} for s in subcategories if s["category_id"] == cat["id"]]
+        hierarchy.append({"id": cat["id"], "name": cat["name"], "subcategories": subs})
+
+    client = openai.AsyncOpenAI(api_key=openai_api_key)
+
+    prompt = f"""Here are business categories and their subcategories for a speed networking event in India.
+
+I need TWO levels of clash groups:
+1. **Category-level clash groups**: Group related main categories (e.g., Garments + Textile + Jari = "textile")
+2. **Subcategory-level clash groups**: Group related subcategories WITHIN and ACROSS categories (e.g., Architect + Engineer = "design_engineering", CA + Accountant + Tax Practitioner = "finance_professional", Advocates + Legal Advisor = "legal")
+
+This is CRITICAL: subcategory clash groups prevent related professionals from sitting together even if they're in the same main category.
+
+Categories and Subcategories:
+{json.dumps(hierarchy, indent=2)}
+
+Rules:
+- Related/competing businesses at ANY level should share a clash_group
+- Use short, lowercase, descriptive group names
+- For subcategories: group by profession similarity (e.g., all design-related, all finance-related, all legal)
+- Unique subcategories with no similar ones can have empty clash_group ""
+- Be thorough and aggressive with grouping — we want ZERO same-industry people at a table
+
+Return ONLY valid JSON with this exact format:
+{{
+  "categories": [{{"id": "cat-id", "clash_group": "group-name"}}],
+  "subcategories": [{{"id": "sub-id", "clash_group": "group-name"}}]
+}}
+
+No explanation, no markdown, just the JSON."""
+
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an expert business category analyst for a speed networking event in India. Your job is to group related/competing businesses so they don't sit at the same table."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.1,
+        max_tokens=4096
+    )
+
+    text = response.choices[0].message.content.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    result = json.loads(text)
+
+    cat_updated = 0
+    for item in result.get("categories", []):
+        if item.get("id"):
+            await db.categories.update_one({"id": item["id"]}, {"$set": {"clash_group": item.get("clash_group", "")}})
+            cat_updated += 1
+
+    sub_updated = 0
+    for item in result.get("subcategories", []):
+        if item.get("id"):
+            await db.subcategories.update_one({"id": item["id"]}, {"$set": {"clash_group": item.get("clash_group", "")}})
+            sub_updated += 1
+
+    return cat_updated, sub_updated
+
+
 async def _run_table_assignment(job_id, event_id, event, regular_users, captains, categories):
     """Background task for table assignment."""
     try:
         total_rounds = event.get('total_rounds', 1)
-        _table_jobs[job_id] = {"status": "running", "message": "Computing seating...", "progress": 0, "total_rounds": total_rounds}
+        _table_jobs[job_id] = {"status": "running", "message": "Detecting clash groups with AI...", "progress": 0, "total_rounds": total_rounds}
 
-        # Fetch subcategories for clash group support
+        # Step 1: AI clash group detection (if OpenAI key is configured)
+        settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0})
+        openai_key = settings.get("openai_api_key", "") if settings else ""
+        ai_status = ""
+        if openai_key and not openai_key.startswith("***"):
+            try:
+                subcategories_for_ai = await db.subcategories.find({}, {"_id": 0}).to_list(1000)
+                cat_updated, sub_updated = await _ai_detect_clash_groups(openai_key, categories, subcategories_for_ai)
+                # Refresh categories after AI update
+                categories = await db.categories.find({}, {"_id": 0}).to_list(100)
+                ai_status = f"AI grouped {cat_updated} categories, {sub_updated} subcategories. "
+                _table_jobs[job_id]["message"] = "AI done. Computing seating..."
+                _table_jobs[job_id]["progress"] = 10
+            except Exception as e:
+                logger.warning(f"AI clash detection failed, proceeding without: {e}")
+                ai_status = "AI detection skipped (error). "
+                _table_jobs[job_id]["message"] = "AI skipped. Computing seating..."
+                _table_jobs[job_id]["progress"] = 5
+        else:
+            _table_jobs[job_id]["message"] = "No OpenAI key. Computing seating..."
+            _table_jobs[job_id]["progress"] = 5
+
+        # Step 2: Fetch subcategories for clash group support
         subcategories = await db.subcategories.find({}, {"_id": 0}).to_list(1000)
 
         def on_progress(round_num, phase):
-            base = ((round_num - 1) / total_rounds) * 80
+            base = 10 + ((round_num - 1) / total_rounds) * 70
             phase_add = {"attempt": 0, "optimizing": 10, "done": 15}
             pct = int(base + phase_add.get(phase, 0))
-            _table_jobs[job_id]["progress"] = min(pct, 80)
+            _table_jobs[job_id]["progress"] = min(pct, 85)
             _table_jobs[job_id]["message"] = f"Round {round_num}/{total_rounds}: {phase}..."
 
         assignments = assign_tables(regular_users, event, captains, categories, on_progress=on_progress, subcategories=subcategories)
@@ -268,7 +357,7 @@ async def _run_table_assignment(job_id, event_id, event, regular_users, captains
                     "created_at": datetime.now(timezone.utc).isoformat()
                 })
 
-        result = {"status": "completed", "message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users), "progress": 100}
+        result = {"status": "completed", "message": f"{ai_status}Tables assigned", "rounds": len(assignments), "total_users": len(regular_users), "progress": 100}
         if missed_users:
             result["warning"] = f"{len(missed_users)} user(s) could not be assigned."
         _table_jobs[job_id] = result
@@ -794,6 +883,8 @@ async def get_settings(admin=Depends(require_admin)):
     settings['admin_email'] = admin_doc['email'] if admin_doc else ''
     if settings.get('razorpay_key_secret'):
         settings['razorpay_key_secret'] = '***' + settings['razorpay_key_secret'][-4:]
+    if settings.get('openai_api_key'):
+        settings['openai_api_key'] = '***' + settings['openai_api_key'][-4:]
     return settings
 
 
@@ -811,6 +902,11 @@ async def update_settings(data: SiteSettingsUpdate, admin=Depends(require_admin)
             await db.admins.update_one({"id": current_admin['id']}, {"$set": {"email": update_data['admin_email']}})
         del update_data['admin_email']
     if update_data:
+        # Don't overwrite masked secrets
+        if 'openai_api_key' in update_data and update_data['openai_api_key'].startswith('***'):
+            del update_data['openai_api_key']
+        if 'razorpay_key_secret' in update_data and update_data['razorpay_key_secret'].startswith('***'):
+            del update_data['razorpay_key_secret']
         await db.site_settings.update_one({"id": "default"}, {"$set": update_data}, upsert=True)
     return {"message": "Settings updated"}
 
