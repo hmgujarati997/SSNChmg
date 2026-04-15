@@ -12,6 +12,11 @@ import csv
 from datetime import datetime, timezone
 
 import re
+import os
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -856,3 +861,76 @@ async def upload_logo(file: UploadFile = File(...), logo_type: str = "header_log
         pass
     await db.site_settings.update_one({"id": "default"}, {"$set": {logo_type: file_url}}, upsert=True)
     return {"message": "Logo uploaded", "url": file_url, "type": logo_type}
+
+
+@router.post("/categories/ai-clash-groups")
+async def ai_detect_clash_groups(admin=Depends(require_admin)):
+    """Use AI to automatically detect and assign clash groups for all categories."""
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    categories = await db.categories.find({}, {"_id": 0}).to_list(200)
+    if not categories:
+        raise HTTPException(400, "No categories found")
+
+    cat_names = [{"id": c["id"], "name": c["name"]} for c in categories]
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(500, "EMERGENT_LLM_KEY not configured")
+
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"clash-group-{uuid.uuid4()}",
+        system_message="You are an expert business category analyst for a speed networking event. Your job is to group related/competing business categories together so they don't sit at the same table."
+    ).with_model("openai", "gpt-4o")
+
+    prompt = f"""Here are business categories for a speed networking event. Group related/competing categories that should NOT sit at the same table.
+
+Categories:
+{json.dumps(cat_names, indent=2)}
+
+Rules:
+- Categories in the same industry or with overlapping business interests should share a clash_group
+- Use short, lowercase group names (e.g., "textile", "food", "healthcare", "finance")
+- Categories that are truly unique with no competitors can have an empty clash_group ""
+- Be thorough — even loosely related categories should be grouped (e.g., Garments + Textile + Jari = "textile")
+
+Return ONLY a valid JSON array with this format:
+[{{"id": "category-id", "clash_group": "group-name"}}]
+
+No explanation, no markdown, just the JSON array."""
+
+    try:
+        response = await chat.send_message(UserMessage(text=prompt))
+        # Parse JSON from response
+        text = response.strip()
+        if text.startswith("```"):
+            text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+        groups = json.loads(text)
+
+        # Apply clash groups to database
+        updated = 0
+        for item in groups:
+            cat_id = item.get("id", "")
+            clash_group = item.get("clash_group", "")
+            if cat_id:
+                await db.categories.update_one({"id": cat_id}, {"$set": {"clash_group": clash_group}})
+                updated += 1
+
+        # Fetch updated categories
+        updated_cats = await db.categories.find({}, {"_id": 0, "id": 1, "name": 1, "clash_group": 1}).to_list(200)
+        group_summary = {}
+        for c in updated_cats:
+            g = c.get("clash_group", "")
+            if g:
+                group_summary.setdefault(g, []).append(c["name"])
+
+        return {
+            "message": f"AI assigned clash groups to {updated} categories",
+            "groups": group_summary,
+            "details": updated_cats
+        }
+    except json.JSONDecodeError as e:
+        raise HTTPException(500, f"AI returned invalid JSON: {str(e)}")
+    except Exception as e:
+        raise HTTPException(500, f"AI error: {str(e)}")

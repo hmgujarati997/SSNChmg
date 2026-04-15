@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, Trash2, Tags, ChevronDown, ChevronRight, Upload, FileSpreadsheet, AlertCircle, Download } from 'lucide-react';
+import { Plus, Trash2, Tags, ChevronDown, ChevronRight, Upload, FileSpreadsheet, AlertCircle, Download, Loader2, Sparkles } from 'lucide-react';
 
 export default function BusinessCategories() {
     const [categories, setCategories] = useState([]);
@@ -18,6 +18,7 @@ export default function BusinessCategories() {
     const [showAddCat, setShowAddCat] = useState(false);
     const [showAddSub, setShowAddSub] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [aiLoading, setAiLoading] = useState(false);
     const fileRef = useRef(null);
 
     const loadCategories = async () => {
@@ -127,6 +128,18 @@ export default function BusinessCategories() {
                     </Button>
                     <Button variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading} data-testid="upload-csv-categories-btn">
                         <Upload size={16} className="mr-2" />{uploading ? 'Uploading...' : 'Upload CSV'}
+                    </Button>
+                    <Button variant="outline" className="border-primary text-primary" disabled={aiLoading} onClick={async () => {
+                        if (!window.confirm('AI will analyze all categories and auto-assign clash groups. This will overwrite existing clash groups. Continue?')) return;
+                        setAiLoading(true);
+                        try {
+                            const r = await API.post('/admin/categories/ai-clash-groups');
+                            toast.success(r.data.message);
+                            loadCategories();
+                        } catch (err) { toast.error(err.response?.data?.detail || 'AI detection failed'); }
+                        setAiLoading(false);
+                    }} data-testid="ai-clash-groups-btn">
+                        {aiLoading ? <><Loader2 size={16} className="mr-2 animate-spin" />Detecting...</> : <><Sparkles size={16} className="mr-2" />AI Clash Groups</>}
                     </Button>
                     <Dialog open={showAddCat} onOpenChange={setShowAddCat}>
                         <DialogTrigger asChild>
