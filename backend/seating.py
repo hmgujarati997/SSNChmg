@@ -1,4 +1,5 @@
 import random
+import time
 from collections import defaultdict
 
 
@@ -43,12 +44,18 @@ def assign_tables(users, event, captains, categories):
     assignments = {}
     met_pairs = set()
 
+    # Scale attempts based on user count to avoid timeouts
+    max_attempts = min(200, max(20, 5000 // max(len(users), 1)))
+    algo_start = time.time()
+    max_algo_time = 45  # seconds total budget
+
     for round_num in range(1, total_rounds + 1):
         best_assignment = None
         best_score = float('inf')
 
-        attempts = 200
-        for attempt in range(attempts):
+        for attempt in range(max_attempts):
+            if time.time() - algo_start > max_algo_time:
+                break
             seed = round_num * 137 + 42 + attempt * 7919 + random.randint(0, 99999)
             result, remeets, subcat_v, cat_v = _assign_round(
                 users, total_tables, table_capacity, user_cats, user_subcats,
@@ -61,11 +68,12 @@ def assign_tables(users, event, captains, categories):
             if score == 0:
                 break
 
-        if best_score > 0 and best_assignment:
+        if best_score > 0 and best_assignment and (time.time() - algo_start < max_algo_time):
+            time_left = max_algo_time - (time.time() - algo_start)
             optimized, remeets, subcat_v, cat_v = _swap_optimize(
                 best_assignment, total_tables, table_capacity, user_cats,
                 user_subcats, captain_cats, captain_subcats, captain_ids, met_pairs,
-                max_iterations=2000
+                max_iterations=500, time_limit=min(time_left * 0.5, 10)
             )
             opt_score = remeets * 10000 + subcat_v * 100 + cat_v
             if opt_score <= best_score:
@@ -297,7 +305,7 @@ def _count_violations(round_tables, total_tables, user_cats, user_subcats,
 
 
 def _swap_optimize(round_tables, total_tables, table_capacity, user_cats, user_subcats,
-                    captain_cats, captain_subcats, captain_ids, met_pairs, max_iterations=500):
+                    captain_cats, captain_subcats, captain_ids, met_pairs, max_iterations=500, time_limit=10):
     """Try swapping users between tables to eliminate re-meetings first, then subcategory, then category violations."""
 
     def score():
@@ -306,20 +314,21 @@ def _swap_optimize(round_tables, total_tables, table_capacity, user_cats, user_s
         return rm * 10000 + sv * 100 + cv, rm, sv, cv
 
     current_score, current_rm, current_sv, current_cv = score()
+    start = time.time()
 
     for _ in range(max_iterations):
-        if current_score == 0:
+        if current_score == 0 or (time.time() - start) > time_limit:
             break
 
         improved = False
         for t1 in range(1, total_tables + 1):
-            if improved:
+            if improved or (time.time() - start) > time_limit:
                 break
             for idx1, uid1 in enumerate(round_tables[t1]):
-                if improved:
+                if improved or (time.time() - start) > time_limit:
                     break
                 for t2 in range(t1 + 1, total_tables + 1):
-                    if improved:
+                    if improved or (time.time() - start) > time_limit:
                         break
                     for idx2, uid2 in enumerate(round_tables[t2]):
                         round_tables[t1][idx1] = uid2

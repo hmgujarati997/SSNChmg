@@ -213,6 +213,50 @@ async def upload_csv(event_id: str, file: UploadFile = File(...), admin=Depends(
     return {"created": created, "skipped": skipped, "registered": registered, "errors": errors}
 
 
+# Background table assignment tracking
+_table_jobs = {}
+
+
+async def _run_table_assignment(job_id, event_id, event, regular_users, captains, categories):
+    """Background task for table assignment."""
+    try:
+        _table_jobs[job_id] = {"status": "running", "message": "Computing seating..."}
+        assignments = assign_tables(regular_users, event, captains, categories)
+        _table_jobs[job_id]["message"] = "Saving assignments..."
+        await db.table_assignments.delete_many({"event_id": event_id})
+
+        assigned_user_ids = set()
+        for round_num, tables in assignments.items():
+            for table_num, user_ids_list in tables.items():
+                assigned_user_ids.update(user_ids_list)
+
+        missed_users = [u for u in regular_users if u['id'] not in assigned_user_ids]
+
+        for round_num, tables in assignments.items():
+            for table_num, user_ids_list in tables.items():
+                captain_id = None
+                for cap in captains:
+                    if cap['table_number'] == table_num:
+                        captain_id = cap['user_id']
+                        break
+                await db.table_assignments.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "event_id": event_id,
+                    "round_number": round_num,
+                    "table_number": table_num,
+                    "user_ids": user_ids_list,
+                    "captain_id": captain_id,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+
+        result = {"status": "completed", "message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users)}
+        if missed_users:
+            result["warning"] = f"{len(missed_users)} user(s) could not be assigned."
+        _table_jobs[job_id] = result
+    except Exception as e:
+        _table_jobs[job_id] = {"status": "error", "message": str(e)}
+
+
 @router.post("/events/{event_id}/assign-tables")
 async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
@@ -234,37 +278,20 @@ async def assign_event_tables(event_id: str, admin=Depends(require_admin)):
     categories = await db.categories.find({}, {"_id": 0}).to_list(100)
     captain_user_ids = {c['user_id'] for c in captains}
     regular_users = [u for u in users if u['id'] not in captain_user_ids]
-    assignments = assign_tables(regular_users, event, captains, categories)
-    await db.table_assignments.delete_many({"event_id": event_id})
 
-    # Validate: every regular user must appear in at least one round
-    assigned_user_ids = set()
-    for round_num, tables in assignments.items():
-        for table_num, user_ids_list in tables.items():
-            assigned_user_ids.update(user_ids_list)
-    missed_users = [u for u in regular_users if u['id'] not in assigned_user_ids]
+    import asyncio
+    job_id = str(uuid.uuid4())
+    _table_jobs[job_id] = {"status": "started"}
+    asyncio.create_task(_run_table_assignment(job_id, event_id, event, regular_users, captains, categories))
+    return {"message": "Table assignment started", "job_id": job_id, "total_users": len(regular_users)}
 
-    for round_num, tables in assignments.items():
-        for table_num, user_ids_list in tables.items():
-            captain_id = None
-            for cap in captains:
-                if cap['table_number'] == table_num:
-                    captain_id = cap['user_id']
-                    break
-            await db.table_assignments.insert_one({
-                "id": str(uuid.uuid4()),
-                "event_id": event_id,
-                "round_number": round_num,
-                "table_number": table_num,
-                "user_ids": user_ids_list,
-                "captain_id": captain_id,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            })
-    result = {"message": "Tables assigned", "rounds": len(assignments), "total_users": len(regular_users)}
-    if missed_users:
-        result["warning"] = f"{len(missed_users)} user(s) could not be assigned. Consider adding more tables or seats."
-        result["missed_users"] = [{"id": u['id'], "full_name": u.get('full_name', 'Unknown')} for u in missed_users]
-    return result
+
+@router.get("/events/{event_id}/assign-tables/status/{job_id}")
+async def assign_tables_status(event_id: str, job_id: str, admin=Depends(require_admin)):
+    job = _table_jobs.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return job
 
 
 @router.get("/events/{event_id}/assignments")

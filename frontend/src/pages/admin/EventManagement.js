@@ -174,15 +174,37 @@ function EventDetail({ eventId, onBack }) {
         URL.revokeObjectURL(url);
     };
 
+    const [assigningTables, setAssigningTables] = useState(false);
     const assignTables = async () => {
-        try { const r = await API.post(`/admin/events/${eventId}/assign-tables`);
-            if (r.data.warning) {
-                toast.warning(r.data.warning);
-            } else {
-                toast.success(`Tables assigned! ${r.data.total_users} users across ${r.data.rounds} rounds — all users covered.`);
-            }
-            load();
-        } catch (err) { toast.error(err.response?.data?.detail || 'Assignment failed'); }
+        try {
+            setAssigningTables(true);
+            const r = await API.post(`/admin/events/${eventId}/assign-tables`);
+            const jobId = r.data.job_id;
+            toast.info(`Table assignment started for ${r.data.total_users} users...`);
+            // Poll for completion
+            const poll = setInterval(async () => {
+                try {
+                    const status = await API.get(`/admin/events/${eventId}/assign-tables/status/${jobId}`);
+                    if (status.data.status === 'completed') {
+                        clearInterval(poll);
+                        setAssigningTables(false);
+                        if (status.data.warning) {
+                            toast.warning(status.data.warning);
+                        } else {
+                            toast.success(`Tables assigned! ${status.data.total_users} users across ${status.data.rounds} rounds.`);
+                        }
+                        load();
+                    } else if (status.data.status === 'error') {
+                        clearInterval(poll);
+                        setAssigningTables(false);
+                        toast.error(status.data.message || 'Assignment failed');
+                    }
+                } catch { /* keep polling */ }
+            }, 3000);
+        } catch (err) {
+            setAssigningTables(false);
+            toast.error(err.response?.data?.detail || 'Assignment failed');
+        }
     };
 
     const downloadSeatingCSV = () => {
@@ -428,7 +450,9 @@ function EventDetail({ eventId, onBack }) {
 
                 <TabsContent value="seating">
                     <div className="flex gap-3 mb-4">
-                        <Button onClick={assignTables} className="bg-primary" data-testid="assign-tables-btn"><TableProperties size={16} className="mr-2" />Assign Tables</Button>
+                        <Button onClick={assignTables} disabled={assigningTables} className="bg-primary" data-testid="assign-tables-btn">
+                            {assigningTables ? <><Loader2 size={16} className="mr-2 animate-spin" />Assigning...</> : <><TableProperties size={16} className="mr-2" />Assign Tables</>}
+                        </Button>
                         {assignments.length > 0 && (
                             <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
                         )}
