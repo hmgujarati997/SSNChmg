@@ -455,9 +455,12 @@ function EventDetail({ eventId, onBack }) {
                         <Button onClick={assignTables} disabled={assigningTables} className="bg-primary" data-testid="assign-tables-btn">
                             {assigningTables ? <><Loader2 size={16} className="mr-2 animate-spin" />Assigning...</> : <><TableProperties size={16} className="mr-2" />Assign Tables</>}
                         </Button>
+                        {assignments.length > 0 && (
+                            <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
+                        )}
                     </div>
                     {assigningTables && (
-                        <div className="mt-3 space-y-1" data-testid="assign-progress">
+                        <div className="mt-1 mb-4 space-y-1" data-testid="assign-progress">
                             <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>{assignProgress.message}</span>
                                 <span>{assignProgress.progress}%</span>
@@ -467,10 +470,6 @@ function EventDetail({ eventId, onBack }) {
                             </div>
                         </div>
                     )}
-                        {assignments.length > 0 && (
-                            <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
-                        )}
-                    </div>
                     {assignments.length > 0 && (() => {
                         const allUserIdsInSeating = new Set();
                         const round1 = assignments.filter(a => a.round_number === 1);
