@@ -344,6 +344,17 @@ function EventDetail({ eventId, onBack }) {
                             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
                             a.download = `registrations_${event.name || 'event'}.csv`; a.click();
                         }} data-testid="download-regs-csv-btn"><Download size={16} className="mr-2" />Download Registrations CSV</Button>
+                        <Button variant="outline" onClick={async () => {
+                            try {
+                                toast.info('Generating QR codes ZIP...');
+                                const r = await API.get(`/admin/events/${eventId}/download-qr-codes`, { responseType: 'blob' });
+                                const url = URL.createObjectURL(new Blob([r.data]));
+                                const a = document.createElement('a');
+                                a.href = url; a.download = `qr_codes_${event.name || 'event'}.zip`; a.click();
+                                URL.revokeObjectURL(url);
+                                toast.success('QR codes downloaded');
+                            } catch (err) { toast.error(err.response?.data?.detail || 'Download failed'); }
+                        }} data-testid="download-qr-codes-btn"><Download size={16} className="mr-2" />Download All QR Codes</Button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">CSV format: full_name, phone, email, business_name, category, subcategory, position</p>
                     <div className="glass-card rounded-xl overflow-hidden">

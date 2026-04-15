@@ -53,6 +53,7 @@ Build a PWA for a speed networking event "SSNC". Admin manages events, users, ca
 - [x] Subcategory clash group seating logic fix — NameError in _count_violations (Feb 2026)
 - [x] OpenAI API key in Settings + auto AI clash detection on Assign Tables (Feb 2026)
 - [x] Categories page simplified — removed AI button and inline clash group inputs (Feb 2026)
+- [x] Download All QR Codes as ZIP (PNGs named by badge number) in Registrations tab (Feb 2026)
 
 ## P2 Features (Backlog)
 - [ ] Admin analytics dashboard
