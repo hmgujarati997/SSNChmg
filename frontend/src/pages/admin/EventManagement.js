@@ -431,8 +431,21 @@ function EventDetail({ eventId, onBack }) {
                                     </>
                                 )}
                             </div>
-                            <div className="mb-3">
-                                <Input value={captainSearch} onChange={e => setCaptainSearch(e.target.value)} placeholder="Search assigned captains by name, business, or table #..." className="bg-muted/50 border-border h-10" data-testid="captain-list-search" />
+                            <div className="mb-3 flex gap-3 items-center">
+                                <Input value={captainSearch} onChange={e => setCaptainSearch(e.target.value)} placeholder="Search assigned captains by name, business, or table #..." className="bg-muted/50 border-border h-10 flex-1" data-testid="captain-list-search" />
+                                {captains.length > 0 && (
+                                    <Button variant="outline" onClick={() => {
+                                        const rows = [['Table #', 'Name', 'Phone', 'Email', 'Business', 'Category', 'Subcategory']];
+                                        captains.sort((a, b) => a.table_number - b.table_number).forEach(c => {
+                                            const u = c.user || {};
+                                            rows.push([c.table_number, u.full_name || '', u.phone || '', u.email || '', u.business_name || '', u.category_name || '', u.subcategory_name || '']);
+                                        });
+                                        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+                                        const blob = new Blob([csv], { type: 'text/csv' });
+                                        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+                                        a.download = 'table_captains.csv'; a.click();
+                                    }} data-testid="download-captains-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 {filteredCaptains.sort((a, b) => a.table_number - b.table_number).map(c => (

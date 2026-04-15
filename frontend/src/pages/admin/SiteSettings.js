@@ -51,6 +51,7 @@ export default function SiteSettings() {
             data.sponsor_title_1 = settings.sponsor_title_1 || '';
             data.sponsor_title_2 = settings.sponsor_title_2 || '';
             data.sponsor_heading = settings.sponsor_heading || '';
+            data.category_locked = settings.category_locked || false;
             await API.put('/admin/settings', data);
             toast.success('Settings saved'); setNewPassword('');
         } catch (err) { toast.error(err.response?.data?.detail || 'Error'); }
@@ -81,6 +82,24 @@ export default function SiteSettings() {
             <h2 className="text-3xl font-bold tracking-tight mb-8" style={{fontFamily:'Outfit'}}>Settings</h2>
 
             <div className="space-y-6 max-w-xl">
+                {/* Category Lock */}
+                <div className="glass-card rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold flex items-center gap-2"><Settings size={18} className="text-primary" />Lock Categories</h3>
+                            <p className="text-xs text-muted-foreground mt-1">When enabled, users cannot change their business category or subcategory.</p>
+                        </div>
+                        <button
+                            onClick={() => setSettings(p => ({ ...p, category_locked: !p.category_locked }))}
+                            className={`relative w-12 h-6 rounded-full transition-colors ${settings.category_locked ? 'bg-primary' : 'bg-muted'}`}
+                            data-testid="category-lock-toggle"
+                        >
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${settings.category_locked ? 'translate-x-6' : ''}`} />
+                        </button>
+                    </div>
+                    {settings.category_locked && <p className="text-xs text-destructive mt-2 font-medium">Categories are currently LOCKED. Users cannot modify them.</p>}
+                </div>
+
                 {/* Logo Upload Sections */}
                 <div className="glass-card rounded-xl p-6 space-y-5">
                     <h3 className="font-semibold text-lg flex items-center gap-2"><Image size={20} className="text-primary" />App Logos & Icons</h3>

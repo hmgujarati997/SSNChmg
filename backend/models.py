@@ -166,6 +166,7 @@ class SiteSettingsUpdate(BaseModel):
     sponsor_title_1: Optional[str] = None
     sponsor_title_2: Optional[str] = None
     sponsor_heading: Optional[str] = None
+    category_locked: Optional[bool] = None
 
 
 class LiveAuthRequest(BaseModel):

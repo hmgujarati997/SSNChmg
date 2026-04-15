@@ -759,6 +759,13 @@ async def list_table_captains(event_id: str, admin=Depends(require_admin)):
     captains = await db.table_captains.find({"event_id": event_id}, {"_id": 0}).to_list(100)
     for c in captains:
         user = await db.users.find_one({"id": c['user_id']}, {"_id": 0, "password_hash": 0})
+        if user:
+            if user.get('category_id'):
+                cat = await db.categories.find_one({"id": user['category_id']}, {"_id": 0, "name": 1})
+                user['category_name'] = cat['name'] if cat else ''
+            if user.get('subcategory_id'):
+                sub = await db.subcategories.find_one({"id": user['subcategory_id']}, {"_id": 0, "name": 1})
+                user['subcategory_name'] = sub['name'] if sub else ''
         c['user'] = user
     return captains
 

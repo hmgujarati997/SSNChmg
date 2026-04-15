@@ -142,6 +142,11 @@ async def get_profile(user=Depends(require_user)):
 @router.put("/profile")
 async def update_profile(data: UserUpdate, user=Depends(require_user)):
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    # Enforce category lock
+    if 'category_id' in update_data or 'subcategory_id' in update_data:
+        settings = await db.site_settings.find_one({"id": "default"}, {"_id": 0, "category_locked": 1})
+        if settings and settings.get("category_locked"):
+            raise HTTPException(403, "Categories are locked by admin")
     if update_data:
         social_fields = ['linkedin', 'instagram', 'twitter', 'youtube', 'whatsapp', 'facebook', 'website']
         social_updates = {}

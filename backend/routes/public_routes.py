@@ -105,6 +105,7 @@ async def get_branding():
         "sponsor_title_1": settings.get("sponsor_title_1", ""),
         "sponsor_title_2": settings.get("sponsor_title_2", ""),
         "sponsor_heading": settings.get("sponsor_heading", ""),
+        "category_locked": settings.get("category_locked", False),
     }
 
 
