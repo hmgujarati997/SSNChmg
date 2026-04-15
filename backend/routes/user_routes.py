@@ -42,16 +42,17 @@ async def _send_one_notification(item):
     campaign = settings.get("wa_campaign_reference", "") if settings else ""
     if not template or not campaign:
         return
-    from_user = await db.users.find_one({"id": item["from_user_id"]}, {"_id": 0, "full_name": 1})
+    from_user = await db.users.find_one({"id": item["from_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
     to_user = await db.users.find_one({"id": item["to_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
     if not from_user or not to_user or not to_user.get("phone"):
         return
+    referrer_info = f"{from_user.get('full_name', 'Someone')} - {from_user.get('phone', '')}"
     await send_whatsapp(
         destination=to_user["phone"],
         template_name=template,
         template_params=[
             to_user.get("full_name", "User"),
-            from_user.get("full_name", "Someone"),
+            referrer_info,
             item.get("contact_name", ""),
             item.get("contact_phone", ""),
         ],
