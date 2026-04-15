@@ -177,6 +177,7 @@ function EventDetail({ eventId, onBack }) {
     const [assigningTables, setAssigningTables] = useState(false);
     const [assignProgress, setAssignProgress] = useState({ progress: 0, message: '' });
     const assignTables = async () => {
+        if (assignments.length > 0 && !window.confirm('This will delete existing table assignments and create new ones. Continue?')) return;
         try {
             setAssigningTables(true);
             setAssignProgress({ progress: 0, message: 'Starting...' });
@@ -782,26 +783,46 @@ function EventDetail({ eventId, onBack }) {
                             <div className="flex items-center justify-between mb-3">
                                 <div>
                                     <h3 className="font-semibold">Welcome Messages</h3>
-                                    <p className="text-xs text-muted-foreground">Send welcome message to registered users (once per user)</p>
+                                    <p className="text-xs text-muted-foreground">Send welcome message to registered users</p>
                                 </div>
-                                <Button onClick={async () => {
-                                    setWaSendingWelcome(true);
-                                    setWelcomeJob(null);
-                                    try {
-                                        const settings = await API.get('/admin/settings');
-                                        const tmpl = settings.data.wa_template_welcome;
-                                        const camp = settings.data.wa_campaign_welcome;
-                                        if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSendingWelcome(false); return; }
-                                        if (!camp) { toast.error('Set welcome campaign name in Settings first'); setWaSendingWelcome(false); return; }
-                                        const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}&campaign_name=${camp}`);
-                                        toast.success(`Broadcasting to ${r.data.total} users (${r.data.already_sent} already sent)`);
-                                        setWelcomeJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0, skipped: r.data.already_sent || 0 });
-                                        startPolling(r.data.job_id, 'welcome');
-                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); setWaSendingWelcome(false); }
-                                }} disabled={waSendingWelcome} className="bg-green-600 hover:bg-green-700" data-testid="send-welcome-btn">
-                                    {waSendingWelcome ? <Loader2 size={16} className="mr-2 animate-spin" /> : <MessageCircle size={16} className="mr-2" />}
-                                    {waSendingWelcome ? 'Sending...' : 'Send Welcome'}
-                                </Button>
+                                <div className="flex gap-2">
+                                    <Button onClick={async () => {
+                                        setWaSendingWelcome(true);
+                                        setWelcomeJob(null);
+                                        try {
+                                            const settings = await API.get('/admin/settings');
+                                            const tmpl = settings.data.wa_template_welcome;
+                                            const camp = settings.data.wa_campaign_welcome;
+                                            if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSendingWelcome(false); return; }
+                                            if (!camp) { toast.error('Set welcome campaign name in Settings first'); setWaSendingWelcome(false); return; }
+                                            const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}&campaign_name=${camp}`);
+                                            toast.success(`Broadcasting to ${r.data.total} users (${r.data.already_sent} already sent)`);
+                                            setWelcomeJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0, skipped: r.data.already_sent || 0 });
+                                            startPolling(r.data.job_id, 'welcome');
+                                        } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); setWaSendingWelcome(false); }
+                                    }} disabled={waSendingWelcome} className="bg-green-600 hover:bg-green-700" data-testid="send-welcome-btn">
+                                        {waSendingWelcome ? <Loader2 size={16} className="mr-2 animate-spin" /> : <MessageCircle size={16} className="mr-2" />}
+                                        {waSendingWelcome ? 'Sending...' : 'Send New'}
+                                    </Button>
+                                    <Button variant="outline" onClick={async () => {
+                                        if (!window.confirm('This will resend welcome messages to ALL users, including those who already received it. Continue?')) return;
+                                        setWaSendingWelcome(true);
+                                        setWelcomeJob(null);
+                                        try {
+                                            const settings = await API.get('/admin/settings');
+                                            const tmpl = settings.data.wa_template_welcome;
+                                            const camp = settings.data.wa_campaign_welcome;
+                                            if (!tmpl) { toast.error('Set welcome template in Settings first'); setWaSendingWelcome(false); return; }
+                                            if (!camp) { toast.error('Set welcome campaign name in Settings first'); setWaSendingWelcome(false); return; }
+                                            const r = await API.post(`/admin/whatsapp/send-welcome/${eventId}?template_name=${tmpl}&campaign_name=${camp}&force=true`);
+                                            toast.success(`Resending to ALL ${r.data.total} users`);
+                                            setWelcomeJob({ status: 'running', total: r.data.total, sent: 0, failed: 0, processed: 0, skipped: 0 });
+                                            startPolling(r.data.job_id, 'welcome');
+                                        } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); setWaSendingWelcome(false); }
+                                    }} disabled={waSendingWelcome} data-testid="resend-welcome-btn">
+                                        <RefreshCw size={16} className="mr-2" />Resend All
+                                    </Button>
+                                </div>
                             </div>
                             {/* Welcome Progress Bar */}
                             {welcomeJob && welcomeJob.status === 'running' && (

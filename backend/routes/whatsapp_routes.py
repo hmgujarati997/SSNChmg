@@ -124,7 +124,7 @@ async def _run_assignment_job(job_id: str, event_id: str, event_name: str, templ
 
 
 @router.post("/send-welcome/{event_id}")
-async def send_welcome_messages(event_id: str, template_name: str = "welcome", campaign_name: str = "ssnc", admin=Depends(require_admin)):
+async def send_welcome_messages(event_id: str, template_name: str = "welcome", campaign_name: str = "ssnc", force: bool = False, admin=Depends(require_admin)):
     """Kick off background job to send welcome messages."""
     event = await db.events.find_one({"id": event_id}, {"_id": 0})
     if not event:
@@ -134,16 +134,18 @@ async def send_welcome_messages(event_id: str, template_name: str = "welcome", c
     user_ids = [r['user_id'] for r in regs]
     user_map = await bulk_fetch_users(user_ids, enrich=False)
 
-    # Skip users who already got a successful welcome
-    sent_docs = await db.whatsapp_messages.find(
-        {"event_id": event_id, "message_type": "welcome", "status": "sent"},
-        {"_id": 0, "user_id": 1}
-    ).to_list(5000)
-    already_done = {d['user_id'] for d in sent_docs}
+    already_done = set()
+    if not force:
+        # Skip users who already got a successful welcome
+        sent_docs = await db.whatsapp_messages.find(
+            {"event_id": event_id, "message_type": "welcome", "status": "sent"},
+            {"_id": 0, "user_id": 1}
+        ).to_list(5000)
+        already_done = {d['user_id'] for d in sent_docs}
 
     job_id = str(uuid.uuid4())[:8]
     asyncio.create_task(_run_welcome_job(job_id, event_id, event.get('name', ''), template_name, campaign_name, user_ids, user_map, already_done))
-    return {"message": "Welcome messages started", "job_id": job_id, "total": len(user_ids), "already_sent": len(already_done)}
+    return {"message": "Welcome messages started", "job_id": job_id, "total": len(user_ids), "already_sent": len(already_done), "force": force}
 
 
 @router.post("/send-assignments/{event_id}")
