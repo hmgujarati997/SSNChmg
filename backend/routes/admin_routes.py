@@ -568,6 +568,163 @@ async def assign_tables_status(event_id: str, job_id: str, admin=Depends(require
     return job
 
 
+@router.post("/events/{event_id}/assign-remaining")
+async def assign_remaining_users(event_id: str, admin=Depends(require_admin)):
+    """Place unassigned users into available seats WITHOUT moving existing assignments."""
+    event = await db.events.find_one({"id": event_id}, {"_id": 0})
+    if not event:
+        raise HTTPException(404, "Event not found")
+
+    total_tables = event.get('total_tables', 0)
+    chairs_per_table = event.get('chairs_per_table', 0)
+    total_rounds = event.get('total_rounds', 0)
+
+    # Get all registrations and current assignments
+    registrations = await db.event_registrations.find(
+        {"event_id": event_id, "is_spot": {"$ne": True}}, {"_id": 0}
+    ).to_list(5000)
+    reg_user_ids = {r['user_id'] for r in registrations}
+
+    assignments = await db.table_assignments.find({"event_id": event_id}, {"_id": 0}).to_list(5000)
+    if not assignments:
+        raise HTTPException(400, "No existing assignments. Use 'Assign Tables' first.")
+
+    # Find already-assigned users (from round 1)
+    assigned_ids = set()
+    for a in assignments:
+        assigned_ids.update(a.get('user_ids', []))
+        if a.get('captain_id'):
+            assigned_ids.add(a['captain_id'])
+
+    # Unassigned = registered but not in any assignment
+    unassigned_ids = reg_user_ids - assigned_ids
+    if not unassigned_ids:
+        return {"message": "All users are already assigned.", "placed": 0, "unplaced": 0}
+
+    unassigned_users = await db.users.find(
+        {"id": {"$in": list(unassigned_ids)}}, {"_id": 0, "password_hash": 0}
+    ).to_list(5000)
+
+    # Fetch clash data
+    categories = await db.categories.find({}, {"_id": 0}).to_list(200)
+    subcategories = await db.subcategories.find({}, {"_id": 0}).to_list(1000)
+    cat_to_clash = {c['id']: c.get('clash_group', '').strip() or c['id'] for c in categories}
+    sub_to_clash = {s['id']: s.get('clash_group', '').strip() or s['id'] for s in subcategories}
+
+    # Captains
+    captains = await db.table_captains.find({"event_id": event_id}, {"_id": 0}).to_list(100)
+    captain_map = {}
+    for c in captains:
+        u = await db.users.find_one({"id": c['user_id']}, {"_id": 0})
+        if u:
+            captain_map[c['table_number']] = {
+                'user_id': c['user_id'],
+                'clash': cat_to_clash.get(u.get('category_id', ''), ''),
+                'subclash': sub_to_clash.get(u.get('subcategory_id', ''), ''),
+            }
+
+    # All users map for clash lookups
+    all_user_ids = list(assigned_ids | unassigned_ids)
+    all_users = await db.users.find({"id": {"$in": all_user_ids}}, {"_id": 0, "password_hash": 0}).to_list(5000)
+    user_map = {u['id']: u for u in all_users}
+
+    def get_clash(uid):
+        u = user_map.get(uid, {})
+        return cat_to_clash.get(u.get('category_id', ''), '')
+
+    def get_subclash(uid):
+        u = user_map.get(uid, {})
+        return sub_to_clash.get(u.get('subcategory_id', ''), '')
+
+    # Group assignments by round
+    rounds_map = {}
+    for a in assignments:
+        rn = a['round_number']
+        tn = a['table_number']
+        rounds_map.setdefault(rn, {})[tn] = a
+
+    placed_count = 0
+    unplaced = set(u['id'] for u in unassigned_users)
+
+    for rn in sorted(rounds_map.keys()):
+        round_unplaced = list(unplaced)
+        for uid in round_unplaced:
+            u_clash = get_clash(uid)
+            u_subclash = get_subclash(uid)
+            best_table = None
+            best_score = float('-inf')
+
+            for tn in range(1, total_tables + 1):
+                a = rounds_map[rn].get(tn)
+                if not a:
+                    continue
+                current_users = a.get('user_ids', [])
+                cap = captain_map.get(tn)
+
+                # Check capacity
+                capacity = chairs_per_table - (1 if cap else 0)
+                if len(current_users) >= capacity:
+                    continue
+
+                # Check subcategory clash (hard constraint)
+                table_subclashes = set()
+                if cap and cap['subclash']:
+                    table_subclashes.add(cap['subclash'])
+                for existing_uid in current_users:
+                    sc = get_subclash(existing_uid)
+                    if sc:
+                        table_subclashes.add(sc)
+                if u_subclash and u_subclash in table_subclashes:
+                    continue
+
+                # Score: prefer tables with fewer category clashes and more space
+                table_clashes = set()
+                if cap and cap['clash']:
+                    table_clashes.add(cap['clash'])
+                for existing_uid in current_users:
+                    cc = get_clash(existing_uid)
+                    if cc:
+                        table_clashes.add(cc)
+
+                score = -len(current_users)
+                if u_clash and u_clash in table_clashes:
+                    score -= 50  # Penalize category clash
+
+                if score > best_score:
+                    best_score = score
+                    best_table = tn
+
+            if best_table is not None:
+                # Add user to this table
+                await db.table_assignments.update_one(
+                    {"event_id": event_id, "round_number": rn, "table_number": best_table},
+                    {"$push": {"user_ids": uid}}
+                )
+                rounds_map[rn][best_table]['user_ids'].append(uid)
+                if rn == 1:
+                    placed_count += 1
+
+        # After processing all rounds, update unplaced
+        # A user is unplaced only if they couldn't be placed in ALL rounds
+        # For simplicity, count based on round 1
+
+    # Re-check who actually got placed (in round 1)
+    updated_r1 = await db.table_assignments.find(
+        {"event_id": event_id, "round_number": 1}, {"_id": 0}
+    ).to_list(500)
+    now_assigned = set()
+    for a in updated_r1:
+        now_assigned.update(a.get('user_ids', []))
+    still_unplaced = unassigned_ids - now_assigned
+
+    return {
+        "message": f"Placed {placed_count} users into existing tables. {len(still_unplaced)} could not be placed.",
+        "placed": placed_count,
+        "unplaced": len(still_unplaced),
+        "total_unassigned": len(unassigned_ids)
+    }
+
+
 @router.get("/events/{event_id}/assignments")
 async def get_assignments(event_id: str, admin=Depends(require_admin)):
     assignments = await db.table_assignments.find({"event_id": event_id}, {"_id": 0}).sort("round_number", 1).to_list(1000)

@@ -490,7 +490,17 @@ function EventDetail({ eventId, onBack }) {
                             {assigningTables ? <><Loader2 size={16} className="mr-2 animate-spin" />Assigning...</> : <><TableProperties size={16} className="mr-2" />Assign Tables</>}
                         </Button>
                         {assignments.length > 0 && (
-                            <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
+                            <>
+                                <Button variant="outline" onClick={async () => {
+                                    if (!window.confirm('This will place unassigned users into available seats without moving existing assignments. Continue?')) return;
+                                    try {
+                                        const r = await API.post(`/admin/events/${eventId}/assign-remaining`);
+                                        toast.success(r.data.message, { duration: 6000 });
+                                        load();
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed'); }
+                                }} data-testid="assign-remaining-btn"><UserPlus size={16} className="mr-2" />Assign Remaining</Button>
+                                <Button variant="outline" onClick={() => downloadSeatingCSV()} data-testid="download-seating-csv-btn"><Download size={16} className="mr-2" />Download CSV</Button>
+                            </>
                         )}
                     </div>
                     {assigningTables && (
