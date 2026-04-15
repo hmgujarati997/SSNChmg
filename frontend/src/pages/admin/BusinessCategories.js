@@ -177,6 +177,21 @@ export default function BusinessCategories() {
                                 <Tags size={18} className="text-primary" />
                                 <span className="font-medium">{cat.name}</span>
                                 <Badge variant="outline" className="text-xs">{cat.subcategory_count} sub</Badge>
+                                <Input
+                                    value={cat.clash_group || ''}
+                                    onChange={e => {
+                                        const val = e.target.value;
+                                        setCategories(prev => prev.map(c => c.id === cat.id ? { ...c, clash_group: val } : c));
+                                    }}
+                                    onBlur={async () => {
+                                        try { await API.put(`/admin/categories/${cat.id}`, { name: cat.name, clash_group: cat.clash_group || '' }); }
+                                        catch {}
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                    placeholder="Clash group (e.g. textile)"
+                                    className="bg-muted/50 border-border h-7 text-xs w-44 ml-2"
+                                    data-testid={`clash-group-${cat.id}`}
+                                />
                             </div>
                             <div className="flex gap-2">
                                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setSelectedCatId(cat.id); setShowAddSub(true); }} data-testid={`add-sub-${cat.id}`}>

@@ -20,6 +20,7 @@ class VolunteerLogin(BaseModel):
 class CategoryCreate(BaseModel):
     name: str
     collaborates_with: List[str] = []
+    clash_group: str = ""
 
 
 class SubCategoryCreate(BaseModel):
