@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
-import { Calendar, MapPin, Clock, QrCode, ArrowRightLeft, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Clock, QrCode, ArrowRightLeft, ChevronRight, Send } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export default function UserDashboard() {
     const { user } = useAuth();
@@ -14,6 +15,8 @@ export default function UserDashboard() {
     const [myTables, setMyTables] = useState([]);
     const [activeEvent, setActiveEvent] = useState(null);
     const [showQR, setShowQR] = useState(false);
+    const [shareCode, setShareCode] = useState('91');
+    const [shareNumber, setShareNumber] = useState('');
     const frontendUrl = window.location.origin;
 
     useEffect(() => {
@@ -64,6 +67,42 @@ export default function UserDashboard() {
                         </div>
                     )}
                     <p className="text-xs text-muted-foreground mt-3 text-center">Scan to view your digital business card</p>
+
+                    {/* Share Profile on WhatsApp */}
+                    <div className="mt-4 pt-4 border-t border-border" data-testid="share-profile-section">
+                        <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Share Profile on WhatsApp</p>
+                        <div className="flex gap-2">
+                            <div className="flex">
+                                <span className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-border bg-muted text-muted-foreground text-xs">+</span>
+                                <Input
+                                    value={shareCode}
+                                    onChange={e => setShareCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                    className="bg-muted/50 border-border h-10 rounded-l-none w-14 px-2 text-center"
+                                    data-testid="share-country-code"
+                                />
+                            </div>
+                            <Input
+                                value={shareNumber}
+                                onChange={e => setShareNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                                placeholder="Phone number"
+                                className="bg-muted/50 border-border h-10 flex-1"
+                                data-testid="share-phone-input"
+                                onKeyDown={e => e.key === 'Enter' && shareNumber.trim() && window.open(`https://wa.me/${shareCode}${shareNumber}?text=${encodeURIComponent(`Check out my profile: ${frontendUrl}/profile/${user.id}`)}`, '_blank')}
+                            />
+                            <Button
+                                className="bg-[#25D366] hover:bg-[#25D366]/80 shrink-0"
+                                disabled={!shareNumber.trim()}
+                                onClick={() => {
+                                    const url = `https://wa.me/${shareCode}${shareNumber}?text=${encodeURIComponent(`Check out my profile: ${frontendUrl}/profile/${user.id}`)}`;
+                                    window.open(url, '_blank');
+                                    toast.success('Opening WhatsApp...');
+                                }}
+                                data-testid="share-whatsapp-btn"
+                            >
+                                <Send size={16} className="mr-1.5" />Share
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
 
