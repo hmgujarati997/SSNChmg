@@ -25,7 +25,10 @@ export default function LiveScreen() {
     const speakerIntervalRef = useRef(null);
     const concludeAlertedRef = useRef(false);
     const doneAlertedRef = useRef(false);
+    const roundStartAlertedRef = useRef(false);
+    const speakerEndAlertedRef = useRef(-1);
     const audioCtxRef = useRef(null);
+    const prevSpeakerRef = useRef(0);
 
     useEffect(() => {
         API.get('/public/branding').then(r => setBranding(r.data)).catch(() => {});
@@ -60,27 +63,36 @@ export default function LiveScreen() {
         return () => clearInterval(intervalRef.current);
     }, [authenticated, eventId]);
 
-    // Audio beep
-    const playBeep = useCallback((freq = 800, duration = 500, count = 1) => {
+    // Audio: play uploaded MP3 tone or fallback beep
+    const playTone = useCallback((toneKey, fallbackFreq = 800, fallbackDuration = 500, fallbackCount = 1) => {
+        const toneUrl = branding[toneKey];
+        if (toneUrl) {
+            try {
+                const audio = new Audio(`${backendUrl}${toneUrl}`);
+                audio.play().catch(() => {});
+                return;
+            } catch {}
+        }
+        // Fallback: oscillator beep
         try {
             if (!audioCtxRef.current) audioCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
             const ctx = audioCtxRef.current;
             let t = ctx.currentTime;
-            for (let i = 0; i < count; i++) {
+            for (let i = 0; i < fallbackCount; i++) {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.connect(gain);
                 gain.connect(ctx.destination);
-                osc.frequency.value = freq;
+                osc.frequency.value = fallbackFreq;
                 osc.type = 'sine';
                 gain.gain.setValueAtTime(0.5, t);
-                gain.gain.exponentialRampToValueAtTime(0.01, t + duration / 1000);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + fallbackDuration / 1000);
                 osc.start(t);
-                osc.stop(t + duration / 1000);
-                t += (duration + 200) / 1000;
+                osc.stop(t + fallbackDuration / 1000);
+                t += (fallbackDuration + 200) / 1000;
             }
         } catch {}
-    }, []);
+    }, [branding, backendUrl]);
 
     // Speaker timer logic
     useEffect(() => {
@@ -107,7 +119,7 @@ export default function LiveScreen() {
                 setSpeakerTimeLeft(0);
                 setTimerPhase('done');
                 if (!doneAlertedRef.current) {
-                    playBeep(1000, 400, 3);
+                    playTone('tone_round_end', 1000, 400, 3);
                     doneAlertedRef.current = true;
                 }
                 return;
@@ -121,6 +133,19 @@ export default function LiveScreen() {
                 setSpeakerNum(currentSpeakerIndex + 1);
                 setSpeakerTimeLeft(Math.ceil(remaining));
                 setTimerPhase('speaking');
+
+                // Round start tone (first speaker)
+                if (currentSpeakerIndex === 0 && !roundStartAlertedRef.current) {
+                    playTone('tone_round_start', 500, 300, 1);
+                    roundStartAlertedRef.current = true;
+                }
+
+                // Conclude end tone (previous speaker's conclusion just ended → new speaker started)
+                if (currentSpeakerIndex > 0 && speakerEndAlertedRef.current < currentSpeakerIndex) {
+                    playTone('tone_conclude_end', 900, 300, 2);
+                    speakerEndAlertedRef.current = currentSpeakerIndex;
+                }
+
                 concludeAlertedRef.current = false;
                 doneAlertedRef.current = false;
             } else {
@@ -130,17 +155,21 @@ export default function LiveScreen() {
                 setSpeakerTimeLeft(Math.ceil(remaining));
                 setTimerPhase('concluding');
                 if (!concludeAlertedRef.current) {
-                    playBeep(600, 600, 2);
+                    playTone('tone_conclude_start', 600, 600, 2);
                     concludeAlertedRef.current = true;
                 }
                 doneAlertedRef.current = false;
             }
         };
 
+        // Reset round-level refs when round changes
+        roundStartAlertedRef.current = false;
+        speakerEndAlertedRef.current = -1;
+
         calcSpeaker();
         speakerIntervalRef.current = setInterval(calcSpeaker, 500);
         return () => clearInterval(speakerIntervalRef.current);
-    }, [event?.round_start_time, event?.speaker_time_seconds, event?.conclusion_time_seconds, event?.chairs_per_table, playBeep]);
+    }, [event?.round_start_time, event?.speaker_time_seconds, event?.conclusion_time_seconds, event?.chairs_per_table, playTone]);
 
     const formatSec = (s) => {
         if (s === null || s === undefined) return '--:--';

@@ -106,6 +106,10 @@ async def get_branding():
         "sponsor_title_2": settings.get("sponsor_title_2", ""),
         "sponsor_heading": settings.get("sponsor_heading", ""),
         "category_locked": settings.get("category_locked", False),
+        "tone_round_start": settings.get("tone_round_start", ""),
+        "tone_conclude_start": settings.get("tone_conclude_start", ""),
+        "tone_conclude_end": settings.get("tone_conclude_end", ""),
+        "tone_round_end": settings.get("tone_round_end", ""),
     }
 
 

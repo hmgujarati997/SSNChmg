@@ -55,6 +55,9 @@ Build a PWA for a speed networking event "SSNC". Admin manages events, users, ca
 - [x] Categories page simplified — removed AI button and inline clash group inputs (Feb 2026)
 - [x] Download All QR Codes as ZIP (PNGs named by badge number) in Registrations tab (Feb 2026)
 - [x] Badge Print CSV download (Badge#, Name, Company, Category, SubCategory, Round table numbers) (Feb 2026)
+- [x] Quick Reference via QR scan or badge number input (Apr 2026)
+- [x] Reactivate Event button after accidental "Finish Event" (Apr 2026)
+- [x] Live Screen Tones — upload MP3s for round start, conclude start, conclude end, round end (Apr 2026)
 
 ## P2 Features (Backlog)
 - [ ] Admin analytics dashboard

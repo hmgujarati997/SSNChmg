@@ -582,7 +582,9 @@ function EventDetail({ eventId, onBack }) {
                             <p className="text-sm text-muted-foreground">Status: <span className="text-foreground font-bold">{event.status}</span></p>
                         </div>
                         <div className="flex gap-3 flex-wrap">
-                            {event.status !== 'completed' && (
+                            {event.status === 'completed' ? (
+                                <Button onClick={() => { if (window.confirm('Reactivate this event? Status will be set to upcoming.')) roundControl('reactivate'); }} className="bg-primary" data-testid="reactivate-event-btn"><Play size={16} className="mr-2" />Reactivate Event</Button>
+                            ) : (
                                 <>
                                     <Button onClick={() => roundControl('start')} className="bg-[hsl(var(--emerald))] hover:bg-[hsl(var(--emerald))]/80" data-testid="start-round-btn"><Play size={16} className="mr-2" />Start Next Round</Button>
                                     {event.round_start_time && <Button onClick={() => roundControl('end')} variant="outline" data-testid="end-round-btn"><Square size={16} className="mr-2" />End Current Round</Button>}

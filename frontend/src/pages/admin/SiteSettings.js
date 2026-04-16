@@ -4,7 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, Settings, Upload, Image, Globe, Smartphone, Star, MessageCircle } from 'lucide-react';
+import { Save, Settings, Upload, Image, Globe, Smartphone, Star, MessageCircle, Volume2 } from 'lucide-react';
+
+const TONE_TYPES = [
+    { key: 'tone_round_start', label: 'Round Start', desc: 'Plays at the beginning of each round' },
+    { key: 'tone_conclude_start', label: 'Conclude Start', desc: 'Plays when conclusion time begins for each speaker' },
+    { key: 'tone_conclude_end', label: 'Conclude End', desc: 'Plays when conclusion time ends (next speaker)' },
+    { key: 'tone_round_end', label: 'Round End', desc: 'Plays when all speakers in a round are done' },
+];
 
 const LOGO_TYPES = [
     { key: 'favicon', label: 'Favicon', desc: 'Browser tab icon (auto-generates 16px, 32px, ICO)', icon: Globe },
@@ -135,6 +142,61 @@ export default function SiteSettings() {
                                 >
                                     <Upload size={14} className="mr-1.5" />
                                     {uploading[key] ? 'Uploading...' : logos[key] ? 'Replace' : 'Upload'}
+                                </Button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Tone Upload Section */}
+                <div className="glass-card rounded-xl p-6 space-y-5">
+                    <h3 className="font-semibold text-lg flex items-center gap-2"><Volume2 size={20} className="text-primary" />Live Screen Tones</h3>
+                    <p className="text-xs text-muted-foreground">Upload MP3 files for different timer events on the live screen. These replace the default beep sounds.</p>
+
+                    {TONE_TYPES.map(({ key, label, desc }) => (
+                        <div key={key} className="flex items-start gap-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                            <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+                                <Volume2 size={18} className="text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm">{label}</p>
+                                <p className="text-xs text-muted-foreground mb-2">{desc}</p>
+                                {logos[key] && (
+                                    <div className="mb-2 flex items-center gap-2">
+                                        <audio controls src={`${backendUrl}${logos[key]}`} className="h-8" data-testid={`${key}-preview`} />
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    ref={el => fileRefs.current[key] = el}
+                                    accept="audio/*"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        setUploading(p => ({ ...p, [key]: true }));
+                                        try {
+                                            const formData = new FormData();
+                                            formData.append('file', file);
+                                            const r = await API.post(`/admin/upload-tone?tone_type=${key}`, formData, {
+                                                headers: { 'Content-Type': 'multipart/form-data' }
+                                            });
+                                            setLogos(p => ({ ...p, [key]: r.data.url }));
+                                            toast.success(`${label} tone uploaded!`);
+                                        } catch (err) { toast.error('Upload failed'); }
+                                        setUploading(p => ({ ...p, [key]: false }));
+                                        if (fileRefs.current[key]) fileRefs.current[key].value = '';
+                                    }}
+                                    className="hidden"
+                                    data-testid={`${key}-file-input`}
+                                />
+                                <Button
+                                    variant="outline" size="sm"
+                                    onClick={() => fileRefs.current[key]?.click()}
+                                    disabled={uploading[key]}
+                                    data-testid={`upload-${key}-btn`}
+                                >
+                                    <Upload size={14} className="mr-1.5" />
+                                    {uploading[key] ? 'Uploading...' : logos[key] ? 'Replace' : 'Upload MP3'}
                                 </Button>
                             </div>
                         </div>

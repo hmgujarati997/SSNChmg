@@ -766,6 +766,10 @@ async def round_control(event_id: str, data: RoundControl, admin=Depends(require
         await db.events.update_one({"id": event_id}, {"$set": {
             "status": "completed", "current_round": 0, "round_start_time": None
         }})
+    elif data.action == "reactivate":
+        await db.events.update_one({"id": event_id}, {"$set": {
+            "status": "upcoming", "current_round": 0, "round_start_time": None
+        }})
     return await db.events.find_one({"id": event_id}, {"_id": 0})
 
 
@@ -1289,6 +1293,28 @@ async def upload_logo(file: UploadFile = File(...), logo_type: str = "header_log
         pass
     await db.site_settings.update_one({"id": "default"}, {"$set": {logo_type: file_url}}, upsert=True)
     return {"message": "Logo uploaded", "url": file_url, "type": logo_type}
+
+
+@router.post("/upload-tone")
+async def upload_tone(file: UploadFile = File(...), tone_type: str = "tone_round_start", admin=Depends(require_admin)):
+    """Upload MP3 tone files. tone_type: tone_round_start, tone_conclude_start, tone_conclude_end, tone_round_end"""
+    valid_types = ["tone_round_start", "tone_conclude_start", "tone_conclude_end", "tone_round_end"]
+    if tone_type not in valid_types:
+        raise HTTPException(400, f"tone_type must be one of: {', '.join(valid_types)}")
+    if not file.content_type or 'audio' not in file.content_type:
+        raise HTTPException(400, "Only audio files allowed (MP3, WAV, etc.)")
+    from pathlib import Path
+    uploads_dir = Path(__file__).parent.parent / "uploads"
+    uploads_dir.mkdir(exist_ok=True)
+    content = await file.read()
+    ext = file.filename.split(".")[-1] if "." in file.filename else "mp3"
+    filename = f"{tone_type}.{ext}"
+    with open(uploads_dir / filename, "wb") as f:
+        f.write(content)
+    file_url = f"/api/uploads/{filename}"
+    await db.site_settings.update_one({"id": "default"}, {"$set": {tone_type: file_url}}, upsert=True)
+    return {"message": "Tone uploaded", "url": file_url, "type": tone_type}
+
 
 
 @router.post("/categories/ai-clash-groups")
