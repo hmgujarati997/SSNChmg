@@ -266,6 +266,10 @@ async def lookup_by_profile(user_id: str, user=Depends(require_user)):
 
 @router.post("/references")
 async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
+    # Check if references are enabled for this event
+    event = await db.events.find_one({"id": data.event_id}, {"_id": 0})
+    if event and not event.get('references_enabled', False):
+        raise HTTPException(403, "References are not enabled yet. Please wait for the admin to enable.")
     ref_doc = {
         "id": str(uuid.uuid4()),
         "event_id": data.event_id,

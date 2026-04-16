@@ -593,6 +593,33 @@ function EventDetail({ eventId, onBack }) {
                             )}
                         </div>
                         <p className="text-xs text-muted-foreground">Live screen URL: <code className="bg-muted px-2 py-1 rounded text-primary">/live/{eventId}</code></p>
+                        <div className="border-t border-border pt-4 mt-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-sm">Allow References</p>
+                                    <p className="text-xs text-muted-foreground">When OFF, users can see table members but cannot pass references</p>
+                                </div>
+                                <Button variant={event.references_enabled ? 'default' : 'outline'} size="sm"
+                                    onClick={() => roundControl('toggle_references')}
+                                    className={event.references_enabled ? 'bg-[hsl(var(--emerald))]' : ''}
+                                    data-testid="toggle-references-btn">
+                                    {event.references_enabled ? 'Enabled' : 'Disabled'}
+                                </Button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-sm">Clear All References</p>
+                                    <p className="text-xs text-muted-foreground">Delete all passed references for this event (use before event starts)</p>
+                                </div>
+                                <Button variant="destructive" size="sm" onClick={async () => {
+                                    if (!window.confirm('Delete ALL references for this event? This cannot be undone.')) return;
+                                    try {
+                                        const r = await API.delete(`/admin/events/${eventId}/references`);
+                                        toast.success(r.data.message);
+                                    } catch (err) { toast.error('Failed'); }
+                                }} data-testid="clear-references-btn">Clear References</Button>
+                            </div>
+                        </div>
                         <div className="border-t border-border pt-4 mt-4">
                             <Button variant="destructive" onClick={deleteEvent} data-testid="delete-event-btn"><Trash2 size={16} className="mr-2" />Delete Event</Button>
                             <p className="text-xs text-muted-foreground mt-2">This will delete the event, registrations, seating, and references. Users will not be deleted.</p>

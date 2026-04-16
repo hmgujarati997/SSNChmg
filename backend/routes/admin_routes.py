@@ -770,6 +770,9 @@ async def round_control(event_id: str, data: RoundControl, admin=Depends(require
         await db.events.update_one({"id": event_id}, {"$set": {
             "status": "upcoming", "current_round": 0, "round_start_time": None
         }})
+    elif data.action == "toggle_references":
+        current = event.get('references_enabled', False)
+        await db.events.update_one({"id": event_id}, {"$set": {"references_enabled": not current}})
     return await db.events.find_one({"id": event_id}, {"_id": 0})
 
 
@@ -781,6 +784,13 @@ async def toggle_registration(event_id: str, admin=Depends(require_admin)):
     new_status = not event.get('registration_open', True)
     await db.events.update_one({"id": event_id}, {"$set": {"registration_open": new_status}})
     return {"registration_open": new_status}
+
+
+@router.delete("/events/{event_id}/references")
+async def clear_all_references(event_id: str, admin=Depends(require_admin)):
+    """Delete all references for an event (before event starts)."""
+    result = await db.references.delete_many({"event_id": event_id})
+    return {"message": f"Cleared {result.deleted_count} references", "deleted": result.deleted_count}
 
 
 @router.get("/events/{event_id}/registrations")

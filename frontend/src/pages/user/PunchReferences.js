@@ -43,7 +43,7 @@ function SocialIcons({ links }) {
     );
 }
 
-function PersonCard({ person, selectedRound, refCounts, onPassRef }) {
+function PersonCard({ person, selectedRound, refCounts, onPassRef, refsEnabled }) {
     const key = `${person.id}-${selectedRound || 'quick'}`;
     const count = refCounts[key] || 0;
     return (
@@ -67,9 +67,13 @@ function PersonCard({ person, selectedRound, refCounts, onPassRef }) {
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
-                    <Button size="sm" onClick={() => onPassRef(person)} className="bg-primary" data-testid={`pass-ref-${person.id}`}>
-                        <Send size={14} className="mr-1" />Pass Ref
-                    </Button>
+                    {refsEnabled ? (
+                        <Button size="sm" onClick={() => onPassRef(person)} className="bg-primary" data-testid={`pass-ref-${person.id}`}>
+                            <Send size={14} className="mr-1" />Pass Ref
+                        </Button>
+                    ) : (
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground">Refs not open</Badge>
+                    )}
                     {count > 0 && (
                         <Badge className="bg-[hsl(var(--emerald))]/20 text-[hsl(var(--emerald))] border-0 text-[10px]">
                             <Check size={10} className="mr-0.5" />{count} passed
@@ -113,6 +117,9 @@ export default function PunchReferences() {
                 loadRefCounts(reg.id);
             }
         }).catch(() => {});
+    }, []);
+
+    const refsEnabled = activeEvent?.references_enabled || false;
     }, []);
 
     const loadRefCounts = async (eventId) => {
@@ -217,6 +224,12 @@ export default function PunchReferences() {
             </div>
 
             {/* Quick Reference — QR Scan or Badge Number */}
+            {!refsEnabled && (
+                <div className="glass-card rounded-xl p-4 border-l-4 border-yellow-500 bg-yellow-500/5" data-testid="refs-disabled-banner">
+                    <p className="text-sm font-medium">References are not open yet</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">You can view table members but cannot pass references until the admin enables it.</p>
+                </div>
+            )}
             <div className="glass-card rounded-xl p-5" data-testid="quick-reference-section">
                 <h3 className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-3">Quick Reference — Scan QR or Enter Badge</h3>
                 <div className="flex gap-2 mb-3">
@@ -244,7 +257,7 @@ export default function PunchReferences() {
 
                 {quickPerson && (
                     <PersonCard person={quickPerson} selectedRound="quick" refCounts={refCounts}
-                        onPassRef={(p) => openRefDialog(p, true)} />
+                        onPassRef={(p) => openRefDialog(p, true)} refsEnabled={refsEnabled} />
                 )}
             </div>
 
@@ -270,7 +283,7 @@ export default function PunchReferences() {
                     <div className="space-y-3">
                         {tablePeople.map(p => (
                             <PersonCard key={p.id} person={p} selectedRound={selectedRound} refCounts={refCounts}
-                                onPassRef={(person) => openRefDialog(person, false)} />
+                                onPassRef={(person) => openRefDialog(person, false)} refsEnabled={refsEnabled} />
                         ))}
                         {tablePeople.length === 0 && <p className="text-center text-muted-foreground p-6 glass-card rounded-xl">No one at this table yet</p>}
                     </div>
