@@ -253,11 +253,11 @@ export default function LiveScreen() {
                         <div className="flex flex-col items-center justify-center px-6" data-testid="sponsor-heading-center">
                             {branding.sponsor_heading.split(' ').length >= 2 ? (
                                 <>
-                                    <span className="text-lg font-black uppercase tracking-[0.3em] text-gray-400 leading-tight">{branding.sponsor_heading.split(' ').slice(0, Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
-                                    <span className="text-lg font-black uppercase tracking-[0.3em] text-gray-400 leading-tight">{branding.sponsor_heading.split(' ').slice(Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
+                                    <span className="text-3xl font-black uppercase tracking-[0.2em] text-gray-700 leading-tight" style={{fontFamily:'Outfit'}}>{branding.sponsor_heading.split(' ').slice(0, Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
+                                    <span className="text-3xl font-black uppercase tracking-[0.2em] text-gray-700 leading-tight" style={{fontFamily:'Outfit'}}>{branding.sponsor_heading.split(' ').slice(Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
                                 </>
                             ) : (
-                                <span className="text-lg font-black uppercase tracking-[0.3em] text-gray-400">{branding.sponsor_heading}</span>
+                                <span className="text-3xl font-black uppercase tracking-[0.2em] text-gray-700" style={{fontFamily:'Outfit'}}>{branding.sponsor_heading}</span>
                             )}
                         </div>
                     )}
