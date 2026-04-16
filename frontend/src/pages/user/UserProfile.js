@@ -1,14 +1,31 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import API from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Save, User, Camera, Building2 } from 'lucide-react';
+import { Save, User, Camera, Building2, ZoomIn, ZoomOut, Check } from 'lucide-react';
+import Cropper from 'react-easy-crop';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
+function createCroppedImage(imageSrc, pixelCrop) {
+    return new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = pixelCrop.width;
+            canvas.height = pixelCrop.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height);
+            canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.9);
+        };
+        image.src = imageSrc;
+    });
+}
 
 export default function UserProfile() {
     const { user, setUser } = useAuth();
@@ -20,6 +37,13 @@ export default function UserProfile() {
     const ppRef = useRef(null);
     const clRef = useRef(null);
 
+    // Cropper state
+    const [cropDialog, setCropDialog] = useState(false);
+    const [cropImage, setCropImage] = useState(null);
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
     useEffect(() => {
         API.get('/user/profile').then(r => setProfile(r.data)).catch(() => {});
         API.get('/user/categories').then(r => setCategories(r.data)).catch(() => {});
@@ -30,6 +54,31 @@ export default function UserProfile() {
             API.get(`/user/subcategories?category_id=${profile.category_id}`).then(r => setSubcategories(r.data)).catch(() => {});
         }
     }, [profile?.category_id]);
+
+    const onCropComplete = useCallback((_, croppedPixels) => {
+        setCroppedAreaPixels(croppedPixels);
+    }, []);
+
+    const handleFileSelect = (file) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            setCropImage(reader.result);
+            setCrop({ x: 0, y: 0 });
+            setZoom(1);
+            setCropDialog(true);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropConfirm = async () => {
+        if (!cropImage || !croppedAreaPixels) return;
+        setCropDialog(false);
+        const blob = await createCroppedImage(cropImage, croppedAreaPixels);
+        const file = new File([blob], 'profile.jpg', { type: 'image/jpeg' });
+        await uploadPhoto(file, 'profile_picture');
+        setCropImage(null);
+    };
 
     const uploadPhoto = async (file, photoType) => {
         setUploading(u => ({ ...u, [photoType]: true }));
@@ -94,7 +143,7 @@ export default function UserProfile() {
                             </div>
                         </div>
                         <span className="text-xs text-muted-foreground font-medium">Profile Picture</span>
-                        <input ref={ppRef} type="file" accept="image/*" className="hidden" onChange={e => e.target.files[0] && uploadPhoto(e.target.files[0], 'profile_picture')} />
+                        <input ref={ppRef} type="file" accept="image/*" className="hidden" onChange={e => { e.target.files[0] && handleFileSelect(e.target.files[0]); e.target.value = ''; }} data-testid="profile-picture-input" />
                         {uploading.profile_picture && <span className="text-xs text-primary">Uploading...</span>}
                     </div>
                     {/* Company Logo */}
@@ -188,6 +237,46 @@ export default function UserProfile() {
             <Button onClick={save} className="w-full h-11 bg-primary" disabled={loading} data-testid="save-profile-btn">
                 <Save size={16} className="mr-2" />{loading ? 'Saving...' : 'Save Profile'}
             </Button>
+
+            {/* Crop Dialog */}
+            <Dialog open={cropDialog} onOpenChange={(open) => { if (!open) { setCropDialog(false); setCropImage(null); } }}>
+                <DialogContent className="bg-card border-border max-w-md p-0 overflow-hidden" data-testid="crop-dialog">
+                    <DialogHeader className="p-4 pb-0">
+                        <DialogTitle className="text-lg" style={{fontFamily:'Outfit'}}>Crop Profile Picture</DialogTitle>
+                        <p className="text-xs text-muted-foreground">Position your face in the circle. Pinch or use slider to zoom.</p>
+                    </DialogHeader>
+                    <div className="relative w-full h-72 bg-black">
+                        {cropImage && (
+                            <Cropper
+                                image={cropImage}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={1}
+                                cropShape="round"
+                                showGrid={true}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                            />
+                        )}
+                    </div>
+                    <div className="p-4 space-y-3">
+                        <div className="flex items-center gap-3">
+                            <ZoomOut size={16} className="text-muted-foreground shrink-0" />
+                            <input
+                                type="range" min={1} max={3} step={0.1} value={zoom}
+                                onChange={e => setZoom(Number(e.target.value))}
+                                className="flex-1 accent-primary"
+                                data-testid="crop-zoom-slider"
+                            />
+                            <ZoomIn size={16} className="text-muted-foreground shrink-0" />
+                        </div>
+                        <Button onClick={handleCropConfirm} className="w-full bg-primary" data-testid="crop-confirm-btn">
+                            <Check size={16} className="mr-2" />Save Photo
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
