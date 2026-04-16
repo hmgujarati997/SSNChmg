@@ -214,9 +214,9 @@ export default function LiveScreen() {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 overflow-hidden flex flex-col" data-testid="live-screen">
-            {/* Header: [Login Logo 1] [Event Name] [Login Logo 2] ... LIVE + ROUND in corner */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-5 flex-1 justify-center">
+            {/* Header: centered [Logo 1] [Event Name] [Logo 2] with LIVE+ROUND in far right corner */}
+            <div className="relative flex items-center justify-center mb-3">
+                <div className="flex items-center gap-5">
                     {branding.login_logo_1 && (
                         <img src={`${backendUrl}${branding.login_logo_1}`} alt="Logo 1" className="h-16 w-auto object-contain" data-testid="live-logo-1" />
                     )}
@@ -225,7 +225,7 @@ export default function LiveScreen() {
                         <img src={`${backendUrl}${branding.login_logo_2}`} alt="Logo 2" className="h-16 w-auto object-contain" data-testid="live-logo-2" />
                     )}
                 </div>
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-3">
                     {event?.status === 'live' && (
                         <span className="bg-emerald-100 text-emerald-700 border border-emerald-200 px-4 py-1 rounded-full text-sm font-bold animate-pulse">LIVE</span>
                     )}
@@ -239,13 +239,13 @@ export default function LiveScreen() {
 
             {/* Sponsors Row: [Sponsor 1 Logo+Name] [Heading 2 lines] [Sponsor 2 Logo+Name] */}
             {hasSponsors && (
-                <div className="rounded-2xl p-5 flex items-center justify-center gap-10 border border-gray-200 bg-white shadow-sm mb-4" data-testid="sponsor-banner">
+                <div className="rounded-2xl p-6 flex items-center justify-center gap-12 border border-gray-200 bg-white shadow-sm mb-4" data-testid="sponsor-banner">
                     <div className="flex items-center gap-4" data-testid="sponsor-1-display">
                         {branding.sponsor_logo_1 && (
-                            <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-20 w-auto object-contain" />
+                            <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-24 w-auto object-contain" />
                         )}
                         {branding.sponsor_name_1 && (
-                            <span className="text-3xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
+                            <span className="text-4xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
                         )}
                     </div>
 
@@ -253,21 +253,21 @@ export default function LiveScreen() {
                         <div className="flex flex-col items-center justify-center px-6" data-testid="sponsor-heading-center">
                             {branding.sponsor_heading.split(' ').length >= 2 ? (
                                 <>
-                                    <span className="text-sm font-bold uppercase tracking-[0.3em] text-gray-400 leading-tight">{branding.sponsor_heading.split(' ').slice(0, Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
-                                    <span className="text-sm font-bold uppercase tracking-[0.3em] text-gray-400 leading-tight">{branding.sponsor_heading.split(' ').slice(Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
+                                    <span className="text-lg font-black uppercase tracking-[0.3em] text-gray-400 leading-tight">{branding.sponsor_heading.split(' ').slice(0, Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
+                                    <span className="text-lg font-black uppercase tracking-[0.3em] text-gray-400 leading-tight">{branding.sponsor_heading.split(' ').slice(Math.ceil(branding.sponsor_heading.split(' ').length / 2)).join(' ')}</span>
                                 </>
                             ) : (
-                                <span className="text-sm font-bold uppercase tracking-[0.3em] text-gray-400">{branding.sponsor_heading}</span>
+                                <span className="text-lg font-black uppercase tracking-[0.3em] text-gray-400">{branding.sponsor_heading}</span>
                             )}
                         </div>
                     )}
 
                     <div className="flex items-center gap-4" data-testid="sponsor-2-display">
                         {branding.sponsor_logo_2 && (
-                            <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-20 w-auto object-contain" />
+                            <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-24 w-auto object-contain" />
                         )}
                         {branding.sponsor_name_2 && (
-                            <span className="text-3xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
+                            <span className="text-4xl font-black tracking-tight text-gray-900" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
                         )}
                     </div>
                 </div>
