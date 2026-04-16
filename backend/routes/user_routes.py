@@ -223,6 +223,47 @@ async def get_table_people(event_id: str, round_number: int, user=Depends(requir
     return {"table_number": assignment['table_number'], "people": people}
 
 
+@router.get("/lookup-badge/{event_id}/{badge_number}")
+async def lookup_by_badge(event_id: str, badge_number: int, user=Depends(require_user)):
+    """Look up a user by badge number for passing references outside of table."""
+    reg = await db.event_registrations.find_one(
+        {"event_id": event_id, "badge_number": badge_number}, {"_id": 0}
+    )
+    if not reg:
+        raise HTTPException(404, "Badge number not found")
+    if reg['user_id'] == user['sub']:
+        raise HTTPException(400, "Cannot pass reference to yourself")
+    found = await db.users.find_one({"id": reg['user_id']}, {"_id": 0, "password_hash": 0})
+    if not found:
+        raise HTTPException(404, "User not found")
+    if found.get('category_id'):
+        cat = await db.categories.find_one({"id": found['category_id']}, {"_id": 0})
+        found['category_name'] = cat['name'] if cat else ''
+    if found.get('subcategory_id'):
+        sub = await db.subcategories.find_one({"id": found['subcategory_id']}, {"_id": 0})
+        found['subcategory_name'] = sub['name'] if sub else ''
+    found['badge_number'] = badge_number
+    return found
+
+
+@router.get("/lookup-profile/{user_id}")
+async def lookup_by_profile(user_id: str, user=Depends(require_user)):
+    """Look up a user by ID (from QR scan) for passing references."""
+    if user_id == user['sub']:
+        raise HTTPException(400, "Cannot pass reference to yourself")
+    found = await db.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 0})
+    if not found:
+        raise HTTPException(404, "User not found")
+    if found.get('category_id'):
+        cat = await db.categories.find_one({"id": found['category_id']}, {"_id": 0})
+        found['category_name'] = cat['name'] if cat else ''
+    if found.get('subcategory_id'):
+        sub = await db.subcategories.find_one({"id": found['subcategory_id']}, {"_id": 0})
+        found['subcategory_name'] = sub['name'] if sub else ''
+    return found
+
+
+
 @router.post("/references")
 async def punch_reference(data: ReferenceCreate, user=Depends(require_user)):
     ref_doc = {
