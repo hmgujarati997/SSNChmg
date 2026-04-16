@@ -37,6 +37,8 @@ export default function LiveScreen() {
         }
     }, [paramEventId]);
 
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
+
     const authenticate = async () => {
         try {
             await API.post('/live/auth', { password });
@@ -177,8 +179,6 @@ export default function LiveScreen() {
         const sec = Math.floor(s % 60);
         return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
     };
-
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || '';
 
     if (!authenticated) {
         return (
