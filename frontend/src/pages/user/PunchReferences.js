@@ -120,7 +120,6 @@ export default function PunchReferences() {
     }, []);
 
     const refsEnabled = activeEvent?.references_enabled || false;
-    }, []);
 
     const loadRefCounts = async (eventId) => {
         try {
