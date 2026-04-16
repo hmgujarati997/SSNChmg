@@ -245,7 +245,7 @@ export default function LiveScreen() {
                             <img src={`${backendUrl}${branding.sponsor_logo_1}`} alt={branding.sponsor_name_1 || 'Sponsor 1'} className="h-16 w-auto object-contain shrink-0" />
                         )}
                         {branding.sponsor_name_1 && (
-                            <span className="text-2xl font-black tracking-tight text-gray-900 truncate" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
+                            <span className="text-2xl font-black tracking-tight text-gray-900 break-words" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-1-text">{branding.sponsor_name_1}</span>
                         )}
                     </div>
 
@@ -267,7 +267,7 @@ export default function LiveScreen() {
                             <img src={`${backendUrl}${branding.sponsor_logo_2}`} alt={branding.sponsor_name_2 || 'Sponsor 2'} className="h-16 w-auto object-contain shrink-0" />
                         )}
                         {branding.sponsor_name_2 && (
-                            <span className="text-2xl font-black tracking-tight text-gray-900 truncate" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
+                            <span className="text-2xl font-black tracking-tight text-gray-900 break-words" style={{fontFamily:'Outfit'}} data-testid="sponsor-name-2-text">{branding.sponsor_name_2}</span>
                         )}
                     </div>
                 </div>
