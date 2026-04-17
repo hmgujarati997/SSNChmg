@@ -111,7 +111,7 @@ export default function PublicProfile() {
                         )}
                     </div>
                     <div className="px-6 pb-6 -mt-14">
-                        <div className="w-28 h-28 rounded-2xl bg-muted border-4 border-background overflow-hidden flex items-center justify-center text-4xl font-black text-primary shadow-lg" style={{fontFamily:'Outfit'}}>
+                        <div className="relative z-10 w-28 h-28 rounded-2xl bg-muted border-4 border-background overflow-hidden flex items-center justify-center text-4xl font-black text-primary shadow-lg" style={{fontFamily:'Outfit'}}>
                             {user.profile_picture ? (
                                 <img src={`${BACKEND_URL}${user.profile_picture}`} alt={user.full_name} className="w-full h-full object-cover" data-testid="profile-picture" />
                             ) : (
