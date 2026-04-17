@@ -1,6 +1,7 @@
 """WhatsApp messaging service using flexiwaba API."""
 import httpx
 import logging
+import os
 import re
 from database import db
 
@@ -40,6 +41,13 @@ async def get_wa_config():
 
 async def send_whatsapp(destination: str, template_name: str, template_params: list, campaign_name: str = "ssnc", attributes: dict = None, media_url: str = None):
     """Send a WhatsApp message via flexiwaba API. Returns (success, response_text)."""
+    # TEST MODE: simulate delivery without making real API calls.
+    # Set WA_TEST_MODE=1 in backend/.env during load testing to prevent real sends.
+    if os.environ.get("WA_TEST_MODE") == "1":
+        phone = normalize_phone(destination)
+        logger.info(f"[WA_TEST_MODE] Simulated send to {phone}: template={template_name}, params={template_params}")
+        return True, "TEST_MODE_SIMULATED_OK"
+
     config = await get_wa_config()
     if not config:
         return False, "WhatsApp not configured. Set API key, username, and source in Settings."
