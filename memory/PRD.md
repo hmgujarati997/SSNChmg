@@ -60,6 +60,7 @@ Build a PWA for a speed networking event "SSNC". Admin manages events, users, ca
 - [x] Live Screen Tones — upload MP3s for round start, conclude start, conclude end, round end (Apr 2026)
 - [x] Clear All References before event starts (Apr 2026)
 - [x] Reference Enable/Disable toggle — users can see table members but can't pass refs until admin enables (Apr 2026)
+- [x] Table-mate cards show profile photo + branded SVG social icons (WhatsApp, LinkedIn, Instagram, X, Facebook, YouTube, Website) (Feb 2026)
 
 ## P2 Features (Backlog)
 - [ ] Admin analytics dashboard
