@@ -1427,3 +1427,39 @@ No explanation, no markdown, just the JSON."""
         raise HTTPException(500, f"AI returned invalid JSON: {str(e)}")
     except Exception as e:
         raise HTTPException(500, f"AI error: {str(e)}")
+
+
+# ========== WhatsApp Notification Backlog (admin monitoring & recovery) ==========
+
+@router.get("/whatsapp-backlog")
+async def wa_backlog_status(admin=Depends(require_admin)):
+    """Return counts + sample entries from the reference-notification backlog.
+    pending = still being retried; failed = dead-lettered after 10 retries."""
+    pending = await db.notification_backlog.count_documents({"status": {"$ne": "failed"}})
+    failed = await db.notification_backlog.count_documents({"status": "failed"})
+    latest_failed = await db.notification_backlog.find(
+        {"status": "failed"}, {"_id": 0}
+    ).sort("failed_at", -1).limit(5).to_list(5)
+    return {
+        "pending": pending,
+        "failed": failed,
+        "sample_failed": latest_failed,
+    }
+
+
+@router.post("/whatsapp-backlog/retry-failed")
+async def wa_backlog_retry_failed(admin=Depends(require_admin)):
+    """Move all dead-lettered items back into the retry pool (admin recovery action)."""
+    result = await db.notification_backlog.update_many(
+        {"status": "failed"},
+        {"$set": {"status": "pending", "retries": 0, "last_error": "manual_retry"}}
+    )
+    return {"requeued": result.modified_count}
+
+
+@router.delete("/whatsapp-backlog/failed")
+async def wa_backlog_delete_failed(admin=Depends(require_admin)):
+    """Purge all dead-lettered items (admin cleanup)."""
+    result = await db.notification_backlog.delete_many({"status": "failed"})
+    return {"deleted": result.deleted_count}
+

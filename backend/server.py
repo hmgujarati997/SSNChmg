@@ -95,6 +95,11 @@ async def startup():
 
     logger.info("SSNC Speed Networking API started successfully")
 
+    # Start background WhatsApp worker so backlog drains even before the first reference
+    from routes.user_routes import _ensure_wa_worker
+    _ensure_wa_worker()
+    logger.info("WhatsApp notification worker started")
+
 
 @app.on_event("shutdown")
 async def shutdown():

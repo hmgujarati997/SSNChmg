@@ -35,19 +35,24 @@ async def _get_cached_settings():
 
 
 async def _send_one_notification(item):
-    """Send a single WhatsApp reference notification."""
+    """Send a single WhatsApp reference notification.
+    Returns a tuple (status, reason):
+      - ("skip", reason)      → drop permanently (missing user / bad template etc.)
+      - ("retry", reason)     → transient failure, should be re-queued
+      - ("ok",   "")          → delivered
+    """
     from whatsapp_service import send_whatsapp
     settings = await _get_cached_settings()
     template = settings.get("wa_template_reference", "") if settings else ""
     campaign = settings.get("wa_campaign_reference", "") if settings else ""
     if not template or not campaign:
-        return
+        return "retry", "wa_template_or_campaign_missing"
     from_user = await db.users.find_one({"id": item["from_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
     to_user = await db.users.find_one({"id": item["to_user_id"]}, {"_id": 0, "full_name": 1, "phone": 1})
     if not from_user or not to_user or not to_user.get("phone"):
-        return
+        return "skip", "missing_user_or_phone"
     referrer_info = f"{from_user.get('full_name', 'Someone')} - {from_user.get('phone', '')}"
-    await send_whatsapp(
+    ok, resp = await send_whatsapp(
         destination=to_user["phone"],
         template_name=template,
         template_params=[
@@ -58,26 +63,73 @@ async def _send_one_notification(item):
         ],
         campaign_name=campaign,
     )
+    if ok:
+        return "ok", ""
+    return "retry", (resp or "")[:300]
+
+
+async def _requeue_to_backlog(item, reason):
+    """Persist a failed item to the backlog with an incremented retry counter."""
+    doc = {k: v for k, v in item.items() if k != "_id"}
+    doc["retries"] = int(doc.get("retries", 0)) + 1
+    doc["last_error"] = reason
+    doc["last_attempt_at"] = datetime.now(timezone.utc).isoformat()
+    if doc["retries"] >= 10:
+        doc["status"] = "failed"
+        doc["failed_at"] = doc["last_attempt_at"]
+    await db.notification_backlog.insert_one(doc)
 
 
 async def _wa_notification_worker():
-    """Single worker: drains in-memory queue, then backlog from MongoDB when idle."""
+    """Single worker: drains in-memory queue, then retries any un-sent backlog items.
+
+    Resilient behavior:
+      • If WA provider returns an error → item is re-inserted into `notification_backlog`
+        with a `retries` counter. After 10 failed attempts it is marked `status=failed`
+        and skipped (kept for admin review).
+      • Backlog items are only removed AFTER a successful send (read-then-delete on id).
+      • Dead-lettered items (status=failed) are never retried automatically.
+    """
     while True:
         try:
             # 1) Drain in-memory queue (with 0.5s timeout so we can check backlog)
             try:
                 item = await asyncio.wait_for(_notification_queue.get(), timeout=0.5)
-                await _send_one_notification(item)
+                status, reason = await _send_one_notification(item)
                 _notification_queue.task_done()
+                if status == "retry":
+                    await _requeue_to_backlog(item, reason)
                 await asyncio.sleep(0.1)  # ~10/sec rate limit
                 continue
             except asyncio.TimeoutError:
                 pass
 
-            # 2) Queue empty — check MongoDB backlog for spilled notifications
-            backlog_item = await db.notification_backlog.find_one_and_delete({})
+            # 2) Queue empty — pick one backlog item that is NOT dead-lettered.
+            backlog_item = await db.notification_backlog.find_one(
+                {"status": {"$ne": "failed"}}
+            )
             if backlog_item:
-                await _send_one_notification(backlog_item)
+                status, reason = await _send_one_notification(backlog_item)
+                if status == "ok" or status == "skip":
+                    # Delivered (or permanently un-deliverable) → remove from backlog
+                    await db.notification_backlog.delete_one({"_id": backlog_item["_id"]})
+                else:
+                    # Transient failure → update retry counter on existing doc
+                    retries = int(backlog_item.get("retries", 0)) + 1
+                    update = {
+                        "retries": retries,
+                        "last_error": reason,
+                        "last_attempt_at": datetime.now(timezone.utc).isoformat(),
+                    }
+                    if retries >= 10:
+                        update["status"] = "failed"
+                        update["failed_at"] = update["last_attempt_at"]
+                    await db.notification_backlog.update_one(
+                        {"_id": backlog_item["_id"]}, {"$set": update}
+                    )
+                    # Backoff progressively so we don't hammer a broken provider.
+                    await asyncio.sleep(min(30, 2 * retries))
+                    continue
                 await asyncio.sleep(0.1)
             else:
                 await asyncio.sleep(2)  # Nothing to do, sleep longer
