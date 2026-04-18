@@ -619,6 +619,19 @@ function EventDetail({ eventId, onBack }) {
                                     } catch (err) { toast.error('Failed'); }
                                 }} data-testid="clear-references-btn">Clear References</Button>
                             </div>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="font-medium text-sm">Resend All Reference Notifications</p>
+                                    <p className="text-xs text-muted-foreground">Re-queue a WhatsApp notification for every reference already passed. Use if messages failed to deliver earlier (e.g., Flexiwaba API was disabled). Each recipient will receive a fresh message; rate-limited to protect the provider.</p>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={async () => {
+                                    if (!window.confirm('Resend WhatsApp notifications for EVERY reference in this event? Users may receive duplicate messages for references that were already delivered.')) return;
+                                    try {
+                                        const r = await API.post(`/admin/events/${eventId}/resend-references`);
+                                        toast.success(r.data.message || `Queued ${r.data.queued} notifications`);
+                                    } catch (err) { toast.error(err.response?.data?.detail || 'Failed to resend'); }
+                                }} data-testid="resend-references-btn">Resend All</Button>
+                            </div>
                         </div>
                         <div className="border-t border-border pt-4 mt-4">
                             <Button variant="destructive" onClick={deleteEvent} data-testid="delete-event-btn"><Trash2 size={16} className="mr-2" />Delete Event</Button>

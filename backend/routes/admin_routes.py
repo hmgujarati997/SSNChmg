@@ -793,6 +793,34 @@ async def clear_all_references(event_id: str, admin=Depends(require_admin)):
     return {"message": f"Cleared {result.deleted_count} references", "deleted": result.deleted_count}
 
 
+@router.post("/events/{event_id}/resend-references")
+async def resend_all_reference_notifications(event_id: str, admin=Depends(require_admin)):
+    """Queue a WhatsApp notification for every reference already passed in this event.
+    Useful when the WA provider was misconfigured or down during part of the event."""
+    refs = await db.references.find(
+        {"event_id": event_id},
+        {"_id": 0, "from_user_id": 1, "to_user_id": 1, "contact_name": 1, "contact_phone": 1}
+    ).to_list(200000)
+    if not refs:
+        return {"queued": 0, "message": "No references found for this event"}
+    docs = [
+        {
+            "from_user_id": r["from_user_id"],
+            "to_user_id": r["to_user_id"],
+            "contact_name": r.get("contact_name", ""),
+            "contact_phone": r.get("contact_phone", ""),
+            "retries": 0,
+            "last_error": "",
+            "last_attempt_at": datetime.now(timezone.utc).isoformat(),
+        }
+        for r in refs
+    ]
+    # Bulk insert into backlog; the resilient worker will drain them with retry/backoff.
+    await db.notification_backlog.insert_many(docs, ordered=False)
+    return {"queued": len(docs), "message": f"Queued {len(docs):,} reference notifications for resend"}
+
+
+
 @router.get("/events/{event_id}/registrations")
 async def get_registrations(event_id: str, admin=Depends(require_admin)):
     regs = await db.event_registrations.find({"event_id": event_id}, {"_id": 0}).to_list(2000)
